@@ -58,6 +58,10 @@ The container runs `alembic upgrade head` before the bot process. The bot uses l
 | `PERIOD_DISCOUNTS` | no | `3:7,12:15` | Period discounts as `months:percent` pairs (3 months 7%, 12 months 15%) |
 | `BACKUP_DIR` | no | `./backups` | Host folder for `pg_dump` files |
 | `BACKUP_RETENTION_DAYS` | no | `14` | How many days to keep dump files |
+| `BACKUP_ENABLED` | no | `true` | Daily `pg_dump` sent to every `SUPER_ADMIN_IDS` chat as a document |
+| `BACKUP_TIME` | no | `04:00` | Asia/Tashkent time after which the daily backup runs (once per day) |
+| `BACKUP_MAX_MB` | no | `45` | Larger dumps are not sent; admins get an alert instead |
+| `BACKUP_TIMEOUT_SECONDS` | no | `600` | `pg_dump` time limit |
 | `ALERT_COOLDOWN_SECONDS` | no | `300` | Minimum gap between Telegram error alerts to super admins |
 | `HEALTH_PORT` | no | `8080` | In-container HTTP health port. `0` disables the server |
 | `HEALTH_FILE` | no | `/tmp/ritm-health` | Heartbeat file updated after a successful scheduler tick |
@@ -112,6 +116,8 @@ Routers call services. Services call repositories. Repositories are the only cod
 
 
 ## Backups
+
+**Daily Telegram backup (Render and Docker):** when Telegram mode is not `off`, the bot runs `pg_dump --format=custom --compress=6` once per Asia/Tashkent day after `BACKUP_TIME`, sends the file to each super admin and deletes the temp file. The day is recorded in `system_state` (`backup_last_day`, result in `backup_last_result`), so restarts do not send it twice. The password reaches `pg_dump` only through `PGPASSWORD`. Restore with `pg_restore --clean --if-exists --no-owner --no-acl -d "<url>" ritm-YYYY-MM-DD.dump`.
 
 The database is dumped with `pg_dump` (custom format) into `BACKUP_DIR` (default `./backups` on the host, not inside the Postgres volume). Old files named `ritm-*.dump` are deleted after `BACKUP_RETENTION_DAYS` (default 14).
 

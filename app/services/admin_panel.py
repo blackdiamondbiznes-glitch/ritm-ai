@@ -272,14 +272,7 @@ class AdminPanel:
             ),
             limit=20,
         )
-        open_sub = next(
-            (
-                (sub, plan)
-                for sub, plan in subs
-                if sub.status in (SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL)
-            ),
-            None,
-        )
+        now = self._now()
         return {
             "user": {
                 **user_brief(user),
@@ -292,22 +285,14 @@ class AdminPanel:
                 "created_at": iso(user.created_at),
                 "last_seen_at": iso(user.last_seen_at),
             },
-            "plan": {
-                "code": open_sub[1].code if open_sub else "free",
-                "name": open_sub[1].name if open_sub else "Free",
-                "status": open_sub[0].status.value if open_sub else None,
-                "expires_at": iso(open_sub[0].expires_at) if open_sub else None,
-                "ai_used": int(used or 0),
-                "ai_limit": open_sub[1].ai_generations_per_month if open_sub else None,
-                "max_chats": open_sub[1].max_chats if open_sub else None,
-            },
+            "plan": _tenant_plan(subs, int(used or 0), now),
             "chats": [self._chat_row(chat, user) for chat in chats],
             "subscriptions": [
                 {
                     "id": sub.id,
                     "plan": plan.code,
                     "plan_name": plan.name,
-                    "status": sub.status.value,
+                    "status": _shown_status(sub, now),
                     "source": sub.source.value,
                     "started_at": iso(sub.started_at),
                     "expires_at": iso(sub.expires_at),
@@ -492,3 +477,28 @@ class AdminPanel:
             "removed_at": iso(chat.removed_at),
             "owner": user_brief(owner),
         }
+
+
+_OPEN = (SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL)
+
+
+def _shown_status(sub: Subscription, now: datetime) -> str:
+    """An open row past its expiry is shown as expired, like the access rules treat it."""
+    if sub.status in _OPEN and sub.expires_at <= now:
+        return SubscriptionStatus.EXPIRED.value
+    return sub.status.value
+
+
+def _tenant_plan(subs: list, used: int, now: datetime) -> dict[str, Any]:
+    """Plan block for one tenant. An expired open subscription means the free plan."""
+    open_sub = next(((sub, plan) for sub, plan in subs if sub.status in _OPEN), None)
+    live = open_sub is not None and open_sub[0].expires_at > now
+    return {
+        "code": open_sub[1].code if live else "free",
+        "name": open_sub[1].name if live else "Free",
+        "status": _shown_status(open_sub[0], now) if open_sub else None,
+        "expires_at": iso(open_sub[0].expires_at) if open_sub else None,
+        "ai_used": used,
+        "ai_limit": open_sub[1].ai_generations_per_month if live else None,
+        "max_chats": open_sub[1].max_chats if live else None,
+    }

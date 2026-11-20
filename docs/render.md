@@ -28,7 +28,8 @@ expiry) do not run while it sleeps**. The in-memory FSM state and pending chat i
 lost whenever it sleeps or restarts. 750 free instance hours per workspace per month.
 
 Free Postgres: 1 GB, no backups, one per workspace, **expires 30 days after creation**
-(14-day grace to upgrade, then deleted).
+(14-day grace to upgrade, then deleted). The bot itself sends a daily `pg_dump` to every
+super admin in Telegram at 04:00 Asia/Tashkent (see README, `BACKUP_*`).
 
 Production: web service `0.5c-512mb` ($7/month) + Postgres `0.1c-256mb` ($6/month, storage
 $0.30/GB) on the Hobby workspace ($0) — about $13/month.

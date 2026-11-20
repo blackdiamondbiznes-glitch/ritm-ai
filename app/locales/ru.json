@@ -309,5 +309,8 @@
   "lang_pick": "🌐 Tilni tanlang · Выберите язык · Choose your language",
   "menu_language": "🌐 Язык / Til / Language",
   "lang_saved": "✅ Язык сохранён: Русский",
-  "cmd_language": "Сменить язык"
+  "cmd_language": "Сменить язык",
+  "backup_caption": "💾 Резервная копия базы Ritm AI: {day} ({mb} МБ).\nВосстановление: pg_restore --clean --no-owner -d &lt;DATABASE_URL&gt; файл.dump",
+  "backup_too_big": "⚠️ Сегодняшняя копия базы {mb} МБ, лимит Telegram {max} МБ. Файл не отправлен: включите другой способ резервного копирования на Render.",
+  "backup_failed": "⚠️ Сегодняшнюю копию базы сделать не удалось (причина: {code}). Проверьте логи Render."
 }

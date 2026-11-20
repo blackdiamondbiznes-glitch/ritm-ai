@@ -17,6 +17,7 @@ from app.bot.routers import setup_routers
 from app.bot.telegram_mode import clear_webhook, start_webhook, webhook_routes
 from app.config import get_settings
 from app.db.session import create_engine, create_session_factory
+from app.jobs.backup import DailyBackup, schedule_backup
 from app.jobs.tick import Tick, _touch_heartbeat, schedule_tick
 from app.logging_setup import setup_logging
 from app.ops.http_health import start_health_server
@@ -52,6 +53,8 @@ async def main() -> None:
             Tick(session_factory, bot, settings, sender),
             settings.job_tick_seconds,
         )
+        if settings.backup_enabled and settings.admin_ids:
+            schedule_backup(scheduler, DailyBackup(session_factory, bot, settings))
         scheduler.start()
     _touch_heartbeat(settings.health_file)
     health = await start_health_server(settings, session_factory)

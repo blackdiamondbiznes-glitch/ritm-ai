@@ -36,6 +36,7 @@ class Quiz(Base):
     __table_args__ = (
         Index("ix_quizzes_chat_id", "chat_id"),
         Index("ix_quizzes_content_item_id", "content_item_id"),
+        Index("ix_quizzes_telegram_poll_id", "telegram_poll_id"),
         CheckConstraint("correct_index >= 0 AND correct_index <= 9", name="ck_quizzes_correct"),
         CheckConstraint(
             "mode IN ('private_deeplink', 'group_native')",

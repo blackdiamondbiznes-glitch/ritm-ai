@@ -309,5 +309,8 @@
   "lang_pick": "🌐 Tilni tanlang · Выберите язык · Choose your language",
   "menu_language": "🌐 Language / Til / Язык",
   "lang_saved": "✅ Language saved: English",
-  "cmd_language": "Change language"
+  "cmd_language": "Change language",
+  "backup_caption": "💾 Ritm AI database backup: {day} ({mb} MB).\nRestore: pg_restore --clean --no-owner -d &lt;DATABASE_URL&gt; file.dump",
+  "backup_too_big": "⚠️ Today's database backup is {mb} MB, over the {max} MB Telegram limit. The file was not sent: set up another backup method on Render.",
+  "backup_failed": "⚠️ Today's database backup failed (reason: {code}). Check the Render logs."
 }

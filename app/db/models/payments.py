@@ -51,6 +51,7 @@ class Payment(Base):
         CheckConstraint("method IN ('manual_card')", name="method"),
         Index("uq_payments_ref_code", "ref_code", unique=True),
         Index("ix_payments_receipt_unique_id", "receipt_unique_id"),
+        Index("ix_payments_duplicate_of_id", "duplicate_of_id"),
         CheckConstraint(
             "status IN ('draft', 'pending', 'approved', 'rejected', 'disputed', 'canceled', "
             "'expired')",
@@ -97,6 +98,7 @@ class PaymentEvent(Base):
     __table_args__ = (
         Index("ix_payment_events_payment_id", "payment_id"),
         Index("ix_payment_events_created_at", "created_at"),
+        Index("ix_payment_events_actor_user_id", "actor_user_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

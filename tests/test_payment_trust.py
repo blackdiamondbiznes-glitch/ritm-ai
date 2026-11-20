@@ -394,4 +394,4 @@ def test_migrations_0010_and_0011_downgrade_and_upgrade() -> None:
     run("upgrade", "0010_payment_trust")
     assert "0010_payment_trust" in run("current")
     run("upgrade", "head")
-    assert "0012_user_prefs (head)" in run("current")
+    assert "0013_lookup_indexes (head)" in run("current")

@@ -119,7 +119,8 @@ async def start_webapp(
     app = create_app(settings, sessions, bot=bot, bot_username=bot_username, pending=pending)
     if configure is not None:
         configure(app)
-    runner = web.AppRunner(app)
+    # No access log: the webhook path carries the secret token.
+    runner = web.AppRunner(app, access_log=None)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()

@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     period_discounts: str = "3:7,12:15"
     backup_dir: str = "./backups"
     backup_retention_days: int = 14
+    # Daily pg_dump sent to every SUPER_ADMIN_IDS chat (Render has no free backups).
+    backup_enabled: bool = True
+    backup_time: str = "04:00"
+    backup_max_mb: int = 45
+    backup_timeout_seconds: int = 600
     alert_cooldown_seconds: int = 300
     health_port: int = 8080
     health_file: str = "/tmp/ritm-health"
@@ -152,6 +157,15 @@ class Settings(BaseSettings):
             return time(int(hours), int(minutes))
         except ValueError:
             return time(9, 0)
+
+    @property
+    def backup_clock(self) -> time:
+        """Asia/Tashkent time after which the daily backup runs."""
+        try:
+            hours, minutes = self.backup_time.strip().split(":", 1)
+            return time(int(hours), int(minutes))
+        except ValueError:
+            return time(4, 0)
 
     @property
     def admin_ids(self) -> frozenset[int]:

@@ -1,15 +1,18 @@
 """Render deployment: database URL, PORT, Telegram mode and the webhook route."""
 
 import asyncio
+import logging
 import os
+import socket
 
+import aiohttp
 import pytest
 from aiogram import Bot, Dispatcher
 from aiohttp.test_utils import TestClient, TestServer
 from app.bot.telegram_mode import clear_webhook, start_webhook, webhook_routes
 from app.config import Settings
 from app.db.url import normalize_database_url
-from app.webapp.server import create_app
+from app.webapp.server import create_app, start_webapp
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -171,3 +174,31 @@ def test_off_mode_skips_scheduler_and_telegram_setup() -> None:
     assert source.index('if mode != "off":') < source.index("scheduler.start()")
     assert off < source.index("await setup_commands(bot)")
     assert off < source.index("await clear_webhook(bot)")
+
+
+async def test_webhook_secret_never_reaches_the_logs(sessions, caplog) -> None:
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    settings = _settings(
+        telegram_mode="webhook", render_external_url="https://ritm.onrender.com", port=port
+    )
+    bot = Bot(token=TOKEN)
+    dispatcher = Dispatcher()
+    caplog.set_level(logging.DEBUG)
+    runner = await start_webapp(
+        settings, sessions, bot=bot, configure=webhook_routes(dispatcher, bot, settings)
+    )
+    assert runner is not None
+    try:
+        async with aiohttp.ClientSession() as http:
+            url = f"http://127.0.0.1:{port}{settings.webhook_path}"
+            async with http.post(url, json={"update_id": 1}) as response:
+                assert response.status == 401
+            async with http.get(f"http://127.0.0.1:{port}/health") as response:
+                assert response.status == 200
+    finally:
+        await runner.cleanup()
+        await bot.session.close()
+    logged = "\n".join(record.getMessage() for record in caplog.records)
+    assert settings.webhook_token not in logged and TOKEN not in logged

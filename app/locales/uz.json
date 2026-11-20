@@ -309,5 +309,8 @@
   "lang_pick": "🌐 Tilni tanlang · Выберите язык · Choose your language",
   "menu_language": "🌐 Til / Язык / Language",
   "lang_saved": "✅ Til saqlandi: O'zbekcha",
-  "cmd_language": "Tilni o'zgartirish"
+  "cmd_language": "Tilni o'zgartirish",
+  "backup_caption": "💾 Ritm AI baza zaxirasi: {day} ({mb} MB).\nTiklash: pg_restore --clean --no-owner -d &lt;DATABASE_URL&gt; fayl.dump",
+  "backup_too_big": "⚠️ Bugungi baza zaxirasi {mb} MB, Telegram chegarasi {max} MB. Fayl yuborilmadi: Render'da boshqa zaxira usulini yoqing.",
+  "backup_failed": "⚠️ Bugungi baza zaxirasi olinmadi (sabab: {code}). Render loglarini tekshiring."
 }

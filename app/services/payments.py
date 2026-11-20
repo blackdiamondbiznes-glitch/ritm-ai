@@ -360,7 +360,7 @@ class PaymentService:
 
     async def approve(self, reviewer: User, payment_id: int, *, via: str = "bot") -> Payment:
         """Activate or extend the plan. A second approve is a no-op."""
-        payment = await self._require(payment_id)
+        payment = await self._require_locked(payment_id)
         if payment.status == STATUS_APPROVED:
             return payment
         if payment.status not in REVIEWABLE:
@@ -401,7 +401,7 @@ class PaymentService:
         text = (reason or "").strip()[:500]
         if not text:
             raise PaymentError("reason")
-        payment = await self._require(payment_id)
+        payment = await self._require_locked(payment_id)
         if payment.status not in REVIEWABLE:
             raise PaymentError("status")
         payment.reject_reason = text
@@ -421,7 +421,7 @@ class PaymentService:
         self, reviewer: User, payment_id: int, note: str = "", *, via: str = "bot"
     ) -> FakeMarked:
         """Reject as a fake receipt and count it against the owner; block after repeats."""
-        payment = await self._require(payment_id)
+        payment = await self._require_locked(payment_id)
         if payment.is_fake or payment.status not in (*REVIEWABLE, STATUS_REJECTED):
             raise PaymentError("status")
         owner = await self._users.get_by_id(payment.owner_id)
@@ -601,6 +601,13 @@ class PaymentService:
         """Current paid or trial end, if the owner still has an open subscription."""
         sub = await self._subs.get_open(owner_id)
         return None if sub is None else sub.expires_at
+
+    async def _require_locked(self, payment_id: int) -> Payment:
+        """Row-locked load so concurrent reviews of one request apply once."""
+        payment = await self._payments.get_for_update(payment_id)
+        if payment is None:
+            raise PaymentError("missing")
+        return payment
 
     async def _require(self, payment_id: int) -> Payment:
         payment = await self._payments.get(payment_id)

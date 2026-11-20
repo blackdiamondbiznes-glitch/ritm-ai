@@ -35,6 +35,17 @@ class PaymentRepository:
         result = await self._session.execute(select(Payment).where(Payment.id == payment_id))
         return result.scalar_one_or_none()
 
+    async def get_for_update(self, payment_id: int) -> Payment | None:
+        """Load one payment with a row lock, refreshing any stale copy in the session."""
+        stmt = (
+            select(Payment)
+            .where(Payment.id == payment_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_pending(self, owner_id: int) -> Payment | None:
         """The owner's open request (waiting for review or disputed), if any."""
         stmt = (

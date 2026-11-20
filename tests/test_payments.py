@@ -36,6 +36,9 @@ class _Payments:
     async def get(self, payment_id: int) -> Payment | None:
         return next((row for row in self.rows if row.id == payment_id), None)
 
+    async def get_for_update(self, payment_id: int) -> Payment | None:
+        return await self.get(payment_id)
+
     async def get_pending(self, owner_id: int) -> Payment | None:
         found = [
             row
