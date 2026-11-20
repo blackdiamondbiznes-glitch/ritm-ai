@@ -32,6 +32,11 @@ target="$BACKUP_DIR/ritm-${stamp}.dump"
 
 # shellcheck disable=SC2034
 export PGPASSWORD="$dbpass"
+case "$DATABASE_URL" in
+  *sslmode=*|*[?\&]ssl=*|*neon.tech*)
+    export PGSSLMODE="${PGSSLMODE:-require}"
+    ;;
+esac
 if ! pg_dump -Fc -h "$dbhost" -p "$dbport" -U "$dbuser" -d "$dbname" -f "$target"; then
   unset PGPASSWORD
   echo "pg_dump failed" >&2

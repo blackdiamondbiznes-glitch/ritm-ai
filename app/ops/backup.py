@@ -4,7 +4,7 @@ import asyncio
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from urllib.parse import parse_qsl, unquote, urlparse
+from urllib.parse import parse_qsl, unquote, urlencode, urlparse, urlsplit, urlunsplit
 
 _SSL_OFF = {"", "disable", "false", "0"}
 
@@ -22,7 +22,15 @@ def dump_dsn(database_url: str) -> str:
     """Turn a SQLAlchemy URL into a libpq URL. The password stays in the result."""
     raw = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
     raw = raw.replace("postgresql+psycopg://", "postgresql://", 1)
-    return raw
+    parts = urlsplit(raw)
+    query = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        if key == "ssl":
+            mode = "require" if value.lower() in {"true", "1", "prefer", "allow"} else value
+            query.append(("sslmode", mode))
+            continue
+        query.append((key, value))
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 def parse_dsn(database_url: str) -> dict[str, str]:
@@ -64,10 +72,16 @@ def pg_env(database_url: str) -> dict[str, str]:
         "PGPASSWORD": fields["password"],
         "PGDATABASE": fields["database"],
     }
-    query = dict(parse_qsl(urlparse(dump_dsn(database_url)).query))
+    parsed = urlparse(dump_dsn(database_url))
+    query = dict(parse_qsl(parsed.query))
     ssl = (query.get("sslmode") or query.get("ssl") or "").lower()
     if ssl not in _SSL_OFF:
         env["PGSSLMODE"] = "require" if ssl in {"true", "1", "prefer", "allow"} else ssl
+    elif "neon.tech" in (parsed.hostname or "").lower():
+        env["PGSSLMODE"] = "require"
+    binding = (query.get("channel_binding") or "").lower()
+    if binding:
+        env["PGCHANNELBINDING"] = binding
     return env
 
 
