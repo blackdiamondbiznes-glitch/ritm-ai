@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>Ritm AI</title>
+  <link rel="stylesheet" href="/s/theme.css">
+  <link rel="stylesheet" href="/s/layout.css">
+  <link rel="modulepreload" href="/s/app.js">
+  <link rel="modulepreload" href="/s/api.js">
+  <link rel="modulepreload" href="/s/i18n.js">
+  <link rel="modulepreload" href="/s/ui.js">
+  <link rel="modulepreload" href="/s/home.js">
+  <link rel="modulepreload" href="/s/chats.js">
+  <link rel="modulepreload" href="/s/board.js">
+  <link rel="modulepreload" href="/s/charts.js">
+  <link rel="modulepreload" href="/s/report.js">
+  <link rel="modulepreload" href="/s/profile.js">
+  <link rel="modulepreload" href="/s/history.js">
+  <link rel="modulepreload" href="/s/admin.js">
+  <link rel="modulepreload" href="/s/chatprofile.js">
+  <link rel="modulepreload" href="/s/scroller.js">
+  <link rel="preconnect" href="https://telegram.org">
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+</head>
+<body>
+  <div id="topbar" class="topbar" aria-hidden="true"></div>
+  <div class="shell">
+    <main id="main" class="main">
+      <div class="header sk-header"><div class="sk" style="width:55%;height:26px"></div><div class="sk" style="width:75%;height:14px"></div></div>
+      <div class="card sk-card"><div class="sk" style="width:40%;height:14px"></div><div class="sk" style="height:96px;margin-top:12px"></div></div>
+      <div class="card sk-card"><div class="sk" style="width:30%;height:14px"></div><div class="sk" style="width:60%;height:26px"></div></div>
+    </main>
+    <nav id="nav" class="bottom">
+      <button type="button" class="nav-item" data-tab="home">
+        <span class="nav-icon">🏠</span>
+        <span data-i18n="navHome">Bosh sahifa</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="chats">
+        <span class="nav-icon">💬</span>
+        <span data-i18n="navChats">Chatlar</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="board">
+        <span class="nav-icon">🏆</span>
+        <span data-i18n="navBoard">Reyting</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="history" hidden>
+        <span class="nav-icon">📜</span>
+        <span data-i18n="navHistory">Tarix</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="report">
+        <span class="nav-icon">📊</span>
+        <span data-i18n="navReport">Hisobot</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="admin" hidden>
+        <span class="nav-icon">🛡️</span>
+        <span data-i18n="navAdmin">Admin</span>
+      </button>
+      <button type="button" class="nav-item" data-tab="profile">
+        <span class="nav-icon">👤</span>
+        <span data-i18n="navProfile">Profil</span>
+      </button>
+    </nav>
+  </div>
+  <script type="module" src="/s/app.js"></script>
+</body>
+</html>

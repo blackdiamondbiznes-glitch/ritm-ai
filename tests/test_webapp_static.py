@@ -1,0 +1,112 @@
+"""Mini App static checks: locale parity and the admin module is wired and preloaded."""
+
+import re
+from pathlib import Path
+
+STATIC = Path(__file__).resolve().parents[1] / "app" / "webapp" / "static"
+
+
+def _locale_keys() -> dict[str, set[str]]:
+    source = (STATIC / "i18n.js").read_text(encoding="utf-8")
+    body = source[source.index("const T = {") : source.index("\n};", source.index("const T = {"))]
+    parts = re.split(r"\n  (uz|ru|en): \{\n", body)
+    return {
+        parts[i]: set(re.findall(r"^    (\w+):", parts[i + 1], re.M))
+        for i in range(1, len(parts), 2)
+    }
+
+
+def test_mini_app_locales_have_identical_keys() -> None:
+    keys = _locale_keys()
+    assert set(keys) == {"uz", "ru", "en"}
+    assert keys["uz"] == keys["ru"] == keys["en"]
+
+
+def test_admin_strings_are_translated() -> None:
+    admin = (STATIC / "admin.js").read_text(encoding="utf-8")
+    used = set(re.findall(r't\("(\w+)"', admin))
+    missing = used - _locale_keys()["uz"]
+    assert not missing, missing
+
+
+def test_admin_tab_is_wired_and_preloaded() -> None:
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert '<link rel="modulepreload" href="/s/admin.js">' in html
+    assert 'data-tab="admin" hidden' in html
+    assert "renderAdmin" in (STATIC / "app.js").read_text(encoding="utf-8")
+    ui = (STATIC / "ui.js").read_text(encoding="utf-8")
+    assert 'hasRole("super_admin")' in ui
+
+
+def test_no_real_card_numbers_in_static_files() -> None:
+    for path in STATIC.iterdir():
+        text = path.read_text(encoding="utf-8")
+        assert not re.search(r"\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b", text), path.name
+
+
+def test_chart_screens_are_translated_and_preloaded() -> None:
+    keys = _locale_keys()["uz"]
+    for name in ("charts.js", "report.js", "history.js", "admin.js"):
+        used = set(re.findall(r't\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
+        assert not used - keys, (name, used - keys)
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert '<link rel="modulepreload" href="/s/charts.js">' in html
+    charts = (STATIC / "charts.js").read_text(encoding="utf-8")
+    # Dependency-free: no imports beyond our own modules, accessible SVG.
+    assert set(re.findall(r'from "([^"]+)"', charts)) == {"./i18n.js", "./ui.js"}
+    assert 'role="img"' in charts and "aria-label" in charts
+    assert '"stats", "📈", "admStats"' in (STATIC / "admin.js").read_text(encoding="utf-8")
+
+
+def _locale_key_lists() -> dict[str, list[str]]:
+    source = (STATIC / "i18n.js").read_text(encoding="utf-8")
+    body = source[source.index("const T = {") : source.index("\n};", source.index("const T = {"))]
+    parts = re.split(r"\n  (uz|ru|en): \{\n", body)
+    return {
+        parts[i]: re.findall(r"^    (\w+):", parts[i + 1], re.M) for i in range(1, len(parts), 2)
+    }
+
+
+def test_no_duplicate_locale_keys() -> None:
+    for lang, keys in _locale_key_lists().items():
+        dupes = {key for key in keys if keys.count(key) > 1}
+        assert not dupes, (lang, dupes)
+
+
+def test_settings_screens_are_translated_and_preloaded() -> None:
+    keys = _locale_keys()["uz"]
+    for name in ("profile.js", "chatprofile.js", "chats.js", "ui.js", "home.js", "board.js"):
+        used = set(re.findall(r'\bt\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
+        assert not used - keys, (name, used - keys)
+    profile = (STATIC / "profile.js").read_text(encoding="utf-8")
+    faq = int(re.search(r"FAQ_COUNT = (\d+)", profile).group(1))
+    privacy = int(re.search(r"PRIVACY_COUNT = (\d+)", profile).group(1))
+    assert {f"faqQ{faq}", f"faqA{faq}", f"prvH{privacy}", f"prvP{privacy}"} <= keys
+    assert f"faqQ{faq + 1}" not in keys and f"prvH{privacy + 1}" not in keys
+    # Payment statuses shown in the history all have labels.
+    assert {
+        f"pst_{s}"
+        for s in ("draft", "pending", "approved", "rejected", "disputed", "canceled", "expired")
+    } <= keys
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    for module in ("chatprofile.js", "scroller.js", "profile.js"):
+        assert f'<link rel="modulepreload" href="/s/{module}">' in html
+
+
+def test_desktop_scroll_buttons_are_mouse_only() -> None:
+    css = (STATIC / "layout.css").read_text(encoding="utf-8")
+    scroller = (STATIC / "scroller.js").read_text(encoding="utf-8")
+    assert "(hover: hover) and (pointer: fine)" in scroller
+    block = css[css.index("/* M5: horizontal rows") :]
+    assert ".hscroll > .hs-btn { display: none; }" in block
+    assert "@media (hover: hover) and (pointer: fine)" in block
+    assert "0.8" in scroller and '"wheel"' in scroller
+    assert "initScrollers" in (STATIC / "app.js").read_text(encoding="utf-8")
+    # The bottom bar is aligned to the centered column, not the full window.
+    assert "max-width: var(--app-w)" in css and "--app-w: 600px" in css
+
+
+def test_support_link_points_at_telegram_only() -> None:
+    api = (STATIC / "api.js").read_text(encoding="utf-8")
+    assert r"^https:\/\/t\.me\/" in api
+    assert "https://t.me/${handle}" in (STATIC / "profile.js").read_text(encoding="utf-8")

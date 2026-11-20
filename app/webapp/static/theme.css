@@ -1,0 +1,72 @@
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --fg: #ffffff;
+  --muted: #94a3b8;
+  --success: #22c55e;
+  --danger: #f87171;
+  --nav: #111827;
+  --nav-border: #334155;
+  --nav-fg: #cbd5e1;
+  --nav-active: #00d4ff;
+  --accent: #00d4ff;
+  --header-1: #7c4dff;
+  --header-2: #00d4ff;
+  --shadow: 0 10px 30px rgba(0, 212, 255, 0.15);
+  --radius: 22px;
+  --radius-sm: 20px;
+  --radius-lg: 24px;
+  --pad: 18px;
+  --font: Inter, "Segoe UI", system-ui, sans-serif;
+  --bar-h: 88px;
+}
+
+html[data-theme="light"] {
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --danger: #dc2626;
+  --nav: #ffffff;
+  --nav-border: #e2e8f0;
+  --nav-fg: #475569;
+  --nav-active: #7c4dff;
+  --accent: #7c4dff;
+  --shadow: 0 10px 30px rgba(124, 77, 255, 0.14);
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+a {
+  color: var(--accent);
+}

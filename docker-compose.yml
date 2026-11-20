@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+      POSTGRES_DB: engagement
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot -d engagement"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  bot:
+    build: .
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    volumes:
+      - ./backups:/app/backups
+    ports:
+      - "127.0.0.1:${WEBAPP_PORT:-8081}:${WEBAPP_PORT:-8081}"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://bot:${WEBAPP_PORT:-8081}
+    profiles: ["tunnel"]
+    depends_on:
+      bot:
+        condition: service_healthy
+
+  backup:
+    image: postgres:16-alpine
+    env_file: .env
+    environment:
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup_db.sh:/backup_db.sh:ro
+    working_dir: /
+    entrypoint: ["/bin/sh", "/backup_db.sh"]
+    profiles: ["backup"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

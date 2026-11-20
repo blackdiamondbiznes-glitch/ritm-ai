@@ -1,0 +1,12 @@
+aiogram==3.32.0
+SQLAlchemy==2.0.44
+asyncpg==0.30.0
+alembic==1.16.5
+pydantic==2.11.7
+pydantic-settings==2.10.1
+APScheduler==3.11.0
+httpx==0.28.1
+pytest==8.4.1
+pytest-asyncio==0.25.2
+ruff==0.12.8
+pytest-cov==6.2.1
