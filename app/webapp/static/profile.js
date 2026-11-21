@@ -27,7 +27,8 @@ const PRIVACY_COUNT = 6;
 /** Paths worth warming once the dashboard is in. */
 export function profileWarmPaths() {
   const paths = [SETTINGS];
-  if (isManager()) paths.push(PAYMENTS, CONNECT);
+  paths.push(CONNECT);
+  if (isManager()) paths.push(PAYMENTS);
   return paths;
 }
 
@@ -140,12 +141,10 @@ export function renderProfile() {
         : ""
     }
     ${
-      manager
-        ? group(t("secChats"), [
-            row({ icon: "💬", color: "#0ea5e9", title: t("rowChats"), value: t("valCount", { n: chats.length }), go: "chats" }),
-            row({ icon: "➕", color: "#10b981", title: t("rowConnect"), sub: t("rowConnectSub"), go: "profile/connect" }),
-          ])
-        : ""
+      group(t("secChats"), [
+        manager ? row({ icon: "💬", color: "#0ea5e9", title: t("rowChats"), value: t("valCount", { n: chats.length }), go: "chats" }) : "",
+        row({ icon: "➕", color: "#10b981", title: manager ? t("rowConnect") : t("ownCtaBtn"), sub: t("rowConnectSub"), go: "profile/connect" }),
+      ])
     }
     ${group(t("secHelp"), [
       me.support ? row({ icon: "💬", color: "#6366f1", title: t("rowSupport"), value: `@${me.support}`, act: "support" }) : "",
@@ -470,8 +469,16 @@ function paintConnect(data, seq) {
   refresh.onclick = () =>
     withBusy(refresh, async () => {
       try {
-        const fresh = await load(CONNECT, { maxAge: 0 });
-        if (current(seq)) paintConnect(fresh, seq);
+        const before = isManager();
+        const [fresh] = await Promise.all([load(CONNECT, { maxAge: 0 }), loadDash().catch(() => null)]);
+        if (!current(seq)) return;
+        if (!before && isManager() && !(fresh.pending || []).length) {
+          haptic("success");
+          toast(t("cnRoleUp"));
+          go("chats");
+          return;
+        }
+        paintConnect(fresh, seq);
       } catch (_err) {
         toast(t("error"), "err");
       }
@@ -502,7 +509,7 @@ async function confirmChat(telegramChatId, seq) {
     forget("/api/stats");
     haptic("success");
     toast(done.already ? t("cnAlready") : done.trial_started ? t("cnTrial", { n: done.trial_days }) : t("cnDone"));
-    loadDash().catch(() => {});
+    await loadDash().catch(() => {}); // roles change from member to owner
     if (current(seq)) go(done.already ? `chats/${done.chat_id}` : `chats/edit/${done.chat_id}`);
   } catch (err) {
     haptic("error");

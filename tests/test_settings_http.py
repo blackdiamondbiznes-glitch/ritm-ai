@@ -358,3 +358,27 @@ async def test_terms_document_reuses_the_payment_offer(world) -> None:
     doc = await (await c.get("/api/docs/terms", headers=h["stranger"])).json()
     assert doc["version"] == "2026-11-v1" and "2026-11-v1" in doc["text"]
     assert "<b>" not in doc["text"] and "Soxta" in doc["text"]
+
+
+async def test_regular_user_connects_own_chat_and_becomes_owner(world) -> None:
+    """A user with no chats of their own uses the same connect flow and gets the owner panel."""
+    c, h = world["client"], world["heads"]
+    before = await (await c.get("/api/stats", headers=h["stranger"])).json()
+    assert "owner" not in before["roles"] and before["chats"] == []
+    info = await (await c.get("/api/connect", headers=h["stranger"])).json()
+    assert [p["telegram_chat_id"] for p in info["pending"]] == [OTHERS_CHAT]
+    assert "admin=" in info["links"]["group"] and "startchannel=" in info["links"]["channel"]
+    done = await (
+        await c.post("/api/connect", json={"telegram_chat_id": OTHERS_CHAT}, headers=h["stranger"])
+    ).json()
+    assert done["chat_id"] and done["already"] is False and done["trial_started"] is True
+    after = await (await c.get("/api/stats", headers=h["stranger"])).json()
+    assert "owner" in after["roles"]
+    assert [chat["id"] for chat in after["chats"]] == [done["chat_id"]]
+    async with world["sessions"]() as s:
+        chat = await s.get(Chat, done["chat_id"])
+        assert chat.owner_id == world["ids"][STRANGER]
+        await s.execute(delete(Job).where(Job.chat_id == chat.id))
+        await s.execute(delete(Schedule).where(Schedule.chat_id == chat.id))
+        await s.execute(delete(ChatProfile).where(ChatProfile.chat_id == chat.id))
+        await s.commit()

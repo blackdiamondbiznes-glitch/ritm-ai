@@ -61,10 +61,11 @@ function renderMemberHome() {
       <div class="card">
         <div class="card-title">👋 ${escapeHtml(t("welcomeTitle"))}</div>
         <p>${escapeHtml(t("welcomeMember"))}</p>
-        <p class="muted small-text">${escapeHtml(t("welcomeOwner"))}</p>
       </div>
+      ${ownCta()}
       ${state.dash && showsPlan() ? planCard(dash.plan || {}) : ""}
     `);
+    bindMine();
     return;
   }
   const totals = member.totals || {};
@@ -78,8 +79,18 @@ function renderMemberHome() {
     <div class="kpi-hint">${escapeHtml(t("answersCount", { n: totals.answers || 0, c: totals.correct || 0 }))}</div>
     ${myResultsCard(member, false)}
     <button type="button" class="ghost wide" data-mine="history">📜 ${escapeHtml(t("historyOpen"))}</button>
+    ${ownCta()}
   `);
   bindMine();
+}
+
+/** Regular users may own a group or channel too: one tap to the connect screen. */
+function ownCta() {
+  return `<div class="card own-cta">
+    <div class="card-title">➕ ${escapeHtml(t("ownCtaTitle"))}</div>
+    <p class="muted small-text">${escapeHtml(t("ownCtaSub"))}</p>
+    <button type="button" class="primary" data-mine="profile/connect">${escapeHtml(t("ownCtaBtn"))}</button>
+  </div>`;
 }
 
 function kpi(icon, value, label) {
