@@ -97,7 +97,7 @@ export function toast(text, kind = "ok") {
 }
 
 export function brandHeader() {
-  return `<div class="header"><h1>🤖 Ritm AI</h1><p>${escapeHtml(t("tagline"))}</p></div>`;
+  return `<div class="header brand"><h1>🤖 Ritm AI</h1><p>${escapeHtml(t("tagline"))}</p></div>`;
 }
 
 export function chatCard(chat, attrs = "") {

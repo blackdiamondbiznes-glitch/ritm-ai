@@ -945,3 +945,20 @@ input.input { margin-top: 6px; }
 .primary:disabled { opacity: 0.5; }
 .pay-wait .pay-card { margin: 8px 0; }
 .pay-pick .seg + .muted + .card-title { margin-top: 12px; }
+
+/* Compact brand header on home: a quiet title band, not a button */
+.header.brand {
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--header-1) 22%, transparent), transparent 60%),
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--header-2) 16%, transparent), transparent 60%);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 6px 4px 10px;
+  margin: 0 0 12px;
+  border-bottom: 1px solid var(--nav-border);
+  color: var(--fg);
+  cursor: default;
+  user-select: none;
+}
+.header.brand h1 { font-size: 19px; font-weight: 700; letter-spacing: 0.2px; }
+.header.brand p { font-size: 12.5px; color: var(--muted); opacity: 1; margin-top: 2px; }
