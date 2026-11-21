@@ -1,4 +1,4 @@
-import { api, cached, forget, go, haptic, isManager, load, loadDash, openLink, persist, remember, state, tg } from "./api.js";
+import { api, cached, forget, go, haptic, isManager, isTutor, load, loadDash, openLink, persist, remember, state, tg } from "./api.js";
 import { setLang } from "./i18n.js";
 import {
   current,
@@ -129,6 +129,8 @@ export function renderProfile() {
     ${group(t("secMain"), [
       manager ? row({ icon: "🔔", color: "#f59e0b", title: t("rowNotify"), value: notifyValue, go: "profile/notify" }) : "",
       row({ icon: "🌐", color: "#3b82f6", title: t("rowLang"), value: langName(user.language), go: "profile/lang" }),
+      row({ icon: "🎓", color: "#14b8a6", title: t(isTutor() ? "navCabinet" : "cabEnable"), go: "cabinet" }),
+      row({ icon: "🎓", color: "#14b8a6", title: t(isTutor() ? "navCabinet" : "cabEnable"), go: "cabinet" }),
       manager ? row({ icon: "🕐", color: "#8b5cf6", title: t("rowTz"), sub: t("rowTzSub"), value: zone ? zoneName(zone) : "", go: "profile/tz" }) : "",
     ])}
     ${

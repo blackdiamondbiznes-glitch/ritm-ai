@@ -28,6 +28,7 @@ class User(Base):
     notify_reports: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     notify_expiry: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     default_timezone: Mapped[str | None] = mapped_column(String(64))
+    cabinet_niche: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

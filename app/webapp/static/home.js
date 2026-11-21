@@ -1,4 +1,4 @@
-import { firstChatId, go, haptic, isManager, memberData, roles, state } from "./api.js";
+import { firstChatId, go, haptic, isManager, isTutor, memberData, roles, state } from "./api.js";
 import { brandHeader, chatCard, escapeHtml, formatNumber, kpiRow, setHtml, sparkChart, t } from "./ui.js";
 
 /** Owners see their plan; so do people with no role yet (they may become owners). */
@@ -30,6 +30,10 @@ export function renderHome() {
       ${action("board", "🏆", t("actionBoard"))}
       ${action("settings", "⚙️", t("actionSettings"))}
     </div>
+    <button type="button" class="card list-btn" data-mine="cabinet">
+      <div class="card-title">🎓 ${escapeHtml(t(isTutor() ? "navCabinet" : "cabEnable"))}</div>
+      <div>${escapeHtml(t(isTutor() ? "cabLead" : "cabEnableLead"))}</div>
+    </button>
     ${sparkChart(dash.stats && dash.stats.daily)}
     ${member ? myResultsCard(member, true) : ""}
     ${showsPlan() ? planCard(plan) : ""}

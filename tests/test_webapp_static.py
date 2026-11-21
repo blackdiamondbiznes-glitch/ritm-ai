@@ -93,6 +93,30 @@ def test_settings_screens_are_translated_and_preloaded() -> None:
         assert f'<link rel="modulepreload" href="/s/{module}">' in html
 
 
+def test_tutor_students_screen_is_translated_and_preloaded() -> None:
+    keys = _locale_keys()["uz"]
+    used = set(re.findall(r'\bt\("(\w+)"', (STATIC / "students.js").read_text(encoding="utf-8")))
+    assert not used - keys, used - keys
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert '<link rel="modulepreload" href="/s/students.js">' in html
+    assert 'data-tab="cabinet"' in html
+    assert 'data-tab="students"' not in html
+    app = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "renderStudents" in app
+    assert '"cabinet"' in (STATIC / "ui.js").read_text(encoding="utf-8")
+    lesson_file = (STATIC / "lessons.js").read_text(encoding="utf-8")
+    lesson_keys = set(re.findall(r'\bt\("(\w+)"', lesson_file))
+    assert not lesson_keys - keys, lesson_keys - keys
+    assert '<link rel="modulepreload" href="/s/lessons.js">' in html
+    assert '<link rel="modulepreload" href="/s/summary.js">' in html
+    assert 'data-tab="lessons"' not in html
+    summary = (STATIC / "summary.js").read_text(encoding="utf-8")
+    reminders = (STATIC / "reminders.js").read_text(encoding="utf-8")
+    assert not set(re.findall(r'\bt\("(\w+)"', summary)) - keys
+    assert not set(re.findall(r'\bt\("(\w+)"', reminders)) - keys
+    assert '<link rel="modulepreload" href="/s/reminders.js">' in html
+
+
 def test_desktop_scroll_buttons_are_mouse_only() -> None:
     css = (STATIC / "layout.css").read_text(encoding="utf-8")
     scroller = (STATIC / "scroller.js").read_text(encoding="utf-8")

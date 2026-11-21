@@ -962,3 +962,11 @@ input.input { margin-top: 6px; }
 }
 .header.brand h1 { font-size: 19px; font-weight: 700; letter-spacing: 0.2px; }
 .header.brand p { font-size: 12.5px; color: var(--muted); opacity: 1; margin-top: 2px; }
+
+.stu-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.stu-meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.stu-badge { font-size: 12px; font-weight: 600; }
+.stu-paid, .les-done { color: var(--success); }
+.stu-debtor, .les-cancelled { color: var(--danger); }
+.stu-inactive, .les-scheduled { color: var(--muted); }
+.ghost.danger { color: var(--danger); width: 100%; margin-top: 8px; }

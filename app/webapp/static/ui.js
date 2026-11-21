@@ -1,5 +1,5 @@
 import { TIMES, currentLang, dayLabel, t } from "./i18n.js";
-import { haptic, hasRole, isManager, parseRoute, roles, tg } from "./api.js";
+import { go, haptic, hasRole, isManager, isTutor, parseRoute, roles, tg } from "./api.js";
 
 export function escapeHtml(value) {
   return String(value ?? "")
@@ -96,6 +96,30 @@ export function toast(text, kind = "ok") {
   toast.timer = setTimeout(() => node.classList.remove("show"), 2600);
 }
 
+export function cabinetSwitch(active) {
+  const item = (id, key) => {
+    const on = id === active ? " on" : "";
+    return `<button type="button" class="seg-btn${on}" data-cab="${id}">${escapeHtml(t(key))}</button>`;
+  };
+  return `<div class="seg">${item("students", "stuTitle")}${item("lessons", "lesTitle")}${item("reminders", "remTitle")}</div>`;
+}
+
+export function bindCabinetSwitch() {
+  document.querySelectorAll("[data-cab]").forEach((node) => {
+    node.addEventListener("click", () => {
+      haptic("light");
+      const section = node.getAttribute("data-cab");
+      const next =
+        section === "lessons"
+          ? "cabinet/lessons"
+          : section === "reminders"
+            ? "cabinet/reminders"
+            : "cabinet/students";
+      go(next);
+    });
+  });
+}
+
 export function brandHeader() {
   return `<div class="header brand"><h1>🤖 Ritm AI</h1><p>${escapeHtml(t("tagline"))}</p></div>`;
 }
@@ -128,11 +152,14 @@ export function navTabs() {
   const known = roles();
   if (isManager()) {
     const tabs = ["home", "chats", "board", "report", "profile"];
-    if (hasRole("super_admin")) tabs.splice(4, 0, "admin");
+    if (isTutor()) tabs.splice(2, 0, "cabinet");
+    if (hasRole("super_admin")) tabs.splice(tabs.indexOf("profile"), 0, "admin");
     return tabs;
   }
   if (known && hasRole("member")) return ["home", "board", "history", "profile"];
-  return ["home", "profile"];
+  const plain = ["home", "profile"];
+  if (isTutor()) plain.splice(1, 0, "cabinet");
+  return plain;
 }
 
 export function kpiRow(stats) {
@@ -397,7 +424,8 @@ export function syncChrome() {
   const back = tg && tg.BackButton;
   if (!back) return;
   const { sub } = parseRoute();
-  const nested = (id && tab !== "board") || (sub && (tab === "admin" || tab === "profile"));
+  const nested =
+    (id && tab !== "board") || (sub && (tab === "admin" || tab === "profile" || tab === "cabinet"));
   if (nested || (tab === "history" && navTabs().indexOf("history") < 0)) back.show();
   else back.hide();
 }

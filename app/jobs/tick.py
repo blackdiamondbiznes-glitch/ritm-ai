@@ -18,7 +18,9 @@ from app.db.repositories.leaderboard import LeaderboardRepository
 from app.db.repositories.notifications import NotificationRepository
 from app.db.repositories.plans import PlanRepository
 from app.db.repositories.quizzes import QuizRepository
+from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.schedules import ScheduleRepository
+from app.db.repositories.students import StudentRepository
 from app.db.repositories.subscriptions import SubscriptionRepository
 from app.db.repositories.system_state import SystemStateRepository
 from app.db.repositories.usage import UsageRepository
@@ -27,6 +29,7 @@ from app.jobs.admin_quiz import AdminPostQuizHandler
 from app.jobs.daily import DailyHandler
 from app.jobs.leaderboard import LeaderboardHandler
 from app.jobs.quiz import QUIZ, QuizHandler
+from app.jobs.reminder import ReminderHandler
 from app.jobs.runner import JobRunner
 from app.jobs.trial_nudge import EXPIRY, REPORT, TrialNudgeHandler, TrialNudgePlanner
 from app.services.access import AccessService
@@ -39,6 +42,7 @@ from app.services.lifecycle import ChatLifecycleService
 from app.services.profiles import ProfileService
 from app.services.quiz_mode import ADMIN_POST_QUIZ
 from app.services.quizgen import QuizGenerator
+from app.services.reminders import REMINDER, ReminderService
 from app.services.trial import TrialService
 from app.services.trial_reports import TrialReportService
 
@@ -97,8 +101,14 @@ async def _once(
     jobs = JobRepository(session)
     reports, planner, nudge = _trial(session, bot, settings, sender, jobs)
     await planner.enqueue_due()
+    await ReminderService(
+        ReminderRepository(session),
+        StudentRepository(session),
+        jobs,
+    ).enqueue_due()
     handlers[REPORT] = nudge
     handlers[EXPIRY] = nudge
+    handlers[REMINDER] = ReminderHandler(bot, ReminderRepository(session), UserRepository(session))
     await JobRunner(ScheduleRepository(session), jobs, handlers).run_once()
     await SystemStateRepository(session).put(LAST_TICK, utcnow().isoformat())
 

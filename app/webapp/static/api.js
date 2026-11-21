@@ -297,6 +297,11 @@ export function hasRole(name) {
 }
 
 /** Owners, chat admins and super admins manage chats; others only see their results. */
+export function isTutor() {
+  const user = state.me && state.me.user;
+  return Boolean(user && user.cabinet_niche === "tutor");
+}
+
 export function isManager() {
   const list = roles();
   if (!list) return true; // unknown yet: keep the familiar owner layout until bootstrap answers

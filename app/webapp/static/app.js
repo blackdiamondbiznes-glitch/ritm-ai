@@ -1,10 +1,14 @@
-import { applyTheme, bootstrap, go, hasRole, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
+import { applyTheme, bootstrap, go, hasRole, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
 import { adminWarmPaths, renderAdmin } from "./admin.js";
 import { renderBoard } from "./board.js";
 import { openChat, renderChats } from "./chats.js";
 import { MY_CHARTS, renderHistory } from "./history.js";
 import { renderHome } from "./home.js";
 import { renderChatProfile } from "./chatprofile.js";
+import { renderLessons } from "./lessons.js";
+import { renderReminders } from "./reminders.js";
+import { renderStudents } from "./students.js";
+import { renderCabinet } from "./summary.js";
 import { initScrollers } from "./scroller.js";
 import { isProfileSub, profileWarmPaths, renderProfile, renderProfileSub } from "./profile.js";
 import { chartPath, renderReport } from "./report.js";
@@ -29,6 +33,23 @@ async function boot() {
         if (sub === "tenant") go("admin/tenants");
         else if (sub === "pay") go("admin/payments");
         else go(sub && !id ? "admin" : "home");
+        return;
+      }
+      if (tab === "cabinet") {
+        const parts = (location.hash || "").replace(/^#\/?/, "").split("/").filter(Boolean);
+        const section = parts[1] || "";
+        const third = parts[2] || "";
+        const lessonForm = section === "lessons" && (third === "new" || /^\d+$/.test(third));
+        const reminderForm = section === "reminders" && (third === "new" || /^\d+$/.test(third));
+        const studentForm =
+          section === "new" ||
+          /^\d+$/.test(section) ||
+          (section === "students" && (third === "new" || /^\d+$/.test(third)));
+        if (reminderForm) go("cabinet/reminders");
+        else if (lessonForm) go("cabinet/lessons");
+        else if (studentForm) go("cabinet/students");
+        else if (section) go("cabinet");
+        else go("home");
         return;
       }
       if (tab === "chats" && sub === "edit" && id) go(`chats/${id}`);
@@ -56,7 +77,7 @@ async function boot() {
 }
 
 function skeletonFor(tab) {
-  if (tab === "board" || tab === "report" || tab === "history" || tab === "admin") return "list";
+  if (tab === "board" || tab === "report" || tab === "history" || tab === "admin" || tab === "cabinet") return "list";
   return "home";
 }
 
@@ -80,7 +101,11 @@ function warmUp() {
 async function route(opts = {}) {
   const seq = ticket();
   const { tab, sub, id } = parseRoute();
-  if (!id && tab !== "history" && !navTabs().includes(tab)) {
+  if (tab === "students") {
+    go(sub === "new" ? "cabinet/new" : id ? `cabinet/${id}` : "cabinet");
+    return;
+  }
+  if (!id && tab !== "history" && tab !== "cabinet" && !navTabs().includes(tab)) {
     go("home");
     return;
   }
@@ -116,6 +141,17 @@ async function route(opts = {}) {
   }
   if (tab === "admin") {
     await renderAdmin(sub, id, seq);
+    return;
+  }
+  if (tab === "cabinet") {
+    if (!isTutor()) {
+      await renderCabinet(seq);
+      return;
+    }
+    if (sub === "lessons") await renderLessons(seq);
+    else if (sub === "reminders") await renderReminders(seq);
+    else if (sub === "students" || sub === "new" || id) await renderStudents(sub, id, seq);
+    else await renderCabinet(seq);
     return;
   }
   const paint = () => {

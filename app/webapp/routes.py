@@ -223,6 +223,7 @@ async def _session_body(
             "name": user.full_name,
             "username": user.username,
             "language": user.language_code or "uz",
+            "cabinet_niche": user.cabinet_niche,
         },
         "roles": roles,
         "bot_username": bot_username,
