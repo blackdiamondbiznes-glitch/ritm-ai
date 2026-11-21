@@ -1,4 +1,4 @@
-import { api, cached, forget, go, haptic, isManager, load, loadDash, openLink, openTelegram, persist, remember, state, tg } from "./api.js";
+import { api, cached, forget, go, haptic, isManager, load, loadDash, openLink, persist, remember, state, tg } from "./api.js";
 import { setLang } from "./i18n.js";
 import {
   current,
@@ -14,6 +14,7 @@ import {
   withBusy,
 } from "./ui.js";
 import { showsPlan } from "./home.js";
+import { renderPlanPay } from "./pay.js";
 
 const LANG_NAMES = { uz: "🇺🇿 O‘zbekcha", ru: "🇷🇺 Русский", en: "🇬🇧 English" };
 const SETTINGS = "/api/me/settings";
@@ -336,36 +337,8 @@ function renderZone(seq) {
   }, { maxAge: 15000 });
 }
 
-function renderPlan() {
-  const me = state.me || {};
-  const plan = (state.dash && state.dash.plan) || {};
-  const kindKey = plan.kind === "trial" ? "trial" : plan.kind === "active" ? "active" : "free";
-  const days =
-    plan.days_left != null && plan.kind !== "free" ? `<p>${escapeHtml(t("daysLeft", { n: plan.days_left }))}</p>` : "";
-  const left = plan.ai_left != null ? Number(plan.ai_left) : Math.max(0, Number(plan.ai_limit || 0) - Number(plan.ai_used || 0));
-  const aiLine = plan.ai_limit != null ? `<p class="ai-left">${escapeHtml(t("aiLeft", { n: formatNumber(left) }))}</p>` : "";
-  const pay = me.bot_username ? `<button type="button" class="primary" id="pay">${escapeHtml(t("payBot"))}</button>` : "";
-  setHtml(`
-    ${subHead(t("rowPlan"))}
-    <div class="card">
-      <div class="card-title">${escapeHtml(t("plan"))}</div>
-      <div class="big">${escapeHtml(plan.plan_name || "—")}</div>
-      <p>${escapeHtml(t(kindKey))}</p>
-      ${days}
-      ${aiLine}
-      ${payBlock(plan)}
-      ${pay}
-    </div>
-  `);
-  bindRows();
-  bindCopy();
-  const btn = document.getElementById("pay");
-  if (btn) {
-    btn.onclick = () => {
-      haptic("light");
-      openTelegram("");
-    };
-  }
+function renderPlan(seq) {
+  return renderPlanPay(seq, { subHead, bindRows });
 }
 
 const UZ_MONTHS = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"];
@@ -420,12 +393,12 @@ function renderFounder() {
       <p>${escapeHtml(t("founderAbout", { slots }))}</p>
       ${status}
       ${slots ? `<div class="meter"><i style="width:${pct}%"></i></div>` : ""}
-      ${!plan.founder_keep && left > 0 && state.me && state.me.bot_username ? `<button type="button" class="primary" id="pay">${escapeHtml(t("payBot"))}</button>` : ""}
+      ${!plan.founder_keep && left > 0 ? `<button type="button" class="primary" id="pay">${escapeHtml(t("payInApp"))}</button>` : ""}
     </div>
   `);
   bindRows();
   const btn = document.getElementById("pay");
-  if (btn) btn.onclick = () => openTelegram("");
+  if (btn) btn.onclick = () => go("profile/plan");
 }
 
 const CONNECT_ERRORS = {
@@ -594,67 +567,6 @@ function bindAvatar(name) {
       holder.textContent = initials(name);
     });
   }
-}
-
-/** Open request (reference + exact amount) and both payment cards, each copyable with one tap. */
-function payBlock(plan) {
-  if (plan.payments_blocked) return `<p class="err">${escapeHtml(t("payBlockedNote"))}</p>`;
-  const open = plan.pending;
-  const ref = open && open.ref
-    ? `<div class="pay-ref">
-        <div class="muted">${escapeHtml(open.status === "draft" ? t("payOpen") : t("pending"))}</div>
-        ${copyRow(open.ref, open.ref, t("payRef"))}
-        ${copyRow(String(open.amount_uzs), `${formatNumber(open.amount_uzs)} so'm`, t("payExact"))}
-        <p class="muted">${escapeHtml(t("payExactHint"))}</p>
-      </div>`
-    : "";
-  const cards = (plan.cards || [])
-    .map((card) => copyRow(String(card.number).replace(/\s+/g, ""), card.number, `${card.type} · ${card.holder}`))
-    .join("");
-  const cardBlock = cards
-    ? `<div class="card-title" style="margin-top:14px">💳 ${escapeHtml(t("payCards"))}</div><div class="pay-cards">${cards}</div>`
-    : "";
-  return `${ref}${open && open.ref ? cardBlock : ""}`;
-}
-
-function copyRow(value, shown, caption) {
-  return `<button type="button" class="pay-card" data-copy="${escapeHtml(value)}">
-    <span><div class="pay-card-num">${escapeHtml(shown)}</div><div class="pay-card-sub">${escapeHtml(caption)}</div></span>
-    <span class="pay-copy">📋 ${escapeHtml(t("payCopy"))}</span>
-  </button>`;
-}
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (_err) {
-    const area = document.createElement("textarea");
-    area.value = text;
-    area.setAttribute("readonly", "");
-    area.style.position = "fixed";
-    area.style.opacity = "0";
-    document.body.appendChild(area);
-    area.select();
-    let ok = false;
-    try {
-      ok = document.execCommand("copy");
-    } catch (_e) {
-      ok = false;
-    }
-    area.remove();
-    return ok;
-  }
-}
-
-function bindCopy() {
-  document.querySelectorAll("[data-copy]").forEach((node) => {
-    node.addEventListener("click", async () => {
-      const ok = await copyText(node.getAttribute("data-copy"));
-      haptic(ok ? "success" : "error");
-      if (ok) toast(t("payCopied"));
-    });
-  });
 }
 
 function roleLabel(role) {

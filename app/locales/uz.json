@@ -312,5 +312,6 @@
   "cmd_language": "Tilni o'zgartirish",
   "backup_caption": "💾 Ritm AI baza zaxirasi: {day} ({mb} MB).\nTiklash: pg_restore --clean --no-owner -d &lt;DATABASE_URL&gt; fayl.dump",
   "backup_too_big": "⚠️ Bugungi baza zaxirasi {mb} MB, Telegram chegarasi {max} MB. Fayl yuborilmadi: Render'da boshqa zaxira usulini yoqing.",
-  "backup_failed": "⚠️ Bugungi baza zaxirasi olinmadi (sabab: {code}). Render loglarini tekshiring."
+  "backup_failed": "⚠️ Bugungi baza zaxirasi olinmadi (sabab: {code}). Render loglarini tekshiring.",
+  "pay_receipt_app": "🧾 Mini App orqali yuborilgan chek · {ref}\nAdmin tekshiradi, natija shu yerga keladi."
 }

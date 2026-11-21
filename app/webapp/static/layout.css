@@ -933,3 +933,15 @@ input.input { margin-top: 6px; }
 .cn-links { display: grid; gap: 10px; margin-bottom: 8px; }
 .cn-links .primary, .cn-links .ghost { width: 100%; margin: 0; min-height: 48px; }
 .quick-card .quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+
+/* In-app payment (pay.js) */
+.pay-pick .seg-btn small { font-weight: 500; opacity: 0.85; }
+.pay-pick .founder-badge { font-size: 13px; padding: 4px 10px; margin: 2px 0 8px; }
+.pay-total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 6px; font-size: 20px; }
+.pay-old { color: var(--muted); text-decoration: line-through; font-size: 14px; margin-right: 8px; }
+.pay-check { display: flex; align-items: center; gap: 8px; margin: 12px 0 6px; font-size: 14px; }
+.pay-check input { width: 20px; height: 20px; flex: 0 0 auto; }
+.pay-form input[type="file"] { padding: 9px 10px; }
+.primary:disabled { opacity: 0.5; }
+.pay-wait .pay-card { margin: 8px 0; }
+.pay-pick .seg + .muted + .card-title { margin-top: 12px; }

@@ -142,6 +142,31 @@ export async function api(path, options) {
   }
 }
 
+/** Authenticated multipart POST (receipt upload). The browser sets the multipart boundary. */
+export async function apiForm(path, form) {
+  if (!state.token || Date.now() > state.tokenExp) await bootstrap();
+  const send = async () => {
+    const res = await fetch(path, { method: "POST", body: form, headers: { Authorization: `Bearer ${state.token}` } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || "error");
+      err.code = data.error;
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  };
+  try {
+    return await send();
+  } catch (err) {
+    if (err.status !== 401) throw err;
+    state.token = "";
+    await bootstrap();
+    return send();
+  }
+}
+
 /** One round trip: sign in with initData and receive the home dashboard. */
 export function bootstrap() {
   if (signingIn) return signingIn;

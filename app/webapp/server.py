@@ -20,6 +20,7 @@ from app.webapp.assets import setup_assets
 from app.webapp.chart_routes import setup_chart_routes
 from app.webapp.dash_routes import setup_dash_routes
 from app.webapp.members import MemberCountCache
+from app.webapp.pay_routes import setup_pay_routes
 from app.webapp.rate_limit import RateLimiter
 from app.webapp.routes import setup_routes
 from app.webapp.settings_routes import setup_settings_routes
@@ -54,6 +55,7 @@ def create_app(
     setup_admin_routes(app)
     setup_chart_routes(app)
     setup_settings_routes(app)
+    setup_pay_routes(app)
     app.router.add_get("/health", health)
     app.router.add_get("/healthz", health)
     setup_assets(app, STATIC)

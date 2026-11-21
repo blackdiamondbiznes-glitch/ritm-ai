@@ -269,9 +269,13 @@ class PaymentService:
         receipt: Receipt | None,
         card_last4: str | None,
         transfer_at: datetime | None,
+        via: str = "bot",
     ) -> Submitted:
-        """Send a draft to the admin queue. Receipt, card last 4 and transfer time are required."""
-        payment = await self._payments.get(payment_id)
+        """Send a draft to the admin queue. Receipt, card last 4 and transfer time are required.
+
+        The draft row is locked so a double tap (bot or Mini App) submits it once.
+        """
+        payment = await self._payments.get_for_update(payment_id)
         if payment is None or payment.owner_id != owner.id:
             raise PaymentError("missing")
         if payment.status == STATUS_DRAFT and await self._expire_if_stale(payment):
@@ -311,6 +315,7 @@ class PaymentService:
                 "transfer_at": transfer_at.isoformat(),
                 "receipt_kind": receipt.kind,
                 "receipt_file_id": receipt.file_id,
+                **({"via": via} if via != "bot" else {}),
             },
             receipt_unique_id=receipt.unique_id,
         )
