@@ -99,7 +99,9 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert not used - keys, used - keys
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     assert '<link rel="modulepreload" href="/s/students.js">' in html
-    assert 'data-tab="cabinet"' in html
+    assert 'data-tab="cabinet"' not in html
+    assert 'data-tab="study"' not in html
+    assert 'go: "cabinet"' in (STATIC / "profile.js").read_text(encoding="utf-8")
     assert 'data-tab="students"' not in html
     app = (STATIC / "app.js").read_text(encoding="utf-8")
     assert "renderStudents" in app

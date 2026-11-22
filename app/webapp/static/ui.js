@@ -1,5 +1,5 @@
 import { TIMES, currentLang, dayLabel, t } from "./i18n.js";
-import { go, haptic, hasRole, isManager, isStudent, isTutor, parseRoute, roles, tg } from "./api.js";
+import { go, haptic, hasRole, isManager, parseRoute, roles, tg } from "./api.js";
 
 export function escapeHtml(value) {
   return String(value ?? "")
@@ -152,23 +152,13 @@ export function roleBadge(role) {
 /** Tabs for the signed-in user's roles. The server still checks every request. */
 export function navTabs() {
   const known = roles();
-  if (isStudent() && !isManager() && !isTutor()) return ["study"];
   if (isManager()) {
     const tabs = ["home", "chats", "board", "report", "profile"];
-    if (isTutor()) tabs.splice(2, 0, "cabinet");
-    if (isStudent()) tabs.splice(tabs.indexOf("profile"), 0, "study");
     if (hasRole("super_admin")) tabs.splice(tabs.indexOf("profile"), 0, "admin");
     return tabs;
   }
-  if (known && hasRole("member")) {
-    const tabs = ["home", "board", "history", "profile"];
-    if (isStudent()) tabs.unshift("study");
-    return tabs;
-  }
-  const plain = ["home", "profile"];
-  if (isTutor()) plain.splice(1, 0, "cabinet");
-  if (isStudent()) plain.unshift("study");
-  return plain;
+  if (known && hasRole("member")) return ["home", "board", "history", "profile"];
+  return ["home", "profile"];
 }
 
 export function kpiRow(stats) {
@@ -434,7 +424,11 @@ export function syncChrome() {
   if (!back) return;
   const { sub } = parseRoute();
   const nested =
-    (id && tab !== "board") || (sub && (tab === "admin" || tab === "profile" || tab === "cabinet"));
+    (id && tab !== "board") ||
+    tab === "cabinet" ||
+    tab === "study" ||
+    tab === "boards" ||
+    (sub && (tab === "admin" || tab === "profile"));
   if (nested || (tab === "history" && navTabs().indexOf("history") < 0)) back.show();
   else back.hide();
 }

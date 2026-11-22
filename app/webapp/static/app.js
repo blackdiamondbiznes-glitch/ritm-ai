@@ -60,7 +60,11 @@ async function boot() {
         else if (studentEdit) go(`cabinet/students/${third}`);
         else if (studentForm) go("cabinet/students");
         else if (section) go("cabinet");
-        else go("home");
+        else go("profile");
+        return;
+      }
+      if (tab === "study" || tab === "boards") {
+        go("profile");
         return;
       }
       if (tab === "chats" && sub === "edit" && id) go(`chats/${id}`);
