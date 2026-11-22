@@ -1,4 +1,4 @@
-import { api, go, haptic, tg } from "./api.js";
+import { api, go, haptic, state, tg } from "./api.js";
 import {
   bindCabinetSwitch,
   cabinetSwitch,
@@ -20,6 +20,7 @@ const ERROR_KEY = {
   time: "grpTimeBad",
   student: "lesStudentBad",
   missing: "grpMissing",
+  send: "grpSendBad",
   date: "lesWhenBad",
   score: "topScoreBad",
 };
@@ -140,6 +141,7 @@ function paintOpen() {
         <select class="input" id="grp-pick">${options}</select></label>
       <button type="button" class="primary" id="grp-in">${escapeHtml(t("grpAddStudent"))}</button>
     </div>
+    ${announceBlock()}
     <button type="button" class="primary" id="grp-edit">${escapeHtml(t("grpEdit"))}</button>
     <button type="button" class="ghost danger" id="grp-delete">${escapeHtml(t("stuDelete"))}</button>
   `);
@@ -158,6 +160,14 @@ function paintOpen() {
     node.addEventListener("click", () => go(`cabinet/groups/${group.id}/topic/${node.getAttribute("data-topic")}`));
   });
   document.getElementById("top-add").addEventListener("click", () => go(`cabinet/groups/${group.id}/topic/new`));
+  const send = document.getElementById("grp-send");
+  if (send) {
+    send.addEventListener("click", (event) => {
+      withBusy(event.currentTarget, () => announce(group.id)).catch(showFormError);
+    });
+  }
+  const connect = document.getElementById("grp-connect");
+  if (connect) connect.addEventListener("click", () => go("profile/connect"));
   document.getElementById("grp-edit").addEventListener("click", () => go(`cabinet/groups/${group.id}/edit`));
   document.getElementById("grp-delete").addEventListener("click", (event) => {
     withBusy(event.currentTarget, () => destroy(group.id)).catch(showFormError);
@@ -248,6 +258,33 @@ function ask(text) {
 
 function showFormError(err) {
   toast(t(ERROR_KEY[err.code] || "error"), "err");
+}
+
+function announceBlock() {
+  const chats = (state.dash && state.dash.chats) || [];
+  if (!chats.length) {
+    return `<div class="card"><p class="stu-meta">${escapeHtml(t("grpSendNone"))}</p>
+      <button type="button" class="primary" id="grp-connect">${escapeHtml(t("grpConnect"))}</button></div>`;
+  }
+  const options = chats
+    .map((chat) => `<option value="${chat.id}">${escapeHtml(chat.title || "")}</option>`)
+    .join("");
+  return `<div class="card">
+    <div class="card-title">${escapeHtml(t("grpSend"))}</div>
+    <p class="stu-meta">${escapeHtml(t("grpSendLead"))}</p>
+    <select class="input" id="grp-chat">${options}</select>
+    <button type="button" class="primary" id="grp-send">${escapeHtml(t("grpSend"))}</button>
+  </div>`;
+}
+
+async function announce(groupId) {
+  const chatId = Number(document.getElementById("grp-chat").value);
+  await api(`/api/tutor/groups/${groupId}/announce`, {
+    method: "POST",
+    body: JSON.stringify({ chat_id: chatId }),
+  });
+  haptic("success");
+  toast(t("grpSendOk"), "ok");
 }
 
 function paintTopicForm(groupId) {

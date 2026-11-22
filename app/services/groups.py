@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import secrets
 from dataclasses import dataclass
 
 from app.db.models.groups import TutorGroup, TutorGroupMember
@@ -57,6 +58,7 @@ class GroupService:
                 weekdays=parsed.weekdays,
                 start_min=parsed.start_min,
                 end_min=parsed.end_min,
+                enroll_code=secrets.token_hex(5),
             )
         )
         payload = await self.list(owner_id)

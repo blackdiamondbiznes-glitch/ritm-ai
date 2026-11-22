@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.callbacks import LangCB, MenuCB
 from app.bot.keyboards.menu import back_menu, language_picker, main_menu
-from app.bot.routers.join import code_from_text
+from app.bot.routers.join import code_from_text, enroll_code_from_text
 from app.bot.view import show_screen
 from app.db.models.users import User
 from app.i18n import t
@@ -28,8 +28,17 @@ async def open_menu(
     grades: GradeService,
 ) -> None:
     """Show the main menu. A ranking link is claimed before the menu."""
-    code = code_from_text(message.text or "")
-    if code and message.text and message.text.startswith("/start"):
+    text = message.text or ""
+    enroll = enroll_code_from_text(text)
+    if enroll and text.startswith("/start"):
+        await state.clear()
+        result = await grades.enroll(enroll, current_user.telegram_id, current_user.full_name or "")
+        await message.answer(
+            t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
+        )
+        return
+    code = code_from_text(text)
+    if code and text.startswith("/start"):
         await state.clear()
         result = await grades.claim(code, current_user.telegram_id)
         await message.answer(

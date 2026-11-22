@@ -2,7 +2,7 @@
 
 from aiogram import F, Router
 from aiogram.dispatcher.event.bases import SkipHandler
-from aiogram.filters import CommandObject, CommandStart
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -17,18 +17,38 @@ router = Router(name="join")
 @router.message(CommandStart(deep_link=True))
 async def claim_join(
     message: Message,
-    command: CommandObject,
     state: FSMContext,
     current_user: User,
     grades: GradeService,
     lang: str,
     is_super_admin: bool,
 ) -> None:
-    """Bind this chat to the invited student, or let another /start handler run."""
-    code = code_from_text(message.text or "")
+    """Bind this chat to a student or a group, or let another /start handler run."""
+    text = message.text or ""
+    enroll = enroll_code_from_text(text)
+    if enroll:
+        await _enroll(message, state, current_user, grades, lang, is_super_admin, enroll)
+        return
+    code = code_from_text(text)
     if code is None:
         raise SkipHandler()
     await _reply(message, state, current_user, grades, lang, is_super_admin, code)
+
+
+@router.message(F.text.contains("start=enroll_"))
+async def claim_pasted_enroll(
+    message: Message,
+    state: FSMContext,
+    current_user: User,
+    grades: GradeService,
+    lang: str,
+    is_super_admin: bool,
+) -> None:
+    """Accept a group registration URL pasted into the chat."""
+    code = enroll_code_from_text(message.text or "")
+    if code is None:
+        raise SkipHandler()
+    await _enroll(message, state, current_user, grades, lang, is_super_admin, code)
 
 
 @router.message(F.text.contains("start=join_"))
@@ -47,6 +67,22 @@ async def claim_pasted_link(
     await _reply(message, state, current_user, grades, lang, is_super_admin, code)
 
 
+async def _enroll(
+    message: Message,
+    state: FSMContext,
+    current_user: User,
+    grades: GradeService,
+    lang: str,
+    is_super_admin: bool,
+    code: str,
+) -> None:
+    await state.clear()
+    result = await grades.enroll(code, current_user.telegram_id, current_user.full_name or "")
+    await message.answer(
+        t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
+    )
+
+
 async def _reply(
     message: Message,
     state: FSMContext,
@@ -61,6 +97,19 @@ async def _reply(
     await message.answer(
         t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
     )
+
+
+def enroll_code_from_text(text: str) -> str | None:
+    """Read a group registration code from `/start enroll_…` or a pasted link."""
+    raw = text.strip()
+    marker = "start=enroll_"
+    if marker in raw:
+        tail = raw.split(marker, 1)[1]
+        return _token(tail.split("&", 1)[0].split()[0])
+    parts = raw.split(maxsplit=1)
+    if len(parts) == 2 and parts[0].split("@", 1)[0] == "/start" and parts[1].startswith("enroll_"):
+        return _token(parts[1].removeprefix("enroll_"))
+    return None
 
 
 def code_from_text(text: str) -> str | None:

@@ -14,6 +14,7 @@ class TutorGroup(Base):
     __tablename__ = "tutor_groups"
     __table_args__ = (
         Index("ix_tutor_groups_owner_id", "owner_id"),
+        Index("ix_tutor_groups_enroll_code", "enroll_code", unique=True),
         CheckConstraint(
             "start_min >= 0 AND start_min < end_min AND end_min <= 1440",
             name="ck_tutor_groups_time",
@@ -30,6 +31,7 @@ class TutorGroup(Base):
     weekdays: Mapped[str] = mapped_column(String(20), nullable=False)
     start_min: Mapped[int] = mapped_column(nullable=False)
     end_min: Mapped[int] = mapped_column(nullable=False)
+    enroll_code: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

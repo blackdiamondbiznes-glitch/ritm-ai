@@ -26,6 +26,12 @@ class GroupRepository:
         result = await self._session.execute(stmt)
         return [(row, int(total)) for row, total in result.all()]
 
+    async def by_enroll_code(self, code: str) -> TutorGroup | None:
+        """The group opened by this public registration code."""
+        stmt = select(TutorGroup).where(TutorGroup.enroll_code == code)
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_owned(self, owner_id: int, group_id: int) -> TutorGroup | None:
         """Return the group only when it belongs to this owner."""
         stmt = select(TutorGroup).where(TutorGroup.id == group_id, TutorGroup.owner_id == owner_id)

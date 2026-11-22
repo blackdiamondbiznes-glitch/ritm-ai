@@ -6,8 +6,10 @@ from typing import Any
 
 from aiohttp import web
 
+from app.db.repositories.chats import ChatRepository
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
+from app.i18n import t
 from app.services.groups import GroupError, GroupService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
@@ -19,6 +21,7 @@ _STATUS = {
     "days": 400,
     "time": 400,
     "student": 400,
+    "send": 400,
 }
 
 
@@ -30,6 +33,7 @@ def setup_group_routes(app: web.Application) -> None:
     app.router.add_patch("/api/tutor/groups/{group_id}", groups_update)
     app.router.add_delete("/api/tutor/groups/{group_id}", groups_delete)
     app.router.add_post("/api/tutor/groups/{group_id}/students", groups_add_student)
+    app.router.add_post("/api/tutor/groups/{group_id}/announce", groups_announce)
     app.router.add_delete(
         "/api/tutor/groups/{group_id}/students/{student_id}", groups_remove_student
     )
@@ -88,6 +92,40 @@ async def groups_delete(request: web.Request) -> web.Response:
     if group_id is None:
         return _error(400, "bad_request")
     return await _call(ctx, lambda svc: svc.remove(ctx.user.id, group_id))
+
+
+async def groups_announce(request: web.Request) -> web.Response:
+    """Post the group's registration link into one of the owner's chats."""
+    ctx = await _context(request)
+    if isinstance(ctx, web.Response):
+        return ctx
+    group_id = _group_id(request)
+    if group_id is None:
+        return _error(400, "bad_request")
+    body = await _body(request)
+    if isinstance(body, web.Response):
+        return body
+    chat_id = body.get("chat_id")
+    if isinstance(chat_id, bool) or not isinstance(chat_id, int):
+        return _error(400, "bad_request")
+    group = await GroupRepository(ctx.session).get_owned(ctx.user.id, group_id)
+    chat = await ChatRepository(ctx.session).get_by_id(chat_id)
+    if group is None or chat is None or chat.owner_id != ctx.user.id or not chat.is_active:
+        return _error(404, "missing")
+    username = request.app.get("bot_username")
+    bot = request.app.get("bot")
+    if not username or bot is None:
+        return _error(400, "send")
+    link = f"https://t.me/{username}?start=enroll_{group.enroll_code}"
+    lang = ctx.user.language_code or "uz"
+    try:
+        await bot.send_message(
+            chat.telegram_chat_id,
+            t("enroll_post", lang, link=link, name=group.name),
+        )
+    except Exception:
+        return _error(400, "send")
+    return web.json_response({"ok": True})
 
 
 async def groups_add_student(request: web.Request) -> web.Response:

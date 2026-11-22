@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
+import secrets
 from datetime import date, datetime
 
-from app.db.models.groups import TutorGroup
+from app.db.models.groups import TutorGroup, TutorGroupMember
 from app.db.models.students import TutorStudent
 from app.db.models.topics import TutorScore, TutorTopic
 from app.db.repositories.groups import GroupRepository
@@ -137,6 +138,34 @@ class GradeService:
         await self._students.save(row)
         return "ok"
 
+    async def enroll(self, code: str, telegram_id: int, full_name: str) -> str:
+        """Register this Telegram account into the group. Returns ok, missing, own, or already."""
+        group = await self._groups.by_enroll_code(code)
+        if group is None:
+            return "missing"
+        owner = await self._users.get_by_id(group.owner_id)
+        if owner is not None and owner.telegram_id == telegram_id:
+            return "own"
+        rows = await self._students.by_telegram(telegram_id)
+        student = next((row for row in rows if row.owner_id == group.owner_id), None)
+        if student is None:
+            student = await self._students.add(
+                TutorStudent(
+                    owner_id=group.owner_id,
+                    name=_enroll_name(full_name),
+                    status="paid",
+                    amount_uzs=0,
+                    telegram_id=telegram_id,
+                    join_code=secrets.token_hex(5),
+                )
+            )
+        if await self._groups.membership(group.id, student.id) is not None:
+            return "already"
+        await self._groups.add_member(
+            TutorGroupMember(group_id=group.id, student_id=student.id)
+        )
+        return "ok"
+
     async def _owned(self, owner_id: int, group_id: int) -> TutorGroup:
         group = await self._groups.get_owned(owner_id, group_id)
         if group is None:
@@ -240,6 +269,11 @@ def _public_group(group: TutorGroup, ranking: list[dict], student_id: int) -> di
             for item in ranking
         ],
     }
+
+
+def _enroll_name(value: str) -> str:
+    text = _SPACE.sub(" ", (value or "").strip())
+    return text[:80] or "O'quvchi"
 
 
 def _title(value: object) -> str:
