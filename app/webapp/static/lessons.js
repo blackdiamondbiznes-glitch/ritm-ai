@@ -37,7 +37,7 @@ export async function renderLessons(seq) {
       cache = await api("/api/tutor/lessons");
     }
     if (!current(seq)) return;
-    if (place.mode === "new") paintForm(null);
+    if (place.mode === "new") paintForm(null, place.studentId);
     else if (place.mode === "edit") paintEdit(place.id);
     else {
       filter = place.filter;
@@ -51,7 +51,10 @@ export async function renderLessons(seq) {
 function lessonPlace() {
   const parts = (location.hash || "").replace(/^#\/?/, "").split("/").filter(Boolean);
   const third = parts[2] || "";
-  if (third === "new") return { mode: "new" };
+  if (third === "new") {
+    const picked = parts[3] || "";
+    return { mode: "new", studentId: /^\d+$/.test(picked) ? Number(picked) : null };
+  }
   if (/^\d+$/.test(third)) return { mode: "edit", id: Number(third) };
   if (STATUSES.includes(third)) return { mode: "list", filter: third };
   return { mode: "list", filter: "all" };
@@ -112,13 +115,13 @@ function paintList() {
   });
 }
 
-function paintForm(row) {
+function paintForm(row, presetStudent) {
   const status = row ? row.status : "scheduled";
   const chips = STATUSES.map((item) => {
     const on = item === status ? " selected" : "";
     return `<button type="button" class="chip-btn${on}" data-status="${item}">${escapeHtml(t(STATUS_KEY[item]))}</button>`;
   }).join("");
-  const selected = row && row.student_id ? String(row.student_id) : "";
+  const selected = row && row.student_id ? String(row.student_id) : presetStudent ? String(presetStudent) : "";
   const options = [`<option value="">${escapeHtml(t("lesNoStudent"))}</option>`]
     .concat(
       (cache.students || []).map((student) => {

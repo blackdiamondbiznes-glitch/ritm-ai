@@ -91,3 +91,34 @@ async def test_owner_crud_is_hidden_from_the_other_account(client) -> None:
     blank = await http.post("/api/tutor/students", headers=heads["owner"], json={"name": "  "})
     assert blank.status == 400
     assert (await blank.json())["error"] == "empty"
+
+
+async def test_profile_shows_only_that_students_lesson(client) -> None:
+    http, heads = client
+    created = await http.post(
+        "/api/tutor/students",
+        headers=heads["owner"],
+        json={"name": "Ali", "status": "debtor", "amount_uzs": 150000},
+    )
+    body = await created.json()
+    student_id = body["created_id"]
+    await http.post(
+        "/api/tutor/lessons",
+        headers=heads["owner"],
+        json={"title": "Algebra", "student_id": student_id, "status": "scheduled"},
+    )
+    other = await http.post(
+        "/api/tutor/students", headers=heads["owner"], json={"name": "Vali", "status": "paid"}
+    )
+    other_id = (await other.json())["created_id"]
+    await http.post(
+        "/api/tutor/lessons",
+        headers=heads["owner"],
+        json={"title": "Fizika", "student_id": other_id, "status": "done"},
+    )
+    profile = await http.get(f"/api/tutor/students/{student_id}", headers=heads["owner"])
+    data = await profile.json()
+    assert data["student"]["name"] == "Ali"
+    assert [item["title"] for item in data["lessons"]] == ["Algebra"]
+    hidden = await http.get(f"/api/tutor/students/{student_id}", headers=heads["other"])
+    assert hidden.status == 404

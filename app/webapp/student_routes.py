@@ -6,6 +6,8 @@ from typing import Any
 
 from aiohttp import web
 
+from app.db.repositories.lessons import LessonRepository
+from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
 from app.services.students import StudentError, StudentService
 from app.webapp.context import WebContext
@@ -25,6 +27,7 @@ _STATUS = {
 def setup_student_routes(app: web.Application) -> None:
     """Register the tutor student API."""
     app.router.add_get("/api/tutor/students", students_list)
+    app.router.add_get("/api/tutor/students/{student_id}", students_profile)
     app.router.add_post("/api/tutor/students", students_create)
     app.router.add_patch("/api/tutor/students/{student_id}", students_update)
     app.router.add_delete("/api/tutor/students/{student_id}", students_delete)
@@ -36,6 +39,17 @@ async def students_list(request: web.Request) -> web.Response:
     if isinstance(ctx, web.Response):
         return ctx
     return web.json_response(await _service(ctx).list(ctx.user.id))
+
+
+async def students_profile(request: web.Request) -> web.Response:
+    """One student, with only that student's lessons and reminders."""
+    ctx = await _context(request)
+    if isinstance(ctx, web.Response):
+        return ctx
+    student_id = _student_id(request)
+    if student_id is None:
+        return _error(400, "bad_request")
+    return await _call(ctx, lambda svc: svc.profile(ctx.user.id, student_id))
 
 
 async def students_create(request: web.Request) -> web.Response:
@@ -75,7 +89,11 @@ async def students_delete(request: web.Request) -> web.Response:
 
 
 def _service(ctx: WebContext) -> StudentService:
-    return StudentService(StudentRepository(ctx.session))
+    return StudentService(
+        StudentRepository(ctx.session),
+        LessonRepository(ctx.session),
+        ReminderRepository(ctx.session),
+    )
 
 
 async def _call(ctx: WebContext, work) -> web.Response:

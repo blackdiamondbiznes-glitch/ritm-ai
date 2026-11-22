@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from app.db.models.lessons import TutorLesson
 from app.db.models.students import TutorStudent
 from app.services.students import StudentError, StudentService, parse_student
 
@@ -93,6 +94,43 @@ async def test_remove_and_validation() -> None:
         with pytest.raises(StudentError):
             parse_student(body)
     assert len(repo.rows) == before
+
+
+async def test_profile_lists_only_this_students_lessons() -> None:
+    service, _repo = _service()
+    ali = await service.create(1, {"name": "Ali"})
+    vali = await service.create(1, {"name": "Vali"})
+    ali_id = ali["created_id"]
+    lesson = TutorLesson(
+        id=1, owner_id=1, student_id=ali_id, title="Algebra", status="scheduled", amount_uzs=0
+    )
+    other = TutorLesson(
+        id=2,
+        owner_id=1,
+        student_id=vali["created_id"],
+        title="Fizika",
+        status="done",
+        amount_uzs=0,
+    )
+    foreign = TutorLesson(
+        id=3, owner_id=2, student_id=ali_id, title="Begona", status="scheduled", amount_uzs=0
+    )
+    service._lessons = _Named([lesson, other, foreign])
+    profile = await service.profile(1, ali_id)
+    assert profile["student"]["name"] == "Ali"
+    assert [item["title"] for item in profile["lessons"]] == ["Algebra"]
+    assert profile["reminders"] == []
+    with pytest.raises(StudentError) as missing:
+        await service.profile(2, ali_id)
+    assert missing.value.code == "missing"
+
+
+class _Named:
+    def __init__(self, rows) -> None:
+        self.rows = rows
+
+    async def list_for_owner(self, owner_id: int):
+        return [row for row in self.rows if row.owner_id == owner_id]
 
 
 def test_partial_update_does_not_require_a_name() -> None:

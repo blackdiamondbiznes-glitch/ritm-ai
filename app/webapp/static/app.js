@@ -41,12 +41,17 @@ async function boot() {
         const third = parts[2] || "";
         const lessonForm = section === "lessons" && (third === "new" || /^\d+$/.test(third));
         const reminderForm = section === "reminders" && (third === "new" || /^\d+$/.test(third));
+        const fourth = parts[3] || "";
+        const studentEdit = section === "students" && /^\d+$/.test(third) && fourth === "edit";
         const studentForm =
           section === "new" ||
           /^\d+$/.test(section) ||
           (section === "students" && (third === "new" || /^\d+$/.test(third)));
+        const lessonForStudent = section === "lessons" && third === "new" && /^\d+$/.test(fourth);
         if (reminderForm) go("cabinet/reminders");
+        else if (lessonForStudent) go(`cabinet/students/${fourth}`);
         else if (lessonForm) go("cabinet/lessons");
+        else if (studentEdit) go(`cabinet/students/${third}`);
         else if (studentForm) go("cabinet/students");
         else if (section) go("cabinet");
         else go("home");

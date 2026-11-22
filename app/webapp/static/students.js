@@ -19,6 +19,13 @@ let filter = "all";
 export async function renderStudents(sub, id, seq) {
   const place = studentPlace(sub, id);
   try {
+    if (place.mode === "profile") {
+      setHtml(skeleton("list"));
+      const profile = await api(`/api/tutor/students/${place.id}`);
+      if (!current(seq)) return;
+      paintProfile(profile);
+      return;
+    }
     if (!cache || place.mode === "list") {
       setHtml(skeleton("list"));
       cache = await api("/api/tutor/students");
@@ -38,10 +45,96 @@ export async function renderStudents(sub, id, seq) {
 function studentPlace(sub, id) {
   const parts = (location.hash || "").replace(/^#\/?/, "").split("/").filter(Boolean);
   const third = parts[2] || "";
+  const fourth = parts[3] || "";
   if (sub === "new" || third === "new") return { mode: "new" };
-  if (id) return { mode: "edit", id };
+  if (id && fourth === "edit") return { mode: "edit", id };
+  if (id) return { mode: "profile", id };
   if (STATUSES.includes(third)) return { mode: "list", filter: third };
   return { mode: "list", filter: "all" };
+}
+
+const LESSON_KEY = { scheduled: "lesScheduled", done: "lesDone", cancelled: "lesCancelled" };
+
+function paintProfile(data) {
+  const row = data.student;
+  const lessons = data.lessons || [];
+  const reminders = data.reminders || [];
+  const phone = row.phone ? escapeHtml(row.phone) : escapeHtml(t("stuNoPhone"));
+  const note = row.note ? `<div class="card"><div class="stu-meta">${escapeHtml(row.note)}</div></div>` : "";
+  const lessonBody = lessons.length
+    ? lessons.map(lessonRow).join("")
+    : `<div class="stu-meta">${escapeHtml(t("stuNoLessons"))}</div>`;
+  const reminderBody = reminders.length
+    ? reminders.map(reminderRow).join("")
+    : `<div class="stu-meta">${escapeHtml(t("stuNoReminders"))}</div>`;
+  setHtml(`
+    <div class="header">
+      <h1>${escapeHtml(row.name)}</h1>
+      <p>${escapeHtml(t(STATUS_KEY[row.status] || "stuMissing"))}</p>
+    </div>
+    <div class="card">
+      <div class="stu-meta">${phone}</div>
+      <div class="big">${escapeHtml(t("stuSum", { n: formatNumber(row.amount_uzs) }))}</div>
+    </div>
+    ${note}
+    <div class="card">
+      <div class="card-title">${escapeHtml(t("stuLessons"))}</div>
+      ${lessonBody}
+      <button type="button" class="primary" id="stu-lesson">${escapeHtml(t("lesAdd"))}</button>
+    </div>
+    <div class="card">
+      <div class="card-title">${escapeHtml(t("stuReminders"))}</div>
+      ${reminderBody}
+    </div>
+    <button type="button" class="primary" id="stu-edit">${escapeHtml(t("stuEdit"))}</button>
+    <button type="button" class="ghost danger" id="stu-delete">${escapeHtml(t("stuDelete"))}</button>
+  `);
+  document.querySelectorAll("[data-lesson]").forEach((node) => {
+    node.addEventListener("click", () => {
+      haptic("light");
+      go(`cabinet/lessons/${node.getAttribute("data-lesson")}`);
+    });
+  });
+  document.getElementById("stu-lesson").addEventListener("click", () => {
+    haptic("light");
+    go(`cabinet/lessons/new/${row.id}`);
+  });
+  document.getElementById("stu-edit").addEventListener("click", () => {
+    haptic("light");
+    go(`cabinet/students/${row.id}/edit`);
+  });
+  document.getElementById("stu-delete").addEventListener("click", (event) => {
+    withBusy(event.currentTarget, () => destroy(row.id)).catch((err) => toast(t(ERROR_KEY[err.code] || "error"), "err"));
+  });
+}
+
+function lessonRow(row) {
+  const when = row.starts_at ? ` · ${escapeHtml(formatWhen(row.starts_at))}` : "";
+  return `<button type="button" class="list-btn" data-lesson="${row.id}">
+    <div class="stu-row">
+      <div class="chat-name">${escapeHtml(row.title)}</div>
+      <span class="stu-badge les-${row.status}">${escapeHtml(t(LESSON_KEY[row.status] || "lesScheduled"))}</span>
+    </div>
+    <div class="stu-meta">${escapeHtml(t("stuSum", { n: formatNumber(row.amount_uzs) }))}${when}</div>
+  </button>`;
+}
+
+function reminderRow(row) {
+  const state = row.sent ? t("remSent") : t("remWaiting");
+  return `<div class="stu-meta">${escapeHtml(row.text)} · ${escapeHtml(formatWhen(row.send_at))} · ${escapeHtml(state)}</div>`;
+}
+
+function formatWhen(iso) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Tashkent",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+  const pick = (type) => parts.find((part) => part.type === type).value;
+  return `${pick("day")}.${pick("month")} ${pick("hour")}:${pick("minute")}`;
 }
 
 function paintEdit(id) {
@@ -159,7 +252,8 @@ async function save(row) {
   cache = await api(path, { method: row ? "PATCH" : "POST", body: JSON.stringify(body) });
   haptic("success");
   toast(t("saved"), "ok");
-  go("cabinet/students");
+  const nextId = row ? row.id : cache.created_id;
+  go(nextId ? `cabinet/students/${nextId}` : "cabinet/students");
 }
 
 async function destroy(id) {

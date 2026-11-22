@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from app.db.models.students import TutorStudent
+from app.db.repositories.lessons import LessonRepository
+from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
 
 STATUSES = frozenset({"paid", "debtor", "inactive"})
@@ -40,8 +42,15 @@ class StudentInput:
 class StudentService:
     """Create, edit and list students for one owner."""
 
-    def __init__(self, students: StudentRepository) -> None:
+    def __init__(
+        self,
+        students: StudentRepository,
+        lessons: LessonRepository | None = None,
+        reminders: ReminderRepository | None = None,
+    ) -> None:
         self._students = students
+        self._lessons = lessons
+        self._reminders = reminders
 
     async def list(self, owner_id: int) -> dict:
         """Every student of this owner, plus counts by status."""
@@ -51,7 +60,7 @@ class StudentService:
         """Store a new student. A missing status starts as owing."""
         parsed = parse_student(body)
         now = datetime.now(UTC)
-        await self._students.add(
+        row = await self._students.add(
             TutorStudent(
                 owner_id=owner_id,
                 name=parsed.name,
@@ -63,7 +72,9 @@ class StudentService:
                 updated_at=now,
             )
         )
-        return await self.list(owner_id)
+        payload = await self.list(owner_id)
+        payload["created_id"] = row.id
+        return payload
 
     async def update(self, owner_id: int, student_id: int, body: dict) -> dict:
         """Change the fields present in `body`. Other fields stay as they are."""
@@ -79,6 +90,23 @@ class StudentService:
         row.updated_at = datetime.now(UTC)
         await self._students.save(row)
         return await self.list(owner_id)
+
+    async def profile(self, owner_id: int, student_id: int) -> dict:
+        """One student plus only the lessons and reminders tied to them."""
+        row = await self._students.get_owned(owner_id, student_id)
+        if row is None:
+            raise StudentError("missing")
+        lessons = []
+        if self._lessons is not None:
+            owned = await self._lessons.list_for_owner(owner_id)
+            lessons = [_lesson_brief(item) for item in owned if item.student_id == student_id]
+        reminders = []
+        if self._reminders is not None:
+            owned_notes = await self._reminders.list_for_owner(owner_id)
+            reminders = [
+                _reminder_brief(item) for item in owned_notes if item.student_id == student_id
+            ]
+        return {"student": _one(row), "lessons": lessons, "reminders": reminders}
 
     async def remove(self, owner_id: int, student_id: int) -> dict:
         """Delete one of this owner's students."""
@@ -116,21 +144,42 @@ def parse_student(body: dict, current: TutorStudent | None = None) -> StudentInp
     return StudentInput(name=name, phone=phone, status=status, amount_uzs=amount, note=note)
 
 
+def _one(row: TutorStudent) -> dict:
+    return {
+        "id": row.id,
+        "name": row.name,
+        "phone": row.phone,
+        "status": row.status,
+        "amount_uzs": row.amount_uzs,
+        "note": row.note,
+    }
+
+
+def _lesson_brief(row) -> dict:
+    return {
+        "id": row.id,
+        "title": row.title,
+        "status": row.status,
+        "starts_at": row.starts_at.isoformat() if row.starts_at else None,
+        "amount_uzs": row.amount_uzs,
+    }
+
+
+def _reminder_brief(row) -> dict:
+    return {
+        "id": row.id,
+        "text": row.text,
+        "send_at": row.send_at.isoformat(),
+        "sent": row.sent_at is not None,
+    }
+
+
 def _payload(rows: list[TutorStudent]) -> dict:
     counts = {"paid": 0, "debtor": 0, "inactive": 0}
     students = []
     for row in rows:
         counts[row.status] = counts.get(row.status, 0) + 1
-        students.append(
-            {
-                "id": row.id,
-                "name": row.name,
-                "phone": row.phone,
-                "status": row.status,
-                "amount_uzs": row.amount_uzs,
-                "note": row.note,
-            }
-        )
+        students.append(_one(row))
     return {"students": students, "counts": counts}
 
 
