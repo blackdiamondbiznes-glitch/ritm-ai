@@ -103,13 +103,16 @@ function paintProfile(data) {
   const link = document.getElementById("stu-link");
   if (link) {
     link.addEventListener("click", async () => {
-      const url = joinUrl(row.join_code);
+      const field = document.getElementById("stu-url");
+      const url = field ? field.value : joinUrl(row.join_code);
       try {
         await navigator.clipboard.writeText(url);
+        toast(t("stuLinkCopied"), "ok");
       } catch {
-        /* The link is still shown on the button title. */
+        field.focus();
+        field.select();
+        toast(t("stuLinkSelect"), "err");
       }
-      toast(t("stuLinkCopied"), "ok");
     });
   }
   document.getElementById("stu-edit").addEventListener("click", () => {
@@ -124,7 +127,12 @@ function paintProfile(data) {
 function joinButton(row) {
   const url = joinUrl(row.join_code);
   if (!url) return "";
-  return `<button type="button" class="ghost" id="stu-link" title="${escapeHtml(url)}">${escapeHtml(t("stuLink"))}</button>`;
+  return `<div class="card">
+    <div class="card-title">${escapeHtml(t("stuLink"))}</div>
+    <input class="input" id="stu-url" readonly value="${escapeHtml(url)}">
+    <p class="stu-meta">${escapeHtml(t("stuLinkHint"))}</p>
+    <button type="button" class="primary" id="stu-link">${escapeHtml(t("stuLinkCopy"))}</button>
+  </div>`;
 }
 
 function joinUrl(code) {

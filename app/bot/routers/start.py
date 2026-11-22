@@ -7,9 +7,11 @@ from aiogram.types import CallbackQuery, Message
 
 from app.bot.callbacks import LangCB, MenuCB
 from app.bot.keyboards.menu import back_menu, language_picker, main_menu
+from app.bot.routers.join import code_from_text
 from app.bot.view import show_screen
 from app.db.models.users import User
 from app.i18n import t
+from app.services.grades import GradeService
 from app.services.user_prefs import PrefsError, needs_language, set_language
 
 router = Router(name="start")
@@ -18,9 +20,22 @@ router = Router(name="start")
 @router.message(CommandStart())
 @router.message(Command("menu"))
 async def open_menu(
-    message: Message, state: FSMContext, lang: str, is_super_admin: bool, current_user: User
+    message: Message,
+    state: FSMContext,
+    lang: str,
+    is_super_admin: bool,
+    current_user: User,
+    grades: GradeService,
 ) -> None:
-    """Show the main menu. A brand-new user first picks the interface language."""
+    """Show the main menu. A ranking link is claimed before the menu."""
+    code = code_from_text(message.text or "")
+    if code and message.text and message.text.startswith("/start"):
+        await state.clear()
+        result = await grades.claim(code, current_user.telegram_id)
+        await message.answer(
+            t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
+        )
+        return
     await state.clear()
     if needs_language(current_user):
         await message.answer(t("lang_pick", lang), reply_markup=language_picker(first=True))
