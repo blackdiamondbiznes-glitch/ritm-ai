@@ -146,6 +146,7 @@
   "join_ok": "Reytingga ulandingiz.\nMini ilovani oching.",
   "join_missing": "Havola eskirgan.",
   "join_taken": "Bu havola boshqa hisobga ulangan.",
+  "join_own": "Bu sizning o‘quvchingiz.\nHavolani unga yuboring.",
   "quiz_bad": "Javob qabul qilinmadi.",
   "quiz_channel_post": "Yangi quiz tayyor.\nJavobni shaxsiy chatda bering.",
   "quiz_link": "Javob berish",

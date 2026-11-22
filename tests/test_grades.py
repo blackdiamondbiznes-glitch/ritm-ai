@@ -1,10 +1,11 @@
-"""Group ranking sums 0–10 marks. Ungraded students stay off the board."""
+"""Group ranking sums 0–10 marks. A tutor cannot claim their own student link."""
 
 from datetime import date
 
 from app.db.models.students import TutorStudent
 from app.db.models.topics import TutorScore
-from app.services.grades import rank
+from app.db.models.users import User
+from app.services.grades import GradeService, rank
 
 
 def _student(student_id: int, name: str) -> TutorStudent:
@@ -26,6 +27,38 @@ def test_ties_share_a_place_and_zero_counts() -> None:
         ("Vali", 8, 2),
         ("Sami", 0, 3),
     ]
+
+
+class _Students:
+    def __init__(self, row: TutorStudent) -> None:
+        self.row = row
+
+    async def by_join_code(self, code: str) -> TutorStudent | None:
+        return self.row if self.row.join_code == code else None
+
+    async def save(self, row: TutorStudent) -> TutorStudent:
+        self.row = row
+        return row
+
+
+class _Users:
+    def __init__(self, owner: User) -> None:
+        self.owner = owner
+
+    async def get_by_id(self, user_id: int) -> User | None:
+        return self.owner if self.owner.id == user_id else None
+
+
+async def test_tutor_cannot_claim_their_own_student() -> None:
+    student = TutorStudent(
+        id=4, owner_id=1, name="Ali", status="paid", amount_uzs=0, join_code="abc123"
+    )
+    owner = User(id=1, telegram_id=555, full_name="Tutor")
+    service = GradeService(None, _Students(student), None, _Users(owner))  # type: ignore[arg-type]
+    assert await service.claim("abc123", 555) == "own"
+    assert student.telegram_id is None
+    assert await service.claim("abc123", 777) == "ok"
+    assert student.telegram_id == 777
 
 
 def test_a_real_day_parses() -> None:

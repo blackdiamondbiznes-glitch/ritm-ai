@@ -90,6 +90,7 @@ class ServicesMiddleware(BaseMiddleware):
             GroupRepository(session),
             StudentRepository(session),
             TopicRepository(session),
+            UserRepository(session),
         )
         data["audit"] = audit
         data["payments"] = PaymentService(

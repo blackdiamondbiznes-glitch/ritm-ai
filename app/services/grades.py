@@ -11,6 +11,7 @@ from app.db.models.topics import TutorScore, TutorTopic
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.topics import TopicRepository
+from app.db.repositories.users import UserRepository
 from app.services.groups import _hhmm
 
 TITLE_MAX = 120
@@ -34,10 +35,12 @@ class GradeService:
         groups: GroupRepository,
         students: StudentRepository,
         topics: TopicRepository,
+        users: UserRepository,
     ) -> None:
         self._groups = groups
         self._students = students
         self._topics = topics
+        self._users = users
 
     async def board(self, owner_id: int, group_id: int) -> dict:
         """Topics and the ranking for one of this owner's groups."""
@@ -122,6 +125,9 @@ class GradeService:
         row = await self._students.by_join_code(code)
         if row is None:
             return "missing"
+        owner = await self._users.get_by_id(row.owner_id)
+        if owner is not None and owner.telegram_id == telegram_id:
+            return "own"
         if row.telegram_id is not None and row.telegram_id != telegram_id:
             return "taken"
         row.telegram_id = telegram_id
