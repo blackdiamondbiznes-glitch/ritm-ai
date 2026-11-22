@@ -2,7 +2,7 @@
 
 from aiogram import F, Router
 from aiogram.dispatcher.event.bases import SkipHandler
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -17,6 +17,7 @@ router = Router(name="join")
 @router.message(CommandStart(deep_link=True))
 async def claim_join(
     message: Message,
+    command: CommandObject,
     state: FSMContext,
     current_user: User,
     grades: GradeService,
@@ -25,11 +26,12 @@ async def claim_join(
 ) -> None:
     """Bind this chat to a student or a group, or let another /start handler run."""
     text = message.text or ""
-    enroll = enroll_code_from_text(text)
+    args = command.args or ""
+    enroll = enroll_from_args(args) or enroll_code_from_text(text)
     if enroll:
         await _enroll(message, state, current_user, grades, lang, is_super_admin, enroll)
         return
-    code = code_from_text(text)
+    code = join_from_args(args) or code_from_text(text)
     if code is None:
         raise SkipHandler()
     await _reply(message, state, current_user, grades, lang, is_super_admin, code)
@@ -97,6 +99,22 @@ async def _reply(
     await message.answer(
         t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
     )
+
+
+def enroll_from_args(args: str) -> str | None:
+    """Read enroll code from the hidden /start argument Telegram does not show."""
+    token = args.strip()
+    if not token.startswith("enroll_"):
+        return None
+    return _token(token.removeprefix("enroll_"))
+
+
+def join_from_args(args: str) -> str | None:
+    """Read a personal join code from the hidden /start argument."""
+    token = args.strip()
+    if not token.startswith("join_"):
+        return None
+    return _token(token.removeprefix("join_"))
 
 
 def enroll_code_from_text(text: str) -> str | None:

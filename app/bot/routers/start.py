@@ -1,13 +1,18 @@
 """Start, menu, help, cancel and the UI language picker."""
 
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.callbacks import LangCB, MenuCB
 from app.bot.keyboards.menu import back_menu, language_picker, main_menu
-from app.bot.routers.join import code_from_text, enroll_code_from_text
+from app.bot.routers.join import (
+    code_from_text,
+    enroll_code_from_text,
+    enroll_from_args,
+    join_from_args,
+)
 from app.bot.view import show_screen
 from app.db.models.users import User
 from app.i18n import t
@@ -26,19 +31,21 @@ async def open_menu(
     is_super_admin: bool,
     current_user: User,
     grades: GradeService,
+    command: CommandObject | None = None,
 ) -> None:
     """Show the main menu. A ranking link is claimed before the menu."""
     text = message.text or ""
-    enroll = enroll_code_from_text(text)
-    if enroll and text.startswith("/start"):
+    args = command.args or "" if command else ""
+    enroll = enroll_from_args(args) or enroll_code_from_text(text)
+    if enroll and (text.startswith("/start") or args.startswith("enroll_")):
         await state.clear()
         result = await grades.enroll(enroll, current_user.telegram_id, current_user.full_name or "")
         await message.answer(
             t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
         )
         return
-    code = code_from_text(text)
-    if code and text.startswith("/start"):
+    code = join_from_args(args) or code_from_text(text)
+    if code and (text.startswith("/start") or args.startswith("join_")):
         await state.clear()
         result = await grades.claim(code, current_user.telegram_id)
         await message.answer(

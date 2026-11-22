@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiohttp import web
 
 from app.db.repositories.chats import ChatRepository
@@ -118,10 +119,16 @@ async def groups_announce(request: web.Request) -> web.Response:
         return _error(400, "send")
     link = f"https://t.me/{username}?start=enroll_{group.enroll_code}"
     lang = ctx.user.language_code or "uz"
+    button = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("enroll_button", lang), url=link)]
+        ]
+    )
     try:
         await bot.send_message(
             chat.telegram_chat_id,
-            t("enroll_post", lang, link=link, name=group.name),
+            t("enroll_post", lang, name=group.name),
+            reply_markup=button,
         )
     except Exception:
         return _error(400, "send")
