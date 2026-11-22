@@ -151,7 +151,7 @@
   "enroll_missing": "Ro‘yxat havolasi eskirgan.",
   "enroll_own": "Bu sizning guruhingiz.\nHavolani a’zolarga yuboring.",
   "enroll_already": "Siz bu guruhda bor.",
-  "enroll_post": "<b>{name}</b>\nO‘quvchi bo‘lib ro‘yxatdan o‘ting:\n{link}",
+  "enroll_post": "<b>{name}</b>\nO‘quvchi bo‘lib yozilish uchun shu linkni bosing:\n{link}",
   "quiz_bad": "Javob qabul qilinmadi.",
   "quiz_channel_post": "Yangi quiz tayyor.\nJavobni shaxsiy chatda bering.",
   "quiz_link": "Javob berish",
