@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime
 
 from app.db.models.groups import TutorGroup
 from app.db.models.students import TutorStudent
@@ -12,6 +12,7 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.topics import TopicRepository
 from app.db.repositories.users import UserRepository
+from app.services.clock import TASHKENT
 from app.services.groups import _hhmm
 
 TITLE_MAX = 120
@@ -51,6 +52,7 @@ class GradeService:
         return {
             "topics": [_topic_row(item, scores) for item in topics],
             "ranking": rank(members, scores),
+            "gradebook": gradebook(members, topics, scores),
         }
 
     async def add_topic(self, owner_id: int, group_id: int, body: dict) -> dict:
@@ -118,6 +120,7 @@ class GradeService:
                 topics = await self._topics.list_for_group(group.id)
                 scores = await self._topics.scores_for([item.id for item in topics])
                 found.append(_public_group(group, rank(members, scores), student.id))
+        found.sort(key=lambda item: (not item["today"], item["start"]))
         return found
 
     async def claim(self, code: str, telegram_id: int) -> str:
@@ -195,11 +198,35 @@ def _topic_row(topic: TutorTopic, scores: list[TutorScore]) -> dict:
     }
 
 
+def gradebook(
+    members: list[TutorStudent], topics: list[TutorTopic], scores: list[TutorScore]
+) -> list[dict]:
+    """One row per student. Marks follow the topic list. A blank cell is ungraded."""
+    marks = {(item.topic_id, item.student_id): item.score for item in scores}
+    rows = [
+        {
+            "student_id": member.id,
+            "name": member.name,
+            "marks": [marks.get((topic.id, member.id)) for topic in topics],
+        }
+        for member in members
+    ]
+    rows.sort(key=lambda row: row["name"].casefold())
+    return rows
+
+
+def _meets_today(weekdays: str, moment: datetime | None = None) -> bool:
+    now = moment or datetime.now(TASHKENT)
+    days = {int(part) for part in weekdays.split(",") if part}
+    return now.isoweekday() in days
+
+
 def _public_group(group: TutorGroup, ranking: list[dict], student_id: int) -> dict:
     return {
         "group_id": group.id,
         "name": group.name,
         "level": group.level,
+        "today": _meets_today(group.weekdays),
         "weekdays": [int(part) for part in group.weekdays.split(",")],
         "start": _hhmm(group.start_min),
         "end": _hhmm(group.end_min),

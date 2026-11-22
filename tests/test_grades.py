@@ -61,6 +61,22 @@ async def test_tutor_cannot_claim_their_own_student() -> None:
     assert student.telegram_id == 777
 
 
+def test_gradebook_lines_marks_up_with_topics() -> None:
+    from app.db.models.topics import TutorTopic
+    from app.services.grades import gradebook
+
+    members = [_student(2, "Vali"), _student(1, "Ali")]
+    topics = [
+        TutorTopic(id=1, group_id=1, title="Kasr", held_on=date(2026, 11, 21)),
+        TutorTopic(id=2, group_id=1, title="Foiz", held_on=date(2026, 11, 22)),
+    ]
+    scores = [_score(1, 8, 1), _score(1, 10, 2)]
+    rows = gradebook(members, topics, scores)
+    assert [row["name"] for row in rows] == ["Ali", "Vali"]
+    assert rows[0]["marks"] == [8, 10]
+    assert rows[1]["marks"] == [None, None]
+
+
 def test_a_real_day_parses() -> None:
     from app.services.grades import _day
 

@@ -121,6 +121,10 @@ function paintOpen() {
       <p>${escapeHtml(schedule(group))}</p>
     </div>
     <div class="card">
+      <div class="card-title">${escapeHtml(t("bookTitle"))}</div>
+      ${gradebookTable(board)}
+    </div>
+    <div class="card">
       <div class="card-title">${escapeHtml(t("rankTitle"))}</div>
       ${rankRows((board && board.ranking) || [])}
     </div>
@@ -315,6 +319,24 @@ async function saveMarks(groupId, topicId) {
   haptic("success");
   toast(t("saved"), "ok");
   go(`cabinet/groups/${groupId}`);
+}
+
+function gradebookTable(data) {
+  const topics = (data && data.topics) || [];
+  const rows = (data && data.gradebook) || [];
+  if (!topics.length || !rows.length) return `<div class="stu-meta">${escapeHtml(t("bookEmpty"))}</div>`;
+  const head = topics
+    .map((topic) => `<th>${escapeHtml(topic.title)}</th>`)
+    .join("");
+  const body = rows
+    .map((row) => {
+      const cells = (row.marks || [])
+        .map((mark) => `<td>${mark === null || mark === undefined ? "·" : escapeHtml(String(mark))}</td>`)
+        .join("");
+      return `<tr><th>${escapeHtml(row.name)}</th>${cells}</tr>`;
+    })
+    .join("");
+  return `<div class="book"><table><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function rankRows(rows) {

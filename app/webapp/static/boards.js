@@ -34,8 +34,8 @@ function one(board) {
     })
     .join("");
   return `<div class="card">
-    <div class="card-title">${escapeHtml(board.name)}</div>
-    <div class="stu-meta">${escapeHtml(`${days} · ${board.start}–${board.end}${level}`)}</div>
+    <div class="card-title">${board.today ? "● " : ""}${escapeHtml(board.name)}</div>
+    <div class="stu-meta">${escapeHtml(board.today ? t("todayBadge") : days)} · ${escapeHtml(`${board.start}–${board.end}${level}`)}</div>
     ${rows || `<div class="stu-meta">${escapeHtml(t("rankEmpty"))}</div>`}
   </div>`;
 }
