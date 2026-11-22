@@ -101,7 +101,7 @@ export function cabinetSwitch(active) {
     const on = id === active ? " on" : "";
     return `<button type="button" class="seg-btn${on}" data-cab="${id}">${escapeHtml(t(key))}</button>`;
   };
-  return `<div class="seg">${item("students", "stuTitle")}${item("lessons", "lesTitle")}${item("reminders", "remTitle")}</div>`;
+  return `<div class="seg">${item("groups", "grpNav")}${item("students", "stuTitle")}${item("lessons", "lesTitle")}${item("reminders", "remTitle")}</div>`;
 }
 
 export function bindCabinetSwitch() {
@@ -110,11 +110,13 @@ export function bindCabinetSwitch() {
       haptic("light");
       const section = node.getAttribute("data-cab");
       const next =
-        section === "lessons"
-          ? "cabinet/lessons"
-          : section === "reminders"
-            ? "cabinet/reminders"
-            : "cabinet/students";
+        section === "groups"
+          ? "cabinet/groups"
+          : section === "lessons"
+            ? "cabinet/lessons"
+            : section === "reminders"
+              ? "cabinet/reminders"
+              : "cabinet/students";
       go(next);
     });
   });

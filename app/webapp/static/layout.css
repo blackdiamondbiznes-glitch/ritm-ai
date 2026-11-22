@@ -704,7 +704,7 @@ button.busy::after {
   border-radius: 14px;
   background: color-mix(in srgb, var(--muted) 14%, var(--card));
 }
-.seg-btn { padding: 8px 6px; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; font-size: 13px; }
+.seg-btn { padding: 8px 4px; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .seg-btn.on { background: linear-gradient(135deg, var(--header-1), var(--header-2)); color: #fff; }
 .seg + .kpis { margin-top: 0; }
 .delta { display: inline-block; margin-top: 6px; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; }

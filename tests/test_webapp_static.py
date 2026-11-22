@@ -112,8 +112,11 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert 'data-tab="lessons"' not in html
     summary = (STATIC / "summary.js").read_text(encoding="utf-8")
     reminders = (STATIC / "reminders.js").read_text(encoding="utf-8")
+    groups = (STATIC / "groups.js").read_text(encoding="utf-8")
     assert not set(re.findall(r'\bt\("(\w+)"', summary)) - keys
     assert not set(re.findall(r'\bt\("(\w+)"', reminders)) - keys
+    assert not set(re.findall(r'\bt\("(\w+)"', groups)) - keys
+    assert '<link rel="modulepreload" href="/s/groups.js">' in html
     assert '<link rel="modulepreload" href="/s/reminders.js">' in html
 
 

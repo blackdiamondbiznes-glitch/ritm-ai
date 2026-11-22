@@ -5,6 +5,7 @@ import { openChat, renderChats } from "./chats.js";
 import { MY_CHARTS, renderHistory } from "./history.js";
 import { renderHome } from "./home.js";
 import { renderChatProfile } from "./chatprofile.js";
+import { renderGroups } from "./groups.js";
 import { renderLessons } from "./lessons.js";
 import { renderReminders } from "./reminders.js";
 import { renderStudents } from "./students.js";
@@ -39,6 +40,7 @@ async function boot() {
         const parts = (location.hash || "").replace(/^#\/?/, "").split("/").filter(Boolean);
         const section = parts[1] || "";
         const third = parts[2] || "";
+        const groupForm = section === "groups" && (third === "new" || /^\d+$/.test(third));
         const lessonForm = section === "lessons" && (third === "new" || /^\d+$/.test(third));
         const reminderForm = section === "reminders" && (third === "new" || /^\d+$/.test(third));
         const fourth = parts[3] || "";
@@ -48,7 +50,9 @@ async function boot() {
           /^\d+$/.test(section) ||
           (section === "students" && (third === "new" || /^\d+$/.test(third)));
         const lessonForStudent = section === "lessons" && third === "new" && /^\d+$/.test(fourth);
-        if (reminderForm) go("cabinet/reminders");
+        if (groupForm && fourth === "edit") go(`cabinet/groups/${third}`);
+        else if (groupForm) go("cabinet/groups");
+        else if (reminderForm) go("cabinet/reminders");
         else if (lessonForStudent) go(`cabinet/students/${fourth}`);
         else if (lessonForm) go("cabinet/lessons");
         else if (studentEdit) go(`cabinet/students/${third}`);
@@ -153,7 +157,8 @@ async function route(opts = {}) {
       await renderCabinet(seq);
       return;
     }
-    if (sub === "lessons") await renderLessons(seq);
+    if (sub === "groups") await renderGroups(seq);
+    else if (sub === "lessons") await renderLessons(seq);
     else if (sub === "reminders") await renderReminders(seq);
     else if (sub === "students" || sub === "new" || id) await renderStudents(sub, id, seq);
     else await renderCabinet(seq);
