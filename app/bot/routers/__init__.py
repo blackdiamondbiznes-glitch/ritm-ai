@@ -10,6 +10,7 @@ from app.bot.routers import (
     chats,
     connect,
     daily,
+    enroll,
     fallback,
     join,
     leaderboard,
@@ -47,6 +48,7 @@ def setup_routers(dispatcher: Dispatcher) -> None:
     private.include_router(admin_health.router)
     private.include_router(fallback.router)
     dispatcher.include_router(private)
+    dispatcher.include_router(enroll.router)
     dispatcher.include_router(admin_posts.router)
     dispatcher.include_router(quiz_poll.router)
     dispatcher.include_router(membership.router)

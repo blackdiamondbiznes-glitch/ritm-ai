@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiohttp import web
 
+from app.bot.keyboards.enroll import enroll_keyboard
 from app.db.repositories.chats import ChatRepository
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
@@ -113,22 +114,15 @@ async def groups_announce(request: web.Request) -> web.Response:
     chat = await ChatRepository(ctx.session).get_by_id(chat_id)
     if group is None or chat is None or chat.owner_id != ctx.user.id or not chat.is_active:
         return _error(404, "missing")
-    username = request.app.get("bot_username")
     bot = request.app.get("bot")
-    if not username or bot is None:
+    if bot is None:
         return _error(400, "send")
-    link = f"https://t.me/{username}?start=enroll_{group.enroll_code}"
     lang = ctx.user.language_code or "uz"
-    button = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=t("enroll_button", lang), url=link)]
-        ]
-    )
     try:
         await bot.send_message(
             chat.telegram_chat_id,
-            t("enroll_post", lang, name=group.name),
-            reply_markup=button,
+            t("enroll_post", lang, name=escape(group.name or "")),
+            reply_markup=enroll_keyboard(lang, group.enroll_code),
         )
     except Exception:
         return _error(400, "send")

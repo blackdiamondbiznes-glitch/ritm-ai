@@ -94,3 +94,9 @@ class LangCB(CallbackData, prefix="l"):
 
     v: str
     f: int = 0
+
+
+class EnrollCB(CallbackData, prefix="en"):
+    """Group self-signup. `c` is the group's registration code."""
+
+    c: str
