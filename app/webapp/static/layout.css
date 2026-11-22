@@ -263,6 +263,11 @@
   margin-top: -6px;
 }
 
+/* Cabinet home: the debt card sits directly under this row. */
+.kpis + .card {
+  margin-top: 15px;
+}
+
 .kpi {
   background: var(--card);
   border-radius: var(--radius-sm);
