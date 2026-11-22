@@ -17,6 +17,7 @@ from app.db.models.schedules import Schedule
 from app.db.models.students import TutorStudent
 from app.db.models.subscriptions import Subscription, SubscriptionSource, SubscriptionStatus
 from app.db.models.system_state import SystemState
+from app.db.models.topics import TutorScore, TutorTopic
 from app.db.models.usage import UsageCounter, UsageDaily
 from app.db.models.users import User
 
@@ -47,7 +48,9 @@ __all__ = [
     "TutorGroup",
     "TutorGroupMember",
     "TutorLesson",
+    "TutorScore",
     "TutorStudent",
+    "TutorTopic",
     "UsageCounter",
     "UsageDaily",
     "User",

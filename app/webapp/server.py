@@ -20,6 +20,7 @@ from app.webapp.assets import setup_assets
 from app.webapp.cabinet_routes import setup_cabinet_routes
 from app.webapp.chart_routes import setup_chart_routes
 from app.webapp.dash_routes import setup_dash_routes
+from app.webapp.grade_routes import setup_grade_routes
 from app.webapp.group_routes import setup_group_routes
 from app.webapp.lesson_routes import setup_lesson_routes
 from app.webapp.members import MemberCountCache
@@ -63,6 +64,7 @@ def create_app(
     setup_pay_routes(app)
     setup_student_routes(app)
     setup_group_routes(app)
+    setup_grade_routes(app)
     setup_lesson_routes(app)
     setup_cabinet_routes(app)
     setup_reminder_routes(app)

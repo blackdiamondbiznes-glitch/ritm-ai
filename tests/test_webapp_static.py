@@ -117,6 +117,9 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert not set(re.findall(r'\bt\("(\w+)"', reminders)) - keys
     assert not set(re.findall(r'\bt\("(\w+)"', groups)) - keys
     assert '<link rel="modulepreload" href="/s/groups.js">' in html
+    assert '<link rel="modulepreload" href="/s/boards.js">' in html
+    boards = (STATIC / "boards.js").read_text(encoding="utf-8")
+    assert not set(re.findall(r'\bt\("(\w+)"', boards)) - keys
     assert '<link rel="modulepreload" href="/s/reminders.js">' in html
 
 

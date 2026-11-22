@@ -11,6 +11,7 @@ from app.bot.routers import (
     connect,
     daily,
     fallback,
+    join,
     leaderboard,
     membership,
     payments,
@@ -30,6 +31,7 @@ def setup_routers(dispatcher: Dispatcher) -> None:
     private.message.filter(F.chat.type == "private")
     private.callback_query.filter(F.message.chat.type == "private")
     private.include_router(quiz_link.router)
+    private.include_router(join.router)
     private.include_router(start.router)
     private.include_router(connect.router)
     private.include_router(profile.router)

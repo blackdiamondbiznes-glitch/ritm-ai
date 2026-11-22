@@ -1,4 +1,4 @@
-import { api, go, haptic, tg } from "./api.js";
+import { api, go, haptic, state, tg } from "./api.js";
 import { bindCabinetSwitch, cabinetSwitch, current, escapeHtml, formatNumber, setHtml, showError, skeleton, t, toast, withBusy } from "./ui.js";
 
 const STATUSES = ["paid", "debtor", "inactive"];
@@ -86,6 +86,7 @@ function paintProfile(data) {
       <div class="card-title">${escapeHtml(t("stuReminders"))}</div>
       ${reminderBody}
     </div>
+    ${joinButton(row)}
     <button type="button" class="primary" id="stu-edit">${escapeHtml(t("stuEdit"))}</button>
     <button type="button" class="ghost danger" id="stu-delete">${escapeHtml(t("stuDelete"))}</button>
   `);
@@ -99,6 +100,18 @@ function paintProfile(data) {
     haptic("light");
     go(`cabinet/lessons/new/${row.id}`);
   });
+  const link = document.getElementById("stu-link");
+  if (link) {
+    link.addEventListener("click", async () => {
+      const url = joinUrl(row.join_code);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        /* The link is still shown on the button title. */
+      }
+      toast(t("stuLinkCopied"), "ok");
+    });
+  }
   document.getElementById("stu-edit").addEventListener("click", () => {
     haptic("light");
     go(`cabinet/students/${row.id}/edit`);
@@ -106,6 +119,18 @@ function paintProfile(data) {
   document.getElementById("stu-delete").addEventListener("click", (event) => {
     withBusy(event.currentTarget, () => destroy(row.id)).catch((err) => toast(t(ERROR_KEY[err.code] || "error"), "err"));
   });
+}
+
+function joinButton(row) {
+  const url = joinUrl(row.join_code);
+  if (!url) return "";
+  return `<button type="button" class="ghost" id="stu-link" title="${escapeHtml(url)}">${escapeHtml(t("stuLink"))}</button>`;
+}
+
+function joinUrl(code) {
+  const name = state.me && state.me.bot_username;
+  if (!name || !code) return "";
+  return `https://t.me/${name}?start=join_${code}`;
 }
 
 function lessonRow(row) {

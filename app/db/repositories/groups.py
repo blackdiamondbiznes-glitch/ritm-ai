@@ -75,6 +75,28 @@ class GroupRepository:
         await self._session.delete(row)
         await self._session.flush()
 
+    async def studies(self, telegram_id: int) -> bool:
+        """True when this Telegram account is a member of at least one group."""
+        stmt = (
+            select(TutorGroupMember.id)
+            .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
+            .where(TutorStudent.telegram_id == telegram_id)
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        return result.first() is not None
+
+    async def groups_for_student(self, student_id: int) -> list[TutorGroup]:
+        """Groups this student belongs to."""
+        stmt = (
+            select(TutorGroup)
+            .join(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
+            .where(TutorGroupMember.student_id == student_id)
+            .order_by(TutorGroup.start_min.asc(), TutorGroup.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
     async def delete_member(self, row: TutorGroupMember) -> None:
         """Remove a student from a group. The student record stays."""
         await self._session.delete(row)

@@ -225,11 +225,18 @@ async def _session_body(
             "language": user.language_code or "uz",
             "cabinet_niche": user.cabinet_niche,
         },
+        "has_boards": await _studies(ctx),
         "roles": roles,
         "bot_username": bot_username,
         "support": settings.support_handle or None,
         "expires_in": settings.webapp_session_ttl,
     }
+
+
+async def _studies(ctx: WebContext) -> bool:
+    from app.db.repositories.groups import GroupRepository
+
+    return await GroupRepository(ctx.session).studies(ctx.user.telegram_id)
 
 
 async def _plan_payload(

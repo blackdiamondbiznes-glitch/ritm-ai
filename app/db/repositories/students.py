@@ -43,6 +43,18 @@ class StudentRepository:
         await self._session.flush()
         return row
 
+    async def by_join_code(self, code: str) -> TutorStudent | None:
+        """The student invited by this code."""
+        stmt = select(TutorStudent).where(TutorStudent.join_code == code)
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def by_telegram(self, telegram_id: int) -> list[TutorStudent]:
+        """Student rows linked to this Telegram account."""
+        stmt = select(TutorStudent).where(TutorStudent.telegram_id == telegram_id)
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
     async def delete(self, row: TutorStudent) -> None:
         """Remove a student."""
         await self._session.delete(row)

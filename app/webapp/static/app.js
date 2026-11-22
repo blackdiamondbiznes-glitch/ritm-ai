@@ -5,6 +5,7 @@ import { openChat, renderChats } from "./chats.js";
 import { MY_CHARTS, renderHistory } from "./history.js";
 import { renderHome } from "./home.js";
 import { renderChatProfile } from "./chatprofile.js";
+import { renderBoards } from "./boards.js";
 import { renderGroups } from "./groups.js";
 import { renderLessons } from "./lessons.js";
 import { renderReminders } from "./reminders.js";
@@ -50,7 +51,8 @@ async function boot() {
           /^\d+$/.test(section) ||
           (section === "students" && (third === "new" || /^\d+$/.test(third)));
         const lessonForStudent = section === "lessons" && third === "new" && /^\d+$/.test(fourth);
-        if (groupForm && fourth === "edit") go(`cabinet/groups/${third}`);
+        if (section === "groups" && /^\d+$/.test(third) && fourth === "topic") go(`cabinet/groups/${third}`);
+        else if (groupForm && fourth === "edit") go(`cabinet/groups/${third}`);
         else if (groupForm) go("cabinet/groups");
         else if (reminderForm) go("cabinet/reminders");
         else if (lessonForStudent) go(`cabinet/students/${fourth}`);
@@ -114,7 +116,7 @@ async function route(opts = {}) {
     go(sub === "new" ? "cabinet/new" : id ? `cabinet/${id}` : "cabinet");
     return;
   }
-  if (!id && tab !== "history" && tab !== "cabinet" && !navTabs().includes(tab)) {
+  if (!id && tab !== "history" && tab !== "cabinet" && tab !== "boards" && !navTabs().includes(tab)) {
     go("home");
     return;
   }
@@ -150,6 +152,10 @@ async function route(opts = {}) {
   }
   if (tab === "admin") {
     await renderAdmin(sub, id, seq);
+    return;
+  }
+  if (tab === "boards") {
+    await renderBoards(seq);
     return;
   }
   if (tab === "cabinet") {

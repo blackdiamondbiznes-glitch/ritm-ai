@@ -20,16 +20,27 @@ const ERROR_KEY = {
   time: "grpTimeBad",
   student: "lesStudentBad",
   missing: "grpMissing",
+  date: "lesWhenBad",
+  score: "topScoreBad",
 };
 
 let cache = null;
+let board = null;
 
 export async function renderGroups(seq) {
   const place = groupPlace();
   try {
-    if (place.mode === "open" || place.mode === "edit") {
+    if (place.mode === "topic-new") {
       setHtml(skeleton("list"));
       cache = await api(`/api/tutor/groups/${place.id}`);
+    } else if (place.mode === "topic") {
+      setHtml(skeleton("list"));
+      cache = await api(`/api/tutor/groups/${place.id}/topics/${place.topicId}`);
+    } else if (place.mode === "open" || place.mode === "edit") {
+      setHtml(skeleton("list"));
+      const detail = await api(`/api/tutor/groups/${place.id}`);
+      board = place.mode === "open" ? await api(`/api/tutor/groups/${place.id}/board`) : null;
+      cache = detail;
     } else if (!cache || place.mode === "list") {
       setHtml(skeleton("list"));
       cache = await api("/api/tutor/groups");
@@ -37,6 +48,8 @@ export async function renderGroups(seq) {
     if (!current(seq)) return;
     if (place.mode === "new") paintForm(null);
     else if (place.mode === "edit") paintForm(cache.group);
+    else if (place.mode === "topic-new") paintTopicForm(place.id);
+    else if (place.mode === "topic") paintMarks(place.id);
     else if (place.mode === "open") paintOpen();
     else paintList();
   } catch (err) {
@@ -48,8 +61,15 @@ function groupPlace() {
   const parts = (location.hash || "").replace(/^#\/?/, "").split("/").filter(Boolean);
   const third = parts[2] || "";
   const fourth = parts[3] || "";
+  const fifth = parts[4] || "";
   if (third === "new") return { mode: "new" };
   if (/^\d+$/.test(third) && fourth === "edit") return { mode: "edit", id: Number(third) };
+  if (/^\d+$/.test(third) && fourth === "topic" && fifth === "new") {
+    return { mode: "topic-new", id: Number(third) };
+  }
+  if (/^\d+$/.test(third) && fourth === "topic" && /^\d+$/.test(fifth)) {
+    return { mode: "topic", id: Number(third), topicId: Number(fifth) };
+  }
   if (/^\d+$/.test(third)) return { mode: "open", id: Number(third) };
   return { mode: "list" };
 }
@@ -101,6 +121,15 @@ function paintOpen() {
       <p>${escapeHtml(schedule(group))}</p>
     </div>
     <div class="card">
+      <div class="card-title">${escapeHtml(t("rankTitle"))}</div>
+      ${rankRows((board && board.ranking) || [])}
+    </div>
+    <div class="card">
+      <div class="card-title">${escapeHtml(t("topTopics"))}</div>
+      ${topicRows((board && board.topics) || [])}
+      <button type="button" class="primary" id="top-add">${escapeHtml(t("topAdd"))}</button>
+    </div>
+    <div class="card">
       <div class="card-title">${escapeHtml(t("grpStudents"))}</div>
       ${people}
       <label class="field"><span class="field-label">${escapeHtml(t("grpAddStudent"))}</span>
@@ -121,6 +150,10 @@ function paintOpen() {
   document.getElementById("grp-in").addEventListener("click", (event) => {
     withBusy(event.currentTarget, () => admit(group.id)).catch(showFormError);
   });
+  document.querySelectorAll("[data-topic]").forEach((node) => {
+    node.addEventListener("click", () => go(`cabinet/groups/${group.id}/topic/${node.getAttribute("data-topic")}`));
+  });
+  document.getElementById("top-add").addEventListener("click", () => go(`cabinet/groups/${group.id}/topic/new`));
   document.getElementById("grp-edit").addEventListener("click", () => go(`cabinet/groups/${group.id}/edit`));
   document.getElementById("grp-delete").addEventListener("click", (event) => {
     withBusy(event.currentTarget, () => destroy(group.id)).catch(showFormError);
@@ -211,6 +244,101 @@ function ask(text) {
 
 function showFormError(err) {
   toast(t(ERROR_KEY[err.code] || "error"), "err");
+}
+
+function paintTopicForm(groupId) {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent" }).format(new Date());
+  setHtml(`
+    <div class="header"><h1>${escapeHtml(t("topAdd"))}</h1></div>
+    <div class="card">
+      <label class="field"><span class="field-label">${escapeHtml(t("topTopic"))}</span>
+        <input class="input" id="top-title" maxlength="120"></label>
+      <label class="field"><span class="field-label">${escapeHtml(t("topDate"))}</span>
+        <input class="input" id="top-date" type="date" value="${today}"></label>
+      <button type="button" class="primary" id="top-save">${escapeHtml(t("save"))}</button>
+    </div>
+  `);
+  document.getElementById("top-save").addEventListener("click", (event) => {
+    withBusy(event.currentTarget, () => createTopic(groupId)).catch((err) => {
+      toast(t(err.code === "empty" ? "topNameNeed" : ERROR_KEY[err.code] || "error"), "err");
+    });
+  });
+}
+
+function paintMarks(groupId) {
+  const topic = cache.topic;
+  const marks = cache.marks || [];
+  const rows = marks
+    .map(
+      (item) => `<label class="field"><span class="field-label">${escapeHtml(item.name)}</span>
+        <input class="input" data-mark="${item.student_id}" inputmode="numeric" maxlength="2" value="${item.score === null || item.score === undefined ? "" : item.score}"></label>`,
+    )
+    .join("");
+  setHtml(`
+    <div class="header"><h1>${escapeHtml(topic.title)}</h1><p>${escapeHtml(topic.held_on)}</p></div>
+    <div class="card">
+      <div class="card-title">${escapeHtml(t("topScore"))}</div>
+      ${rows || `<div class="stu-meta">${escapeHtml(t("grpNone"))}</div>`}
+      <button type="button" class="primary" id="mark-save">${escapeHtml(t("save"))}</button>
+    </div>
+  `);
+  document.getElementById("mark-save").addEventListener("click", (event) => {
+    withBusy(event.currentTarget, () => saveMarks(groupId, topic.id)).catch(showFormError);
+  });
+}
+
+async function createTopic(groupId) {
+  const data = await api(`/api/tutor/groups/${groupId}/topics`, {
+    method: "POST",
+    body: JSON.stringify({
+      title: document.getElementById("top-title").value,
+      held_on: document.getElementById("top-date").value,
+    }),
+  });
+  haptic("success");
+  go(`cabinet/groups/${groupId}/topic/${data.topic.id}`);
+}
+
+async function saveMarks(groupId, topicId) {
+  const scores = [...document.querySelectorAll("[data-mark]")].map((node) => {
+    const raw = node.value.trim();
+    return { student_id: Number(node.getAttribute("data-mark")), score: raw === "" ? null : Number(raw) };
+  });
+  if (scores.some((item) => item.score !== null && !Number.isInteger(item.score))) {
+    toast(t("topScoreBad"), "err");
+    return;
+  }
+  await api(`/api/tutor/groups/${groupId}/topics/${topicId}`, {
+    method: "PUT",
+    body: JSON.stringify({ scores }),
+  });
+  haptic("success");
+  toast(t("saved"), "ok");
+  go(`cabinet/groups/${groupId}`);
+}
+
+function rankRows(rows) {
+  if (!rows.length) return `<div class="stu-meta">${escapeHtml(t("rankEmpty"))}</div>`;
+  return rows
+    .map(
+      (item) => `<div class="stu-row">
+        <div class="chat-name">${item.rank}. ${escapeHtml(item.name)}</div>
+        <span class="stu-meta">${item.total}</span>
+      </div>`,
+    )
+    .join("");
+}
+
+function topicRows(rows) {
+  if (!rows.length) return `<div class="stu-meta">${escapeHtml(t("topEmpty"))}</div>`;
+  return rows
+    .map(
+      (item) => `<button type="button" class="list-btn" data-topic="${item.id}">
+        <div class="chat-name">${escapeHtml(item.title)}</div>
+        <div class="stu-meta">${escapeHtml(item.held_on)} · ${item.graded}</div>
+      </button>`,
+    )
+    .join("");
 }
 
 function groupButton(group) {

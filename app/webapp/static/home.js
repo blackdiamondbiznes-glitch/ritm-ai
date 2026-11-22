@@ -30,6 +30,7 @@ export function renderHome() {
       ${action("board", "🏆", t("actionBoard"))}
       ${action("settings", "⚙️", t("actionSettings"))}
     </div>
+    ${state.me && state.me.has_boards ? boardCard() : ""}
     <button type="button" class="card list-btn" data-mine="cabinet">
       <div class="card-title">🎓 ${escapeHtml(t(isTutor() ? "navCabinet" : "cabEnable"))}</div>
       <div>${escapeHtml(t(isTutor() ? "cabLead" : "cabEnableLead"))}</div>
@@ -56,6 +57,13 @@ export function withPlan(chat, plan) {
   return chat.role === "owner" || !chat.role ? { ...chat, plan_name: plan && plan.plan_name } : chat;
 }
 
+function boardCard() {
+  return `<button type="button" class="card list-btn" data-mine="boards">
+    <div class="card-title">🏆 ${escapeHtml(t("rankTitle"))}</div>
+    <div>${escapeHtml(t("rankLead"))}</div>
+  </button>`;
+}
+
 function renderMemberHome() {
   const dash = state.dash || {};
   const member = memberData();
@@ -66,6 +74,7 @@ function renderMemberHome() {
         <div class="card-title">👋 ${escapeHtml(t("welcomeTitle"))}</div>
         <p>${escapeHtml(t("welcomeMember"))}</p>
       </div>
+      ${state.me && state.me.has_boards ? boardCard() : ""}
       ${ownCta()}
       ${state.dash && showsPlan() ? planCard(dash.plan || {}) : ""}
     `);
@@ -75,6 +84,7 @@ function renderMemberHome() {
   const totals = member.totals || {};
   setHtml(`
     ${brandHeader()}
+    ${state.me && state.me.has_boards ? boardCard() : ""}
     <div class="kpis">
       ${kpi("🏆", formatNumber(totals.week_points || 0), t("kpiWeekPoints"))}
       ${kpi("⭐", formatNumber(totals.points_total || 0), t("kpiTotalPoints"))}

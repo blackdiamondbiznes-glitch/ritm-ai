@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -68,6 +69,7 @@ class StudentService:
                 status=parsed.status,
                 amount_uzs=parsed.amount_uzs,
                 note=parsed.note,
+                join_code=secrets.token_hex(5),
                 created_at=now,
                 updated_at=now,
             )
@@ -152,6 +154,7 @@ def _one(row: TutorStudent) -> dict:
         "status": row.status,
         "amount_uzs": row.amount_uzs,
         "note": row.note,
+        "join_code": row.join_code,
     }
 
 

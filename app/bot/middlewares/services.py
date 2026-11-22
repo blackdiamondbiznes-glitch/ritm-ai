@@ -11,19 +11,23 @@ from app.db.repositories.audit import AuditRepository
 from app.db.repositories.chats import ChatProfileRepository, ChatRepository
 from app.db.repositories.content import ContentRepository
 from app.db.repositories.engagement import EngagementRepository
+from app.db.repositories.groups import GroupRepository
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.leaderboard import LeaderboardRepository
 from app.db.repositories.payments import PaymentEventRepository, PaymentRepository
 from app.db.repositories.plans import PlanRepository
 from app.db.repositories.quizzes import QuizAnswerRepository, QuizRepository
 from app.db.repositories.schedules import ScheduleRepository
+from app.db.repositories.students import StudentRepository
 from app.db.repositories.subscriptions import SubscriptionRepository
+from app.db.repositories.topics import TopicRepository
 from app.db.repositories.usage import UsageRepository
 from app.db.repositories.users import UserRepository
 from app.services.access import AccessService
 from app.services.admin import AdminService
 from app.services.admin_posts import AdminPostService
 from app.services.answers import QuizAnswerService
+from app.services.grades import GradeService
 from app.services.leaderboard import LeaderboardService
 from app.services.lifecycle import ChatLifecycleService
 from app.services.payments import PaymentService
@@ -81,6 +85,11 @@ class ServicesMiddleware(BaseMiddleware):
         data["quiz_answers"] = QuizAnswerService(
             QuizRepository(session),
             QuizAnswerRepository(session),
+        )
+        data["grades"] = GradeService(
+            GroupRepository(session),
+            StudentRepository(session),
+            TopicRepository(session),
         )
         data["audit"] = audit
         data["payments"] = PaymentService(
