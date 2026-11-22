@@ -11,10 +11,12 @@ const ERROR_KEY = {
   amount: "stuAmountBad",
   choice: "error",
   missing: "stuMissing",
+  group: "stuGroupNeed",
 };
 
 let cache = null;
 let filter = "all";
+let catalog = [];
 
 export async function renderStudents(sub, id, seq) {
   const place = studentPlace(sub, id);
@@ -30,9 +32,19 @@ export async function renderStudents(sub, id, seq) {
       setHtml(skeleton("list"));
       cache = await api("/api/tutor/students");
     }
+    if (place.mode === "new" || place.mode === "edit") {
+      setHtml(skeleton("list"));
+      const listed = await api("/api/tutor/groups");
+      catalog = listed.groups || [];
+      if (!current(seq)) return;
+      if (place.mode === "edit") {
+        const profile = await api(`/api/tutor/students/${place.id}`);
+        if (!current(seq)) return;
+        paintForm(profile.student, (profile.groups || []).map((group) => group.id));
+      } else paintForm(null, []);
+      return;
+    }
     if (!current(seq)) return;
-    if (place.mode === "new") paintForm(null);
-    else if (place.mode === "edit") paintEdit(place.id);
     else {
       filter = place.filter;
       paintList();
@@ -61,6 +73,8 @@ function paintProfile(data) {
   const reminders = data.reminders || [];
   const phone = row.phone ? escapeHtml(row.phone) : escapeHtml(t("stuNoPhone"));
   const note = row.note ? `<div class="card"><div class="stu-meta">${escapeHtml(row.note)}</div></div>` : "";
+  const groupNames = (data.groups || []).map((group) => group.name).join(", ");
+  const groupCard = `<div class="card"><div class="card-title">${escapeHtml(t("stuGroups"))}</div><div class="stu-meta">${escapeHtml(groupNames || t("stuNoGroups"))}</div></div>`;
   const lessonBody = lessons.length
     ? lessons.map(lessonRow).join("")
     : `<div class="stu-meta">${escapeHtml(t("stuNoLessons"))}</div>`;
@@ -77,6 +91,7 @@ function paintProfile(data) {
       <div class="big">${escapeHtml(t("stuSum", { n: formatNumber(row.amount_uzs) }))}</div>
     </div>
     ${note}
+    ${groupCard}
     <div class="card">
       <div class="card-title">${escapeHtml(t("stuLessons"))}</div>
       ${lessonBody}
@@ -224,8 +239,18 @@ function paintList() {
   });
 }
 
-function paintForm(row) {
+function paintForm(row, selectedIds) {
   const status = row ? row.status : "debtor";
+  const chosen = new Set(selectedIds || []);
+  const groupChips = catalog.length
+    ? catalog
+        .map((group) => {
+          const on = chosen.has(group.id) ? " selected" : "";
+          const when = `${group.start}–${group.end}`;
+          return `<button type="button" class="chip-btn${on}" data-group="${group.id}">${escapeHtml(group.name)} · ${escapeHtml(when)}</button>`;
+        })
+        .join("")
+    : "";
   const chips = STATUSES.map((item) => {
     const on = item === status ? " selected" : "";
     return `<button type="button" class="chip-btn${on}" data-status="${item}">${escapeHtml(t(STATUS_KEY[item]))}</button>`;
@@ -243,7 +268,10 @@ function paintForm(row) {
         <textarea class="input" id="stu-note" maxlength="300" rows="3">${escapeHtml(row ? row.note || "" : "")}</textarea></label>
       <div class="field"><span class="field-label">${escapeHtml(t("stuStatus"))}</span>
         <div class="chips" id="stu-status" data-value="${status}">${chips}</div></div>
-      <button type="button" class="primary" id="stu-save">${escapeHtml(t("save"))}</button>
+      <div class="field"><span class="field-label">${escapeHtml(t("stuGroups"))}</span>
+        ${catalog.length ? `<div class="chips" id="stu-groups">${groupChips}</div>` : `<p class="stu-meta">${escapeHtml(t("stuNoGroups"))}</p><button type="button" class="primary" id="stu-make-group">${escapeHtml(t("stuMakeGroup"))}</button>`}
+      </div>
+      ${catalog.length ? `<button type="button" class="primary" id="stu-save">${escapeHtml(t("save"))}</button>` : ""}
       ${row ? `<button type="button" class="ghost danger" id="stu-delete">${escapeHtml(t("stuDelete"))}</button>` : ""}
     </div>
   `);
@@ -256,9 +284,17 @@ function paintForm(row) {
       });
     });
   });
-  document.getElementById("stu-save").addEventListener("click", (event) => {
-    withBusy(event.currentTarget, () => save(row)).catch((err) => toast(t(ERROR_KEY[err.code] || "error"), "err"));
+  document.querySelectorAll("[data-group]").forEach((node) => {
+    node.addEventListener("click", () => node.classList.toggle("selected"));
   });
+  const maker = document.getElementById("stu-make-group");
+  if (maker) maker.addEventListener("click", () => go("cabinet/groups/new"));
+  const saveButton = document.getElementById("stu-save");
+  if (saveButton) {
+    saveButton.addEventListener("click", (event) => {
+      withBusy(event.currentTarget, () => save(row)).catch((err) => toast(t(ERROR_KEY[err.code] || "error"), "err"));
+    });
+  }
   const remove = document.getElementById("stu-delete");
   if (remove) {
     remove.addEventListener("click", (event) => {
@@ -280,7 +316,14 @@ async function save(row) {
     amount_uzs: amount,
     note: document.getElementById("stu-note").value,
     status: document.getElementById("stu-status").getAttribute("data-value"),
+    group_ids: [...document.querySelectorAll("#stu-groups [data-group].selected")].map((node) =>
+      Number(node.getAttribute("data-group")),
+    ),
   };
+  if (catalog.length && !body.group_ids.length) {
+    toast(t("stuGroupNeed"), "err");
+    return;
+  }
   const path = row ? `/api/tutor/students/${row.id}` : "/api/tutor/students";
   cache = await api(path, { method: row ? "PATCH" : "POST", body: JSON.stringify(body) });
   haptic("success");

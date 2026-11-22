@@ -7,7 +7,9 @@ import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from app.db.models.groups import TutorGroupMember
 from app.db.models.students import TutorStudent
+from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
@@ -48,10 +50,12 @@ class StudentService:
         students: StudentRepository,
         lessons: LessonRepository | None = None,
         reminders: ReminderRepository | None = None,
+        groups: GroupRepository | None = None,
     ) -> None:
         self._students = students
         self._lessons = lessons
         self._reminders = reminders
+        self._groups = groups
 
     async def list(self, owner_id: int) -> dict:
         """Every student of this owner, plus counts by status."""
@@ -74,6 +78,7 @@ class StudentService:
                 updated_at=now,
             )
         )
+        await self._place(owner_id, row.id, body, required=True)
         payload = await self.list(owner_id)
         payload["created_id"] = row.id
         return payload
@@ -91,6 +96,8 @@ class StudentService:
         row.note = parsed.note
         row.updated_at = datetime.now(UTC)
         await self._students.save(row)
+        if "group_ids" in body:
+            await self._place(owner_id, row.id, body, required=True)
         return await self.list(owner_id)
 
     async def profile(self, owner_id: int, student_id: int) -> dict:
@@ -108,7 +115,45 @@ class StudentService:
             reminders = [
                 _reminder_brief(item) for item in owned_notes if item.student_id == student_id
             ]
-        return {"student": _one(row), "lessons": lessons, "reminders": reminders}
+        groups = await self._group_names(owner_id, student_id)
+        return {"student": _one(row), "lessons": lessons, "reminders": reminders, "groups": groups}
+
+    async def _place(self, owner_id: int, student_id: int, body: dict, *, required: bool) -> None:
+        """Put the student in the chosen groups. A tutor with groups must pick one."""
+        if self._groups is None:
+            return
+        owned = await self._groups.list_for_owner(owner_id)
+        owned_ids = {group.id for group, _count in owned}
+        if "group_ids" not in body:
+            if required and owned_ids:
+                raise StudentError("group")
+            return
+        wanted = set(_group_ids(body.get("group_ids"), required=required and bool(owned_ids)))
+        if not wanted <= owned_ids:
+            raise StudentError("group")
+        current = {
+            group.id
+            for group in await self._groups.groups_for_student(student_id)
+            if group.owner_id == owner_id
+        }
+        for group_id in wanted - current:
+            await self._groups.add_member(
+                TutorGroupMember(group_id=group_id, student_id=student_id)
+            )
+        for group_id in current - wanted:
+            link = await self._groups.membership(group_id, student_id)
+            if link is not None:
+                await self._groups.delete_member(link)
+
+    async def _group_names(self, owner_id: int, student_id: int) -> list[dict]:
+        if self._groups is None:
+            return []
+        rows = await self._groups.groups_for_student(student_id)
+        return [
+            {"id": group.id, "name": group.name}
+            for group in rows
+            if group.owner_id == owner_id
+        ]
 
     async def remove(self, owner_id: int, student_id: int) -> dict:
         """Delete one of this owner's students."""
@@ -184,6 +229,20 @@ def _payload(rows: list[TutorStudent]) -> dict:
         counts[row.status] = counts.get(row.status, 0) + 1
         students.append(_one(row))
     return {"students": students, "counts": counts}
+
+
+def _group_ids(value: object, *, required: bool) -> list[int]:
+    if not isinstance(value, list):
+        raise StudentError("group")
+    found: list[int] = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, int) or item <= 0:
+            raise StudentError("group")
+        if item not in found:
+            found.append(item)
+    if required and not found:
+        raise StudentError("group")
+    return found
 
 
 def _name(value: object) -> str:

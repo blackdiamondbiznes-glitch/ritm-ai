@@ -6,6 +6,7 @@ from typing import Any
 
 from aiohttp import web
 
+from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
@@ -21,6 +22,7 @@ _STATUS = {
     "phone": 400,
     "amount": 400,
     "choice": 400,
+    "group": 400,
 }
 
 
@@ -93,6 +95,7 @@ def _service(ctx: WebContext) -> StudentService:
         StudentRepository(ctx.session),
         LessonRepository(ctx.session),
         ReminderRepository(ctx.session),
+        GroupRepository(ctx.session),
     )
 
 

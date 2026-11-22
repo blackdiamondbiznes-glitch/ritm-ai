@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from app.db.models.groups import TutorGroup, TutorGroupMember
 from app.db.models.lessons import TutorLesson
 from app.db.models.students import TutorStudent
 from app.services.students import StudentError, StudentService, parse_student
@@ -131,6 +132,53 @@ class _Named:
 
     async def list_for_owner(self, owner_id: int):
         return [row for row in self.rows if row.owner_id == owner_id]
+
+
+async def test_create_places_the_student_in_the_chosen_group() -> None:
+    service, _repo = _service()
+    groups = _GroupBook()
+    service._groups = groups
+    await groups.add(
+        TutorGroup(
+            id=3, owner_id=1, name="Ingliz", weekdays="1,3", start_min=480, end_min=600
+        )
+    )
+    created = await service.create(1, {"name": "Ali", "group_ids": [3]})
+    assert groups.links[0].student_id == created["created_id"]
+    assert groups.links[0].group_id == 3
+    with pytest.raises(StudentError) as missing:
+        await service.create(1, {"name": "Vali"})
+    assert missing.value.code == "group"
+
+
+class _GroupBook:
+    def __init__(self) -> None:
+        self.groups: list[TutorGroup] = []
+        self.links: list[TutorGroupMember] = []
+
+    async def add(self, row: TutorGroup) -> TutorGroup:
+        self.groups.append(row)
+        return row
+
+    async def list_for_owner(self, owner_id: int):
+        return [(group, 0) for group in self.groups if group.owner_id == owner_id]
+
+    async def groups_for_student(self, student_id: int):
+        ids = {link.group_id for link in self.links if link.student_id == student_id}
+        return [group for group in self.groups if group.id in ids]
+
+    async def membership(self, group_id: int, student_id: int):
+        for link in self.links:
+            if link.group_id == group_id and link.student_id == student_id:
+                return link
+        return None
+
+    async def add_member(self, row: TutorGroupMember) -> TutorGroupMember:
+        self.links.append(row)
+        return row
+
+    async def delete_member(self, row: TutorGroupMember) -> None:
+        self.links.remove(row)
 
 
 def test_partial_update_does_not_require_a_name() -> None:
