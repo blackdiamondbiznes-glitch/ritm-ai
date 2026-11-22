@@ -1,4 +1,4 @@
-import { firstChatId, go, haptic, isManager, isTutor, memberData, roles, state } from "./api.js";
+import { firstChatId, go, haptic, isManager, isStudent, isTutor, memberData, roles, state } from "./api.js";
 import { brandHeader, chatCard, escapeHtml, formatNumber, kpiRow, setHtml, sparkChart, t } from "./ui.js";
 
 /** Owners see their plan; so do people with no role yet (they may become owners). */
@@ -30,7 +30,7 @@ export function renderHome() {
       ${action("board", "🏆", t("actionBoard"))}
       ${action("settings", "⚙️", t("actionSettings"))}
     </div>
-    ${state.me && state.me.has_boards ? boardCard() : ""}
+    ${isStudent() ? boardCard() : ""}
     <button type="button" class="card list-btn" data-mine="cabinet">
       <div class="card-title">🎓 ${escapeHtml(t(isTutor() ? "navCabinet" : "cabEnable"))}</div>
       <div>${escapeHtml(t(isTutor() ? "cabLead" : "cabEnableLead"))}</div>
@@ -58,9 +58,9 @@ export function withPlan(chat, plan) {
 }
 
 function boardCard() {
-  return `<button type="button" class="card list-btn" data-mine="boards">
-    <div class="card-title">🏆 ${escapeHtml(t("rankTitle"))}</div>
-    <div>${escapeHtml(t("rankLead"))}</div>
+  return `<button type="button" class="card list-btn" data-mine="study">
+    <div class="card-title">🎒 ${escapeHtml(t("studyNav"))}</div>
+    <div>${escapeHtml(t("studyLead"))}</div>
   </button>`;
 }
 
@@ -74,7 +74,7 @@ function renderMemberHome() {
         <div class="card-title">👋 ${escapeHtml(t("welcomeTitle"))}</div>
         <p>${escapeHtml(t("welcomeMember"))}</p>
       </div>
-      ${state.me && state.me.has_boards ? boardCard() : ""}
+      ${isStudent() ? boardCard() : ""}
       ${ownCta()}
       ${state.dash && showsPlan() ? planCard(dash.plan || {}) : ""}
     `);
@@ -84,7 +84,7 @@ function renderMemberHome() {
   const totals = member.totals || {};
   setHtml(`
     ${brandHeader()}
-    ${state.me && state.me.has_boards ? boardCard() : ""}
+    ${isStudent() ? boardCard() : ""}
     <div class="kpis">
       ${kpi("🏆", formatNumber(totals.week_points || 0), t("kpiWeekPoints"))}
       ${kpi("⭐", formatNumber(totals.points_total || 0), t("kpiTotalPoints"))}

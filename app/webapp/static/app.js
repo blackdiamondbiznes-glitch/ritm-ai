@@ -1,4 +1,4 @@
-import { applyTheme, bootstrap, go, hasRole, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
+import { applyTheme, bootstrap, go, hasRole, isManager, isStudent, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
 import { adminWarmPaths, renderAdmin } from "./admin.js";
 import { renderBoard } from "./board.js";
 import { openChat, renderChats } from "./chats.js";
@@ -77,7 +77,9 @@ async function boot() {
     labelNav();
     syncChrome();
     const { tab } = parseRoute();
-    if (tab === "home" || tab === "chats" || tab === "profile") await route({ fresh: true });
+    if (isStudent() && !isTutor() && !isManager() && (tab === "home" || tab === "profile" || tab === "chats")) {
+      go("study");
+    } else if (tab === "home" || tab === "chats" || tab === "profile") await route({ fresh: true });
     else if (!warm) await route({ fresh: true });
     warmUp();
   } catch (err) {
@@ -116,7 +118,7 @@ async function route(opts = {}) {
     go(sub === "new" ? "cabinet/new" : id ? `cabinet/${id}` : "cabinet");
     return;
   }
-  if (!id && tab !== "history" && tab !== "cabinet" && tab !== "boards" && !navTabs().includes(tab)) {
+  if (!id && tab !== "history" && tab !== "cabinet" && tab !== "boards" && tab !== "study" && !navTabs().includes(tab)) {
     go("home");
     return;
   }
@@ -154,7 +156,7 @@ async function route(opts = {}) {
     await renderAdmin(sub, id, seq);
     return;
   }
-  if (tab === "boards") {
+  if (tab === "boards" || tab === "study") {
     await renderBoards(seq);
     return;
   }

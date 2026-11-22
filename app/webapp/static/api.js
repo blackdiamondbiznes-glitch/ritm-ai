@@ -297,6 +297,16 @@ export function hasRole(name) {
 }
 
 /** Owners, chat admins and super admins manage chats; others only see their results. */
+export function isStudent() {
+  const student = state.me && state.me.student;
+  return Boolean(student && student.linked);
+}
+
+export function studentNames() {
+  const student = state.me && state.me.student;
+  return (student && student.names) || [];
+}
+
 export function isTutor() {
   const user = state.me && state.me.user;
   return Boolean(user && user.cabinet_niche === "tutor");

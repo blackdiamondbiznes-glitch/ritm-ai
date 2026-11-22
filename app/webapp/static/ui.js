@@ -1,5 +1,5 @@
 import { TIMES, currentLang, dayLabel, t } from "./i18n.js";
-import { go, haptic, hasRole, isManager, isTutor, parseRoute, roles, tg } from "./api.js";
+import { go, haptic, hasRole, isManager, isStudent, isTutor, parseRoute, roles, tg } from "./api.js";
 
 export function escapeHtml(value) {
   return String(value ?? "")
@@ -152,15 +152,22 @@ export function roleBadge(role) {
 /** Tabs for the signed-in user's roles. The server still checks every request. */
 export function navTabs() {
   const known = roles();
+  if (isStudent() && !isManager() && !isTutor()) return ["study"];
   if (isManager()) {
     const tabs = ["home", "chats", "board", "report", "profile"];
     if (isTutor()) tabs.splice(2, 0, "cabinet");
+    if (isStudent()) tabs.splice(tabs.indexOf("profile"), 0, "study");
     if (hasRole("super_admin")) tabs.splice(tabs.indexOf("profile"), 0, "admin");
     return tabs;
   }
-  if (known && hasRole("member")) return ["home", "board", "history", "profile"];
+  if (known && hasRole("member")) {
+    const tabs = ["home", "board", "history", "profile"];
+    if (isStudent()) tabs.unshift("study");
+    return tabs;
+  }
   const plain = ["home", "profile"];
   if (isTutor()) plain.splice(1, 0, "cabinet");
+  if (isStudent()) plain.unshift("study");
   return plain;
 }
 

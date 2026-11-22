@@ -225,7 +225,7 @@ async def _session_body(
             "language": user.language_code or "uz",
             "cabinet_niche": user.cabinet_niche,
         },
-        "has_boards": await _studies(ctx),
+        "student": await _student_account(ctx),
         "roles": roles,
         "bot_username": bot_username,
         "support": settings.support_handle or None,
@@ -233,10 +233,12 @@ async def _session_body(
     }
 
 
-async def _studies(ctx: WebContext) -> bool:
-    from app.db.repositories.groups import GroupRepository
+async def _student_account(ctx: WebContext) -> dict:
+    """The signed-in Telegram account, if a tutor registered them as a student."""
+    from app.db.repositories.students import StudentRepository
 
-    return await GroupRepository(ctx.session).studies(ctx.user.telegram_id)
+    rows = await StudentRepository(ctx.session).by_telegram(ctx.user.telegram_id)
+    return {"linked": bool(rows), "names": [row.name for row in rows]}
 
 
 async def _plan_payload(

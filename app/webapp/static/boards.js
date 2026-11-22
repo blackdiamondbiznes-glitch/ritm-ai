@@ -1,4 +1,4 @@
-import { api } from "./api.js";
+import { api, studentNames } from "./api.js";
 import { current, escapeHtml, setHtml, showError, skeleton, t } from "./ui.js";
 
 export async function renderBoards(seq) {
@@ -6,17 +6,22 @@ export async function renderBoards(seq) {
   try {
     const data = await api("/api/me/boards");
     if (!current(seq)) return;
-    const boards = data.boards || [];
-    const body = boards.length
-      ? boards.map(one).join("")
-      : `<div class="card muted">${escapeHtml(t("rankEmpty"))}</div>`;
-    setHtml(`
-      <div class="header"><h1>${escapeHtml(t("rankTitle"))}</h1><p>${escapeHtml(t("rankLead"))}</p></div>
-      ${body}
-    `);
+    paintStudy(data.boards || []);
   } catch (err) {
     if (current(seq)) showError(err);
   }
+}
+
+function paintStudy(boards) {
+  const names = studentNames();
+  const who = names.length ? names.join(", ") : t("studyGuest");
+  const body = boards.length
+    ? boards.map(one).join("")
+    : `<div class="card muted">${escapeHtml(t("studyWait"))}</div>`;
+  setHtml(`
+    <div class="header"><h1>${escapeHtml(who)}</h1><p>${escapeHtml(t("studyLead"))}</p></div>
+    ${body}
+  `);
 }
 
 function one(board) {
