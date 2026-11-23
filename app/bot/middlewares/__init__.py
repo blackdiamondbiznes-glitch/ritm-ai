@@ -8,6 +8,7 @@ from app.bot.middlewares.correlation import CorrelationMiddleware
 from app.bot.middlewares.db import DbSessionMiddleware
 from app.bot.middlewares.services import ServicesMiddleware
 from app.bot.middlewares.throttle import ThrottleMiddleware
+from app.bot.middlewares.unhandled import UnhandledLogMiddleware
 from app.bot.middlewares.user import UserMiddleware
 from app.config import Settings
 
@@ -20,7 +21,6 @@ def install_middlewares(
     """Attach the chain to every update type that handlers consume."""
     dispatcher["admin_cache"] = AdminStatusCache()
     correlation = CorrelationMiddleware()
-    throttle = ThrottleMiddleware(settings.throttle_seconds)
     database = DbSessionMiddleware(session_factory)
     users = UserMiddleware(settings)
     services = ServicesMiddleware(settings)
@@ -30,10 +30,16 @@ def install_middlewares(
         dispatcher.my_chat_member,
     ):
         observer.middleware(correlation)
-        observer.middleware(throttle)
         observer.middleware(database)
         observer.middleware(users)
         observer.middleware(services)
+    # Throttle is an OUTER middleware: it runs once per update. As an inner middleware it ran
+    # again for every handler that raised SkipHandler (quiz_link -> join), so `/start join_…`
+    # was silently dropped as "too fast". my_chat_member (sent together with the first /start)
+    # is never throttled, and each observer keeps its own clock.
+    dispatcher.message.outer_middleware(ThrottleMiddleware(settings.throttle_seconds))
+    dispatcher.callback_query.outer_middleware(ThrottleMiddleware(settings.throttle_seconds))
+    dispatcher.update.outer_middleware(UnhandledLogMiddleware())
     # Poll votes are not throttled: a member may answer right after opening the quiz.
     # PollAnswer carries `.user`, not `.from_user`.
     dispatcher.poll_answer.middleware(correlation)

@@ -13,6 +13,7 @@ from app.bot.routers.join import (
     enroll_code_from_text,
     enroll_from_args,
     join_from_args,
+    log_link,
 )
 from app.bot.view import show_screen
 from app.db.models.users import User
@@ -59,6 +60,7 @@ async def open_menu(
             current_user.full_name or "",
             notify=teacher_notifier(message.bot),
         )
+        log_link("enroll", enroll, result, current_user.telegram_id)
         await message.answer(
             t(f"enroll_{result}", lang),
             reply_markup=await _menu(lang, is_super_admin, current_user, modes),
@@ -68,6 +70,7 @@ async def open_menu(
     if code and (text.startswith("/start") or args.startswith("join_")):
         await state.clear()
         result = await enrollment.claim(code, current_user.telegram_id)
+        log_link("join", code, result, current_user.telegram_id)
         await message.answer(
             t(f"join_{result}", lang),
             reply_markup=await _menu(lang, is_super_admin, current_user, modes),
@@ -97,7 +100,11 @@ async def language_screen(callback: CallbackQuery, lang: str) -> None:
 
 @router.callback_query(LangCB.filter())
 async def pick_language(
-    callback: CallbackQuery, callback_data: LangCB, current_user: User, is_super_admin: bool
+    callback: CallbackQuery,
+    callback_data: LangCB,
+    current_user: User,
+    is_super_admin: bool,
+    modes: RoleService | None = None,
 ) -> None:
     """Save the choice (same rule as the Mini App), then show the menu in that language."""
     try:
@@ -105,9 +112,9 @@ async def pick_language(
     except PrefsError:
         await callback.answer(t("input_bad", current_user.language_code or "uz"), show_alert=True)
         return
-    code = current_user.language_code
+    code = current_user.language_code or "uz"
     text = f"{t('lang_saved', code)}\n\n{t('menu_title', code)}"
-    await show_screen(callback, text, main_menu(code, is_super_admin))
+    await show_screen(callback, text, await _menu(code, is_super_admin, current_user, modes))
 
 
 @router.message(Command("help"))

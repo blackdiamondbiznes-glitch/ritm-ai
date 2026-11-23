@@ -37,7 +37,10 @@ def test_poll_answer_gets_session_user_and_services_without_throttle() -> None:
     assert ThrottleMiddleware.__name__ not in poll
     message = _names(dispatcher.message)
     assert message[0] == "CorrelationMiddleware"
-    assert message[1] == "ThrottleMiddleware"
+    assert ThrottleMiddleware.__name__ not in message
+    outer = [type(item).__name__ for item in dispatcher.message.outer_middleware._middlewares]
+    assert outer == ["ThrottleMiddleware"]
+    assert ThrottleMiddleware.__name__ not in _names(dispatcher.my_chat_member)
     assert DbSessionMiddleware.__name__ in message
     assert UserMiddleware.__name__ in message
     assert ServicesMiddleware.__name__ in message

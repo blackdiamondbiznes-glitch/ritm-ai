@@ -1,5 +1,7 @@
 """Link a student to their Telegram account from /start join_<code>."""
 
+import logging
+
 from aiogram import F, Router
 from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.filters import CommandObject, CommandStart
@@ -13,6 +15,14 @@ from app.i18n import t
 from app.services.enrollment import EnrollmentService
 
 router = Router(name="join")
+logger = logging.getLogger(__name__)
+
+
+def log_link(kind: str, code: str | None, result: str, user_id: int | None) -> None:
+    """One INFO line per deep link. Only the first 4 characters of the code are logged."""
+    logger.info(
+        "deep link kind=%s code=%s… result=%s user_id=%s", kind, (code or "")[:4], result, user_id
+    )
 
 
 @router.message(CommandStart(deep_link=True))
@@ -34,7 +44,16 @@ async def claim_join(
         return
     code = join_from_args(args) or code_from_text(text)
     if code is None:
-        raise SkipHandler()
+        kind = _broken_kind(args)
+        if kind is None:
+            raise SkipHandler()
+        # A join_/enroll_ payload with a damaged code still gets an answer, never silence.
+        await state.clear()
+        log_link(kind, args.split("_", 1)[1], "missing", current_user.telegram_id)
+        await message.answer(
+            t(f"{kind}_missing", lang), reply_markup=main_menu(lang, is_super_admin)
+        )
+        return
     await _reply(message, state, current_user, enrollment, lang, is_super_admin, code)
 
 
@@ -86,6 +105,7 @@ async def _enroll(
         current_user.full_name or "",
         notify=teacher_notifier(message.bot),
     )
+    log_link("enroll", code, result, current_user.telegram_id)
     await message.answer(t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
 
 
@@ -100,7 +120,16 @@ async def _reply(
 ) -> None:
     await state.clear()
     result = await enrollment.claim(code, current_user.telegram_id)
+    log_link("join", code, result, current_user.telegram_id)
     await message.answer(t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
+
+
+def _broken_kind(args: str) -> str | None:
+    token = args.strip()
+    for kind in ("join", "enroll"):
+        if token.startswith(f"{kind}_"):
+            return kind
+    return None
 
 
 def enroll_from_args(args: str) -> str | None:

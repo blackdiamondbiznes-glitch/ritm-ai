@@ -1,12 +1,15 @@
 """Per-user rate limit. Default: one update per 0.5 seconds."""
 
+import logging
 import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import CallbackQuery, TelegramObject
+from aiogram.types import CallbackQuery, Message, TelegramObject
+
+logger = logging.getLogger(__name__)
 
 
 class ThrottleMiddleware(BaseMiddleware):
@@ -23,11 +26,12 @@ class ThrottleMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         user = getattr(event, "from_user", None)
-        if user is None:
+        if user is None or _is_start(event):
             return await handler(event, data)
         now = time.monotonic()
         previous = self._seen.get(user.id)
         if previous is not None and now - previous < self._seconds:
+            logger.info("throttled update user_id=%s", user.id)
             await _silence(event)
             return None
         self._seen[user.id] = now
@@ -35,6 +39,11 @@ class ThrottleMiddleware(BaseMiddleware):
             cutoff = now - 60
             self._seen = {key: stamp for key, stamp in self._seen.items() if stamp >= cutoff}
         return await handler(event, data)
+
+
+def _is_start(event: TelegramObject) -> bool:
+    """/start (with or without a deep link) is never dropped: it must always answer."""
+    return isinstance(event, Message) and (event.text or "").startswith("/start")
 
 
 async def _silence(event: TelegramObject) -> None:
