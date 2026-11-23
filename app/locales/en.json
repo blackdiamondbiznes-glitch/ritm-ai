@@ -331,5 +331,17 @@
   "backup_caption": "💾 Ritm AI database backup: {day} ({mb} MB).\nRestore: pg_restore --clean --no-owner -d &lt;DATABASE_URL&gt; file.dump",
   "backup_too_big": "⚠️ Today's database backup is {mb} MB, over the {max} MB Telegram limit. The file was not sent: set up another backup method on Render.",
   "backup_failed": "⚠️ Today's database backup failed (reason: {code}). Check the Render logs.",
-  "pay_receipt_app": "🧾 Receipt sent from the Mini App · {ref}\nAn admin will check it; the result will come here."
+  "pay_receipt_app": "🧾 Receipt sent from the Mini App · {ref}\nAn admin will check it; the result will come here.",
+  "notify_lesson": "Lesson in {gap}: {title}, {time}",
+  "notify_gap_15": "15 minutes",
+  "notify_gap_30": "30 minutes",
+  "notify_gap_60": "1 hour",
+  "notify_gap_120": "120 minutes",
+  "notify_cancel": "Lesson cancelled: {title}, {time}",
+  "notify_move": "Lesson moved: {title}, {time}",
+  "notify_fee_student": "Fee: {title}, {amount} som, due {date}",
+  "notify_fee_group": "A fee is coming due. Please contact your teacher.",
+  "notify_fee_digest": "Today {soon} fees are coming due and {late} are overdue.",
+  "notify_quota": "The reminder limit is used up. No new messages will go out this month.",
+  "notify_text": "{text}"
 }

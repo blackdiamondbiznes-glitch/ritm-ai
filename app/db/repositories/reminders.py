@@ -41,10 +41,18 @@ class ReminderRepository:
         return result.scalar_one_or_none()
 
     async def due(self, now: datetime) -> list[TutorReminder]:
-        """Reminders whose time has come and that have no job yet."""
+        """Owner reminders whose time has come and that have no job yet."""
+        return await self.due_for(now, ("owner",))
+
+    async def due_for(self, now: datetime, audiences: tuple[str, ...]) -> list[TutorReminder]:
+        """Due reminders for these audiences that have no job yet."""
         stmt = (
             select(TutorReminder)
-            .where(TutorReminder.queued_at.is_(None), TutorReminder.send_at <= now)
+            .where(
+                TutorReminder.queued_at.is_(None),
+                TutorReminder.send_at <= now,
+                TutorReminder.audience.in_(audiences),
+            )
             .order_by(TutorReminder.id.asc())
         )
         result = await self._session.execute(stmt)

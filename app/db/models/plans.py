@@ -27,6 +27,9 @@ class Plan(Base):
     max_tutor_students: Mapped[int] = mapped_column(
         Integer, nullable=False, default=40, server_default="40"
     )
+    max_tutor_notifications_month: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     ai_generations_per_month: Mapped[int] = mapped_column(Integer, nullable=False)
     modules: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")

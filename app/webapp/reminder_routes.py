@@ -6,13 +6,22 @@ from typing import Any
 
 from aiohttp import web
 
+from app.db.repositories.groups import GroupRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
 from app.services.reminders import ReminderError, ReminderService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
-_STATUS = {"missing": 404, "empty": 400, "long": 400, "when": 400, "student": 400}
+_STATUS = {
+    "missing": 404,
+    "empty": 400,
+    "long": 400,
+    "when": 400,
+    "student": 400,
+    "group": 400,
+    "audience": 400,
+}
 
 
 def setup_reminder_routes(app: web.Application) -> None:
@@ -54,7 +63,11 @@ async def reminders_delete(request: web.Request) -> web.Response:
 
 
 def _service(ctx: WebContext) -> ReminderService:
-    return ReminderService(ReminderRepository(ctx.session), StudentRepository(ctx.session))
+    return ReminderService(
+        ReminderRepository(ctx.session),
+        StudentRepository(ctx.session),
+        groups=GroupRepository(ctx.session),
+    )
 
 
 async def _call(ctx: WebContext, work) -> web.Response:

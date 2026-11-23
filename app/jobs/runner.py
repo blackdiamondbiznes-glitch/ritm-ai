@@ -1,7 +1,7 @@
 """Claim one job per tick. Business rules live in the handler, not the clock."""
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from app.ai.errors import AIConfigError, AITransient
 from app.db.models.jobs import Job, JobStatus
@@ -21,6 +21,14 @@ class JobCancel(Exception):
     def __init__(self, code: str) -> None:
         super().__init__(code)
         self.code = code
+
+
+class JobPostpone(Exception):
+    """Run the same job later. Attempts do not increase."""
+
+    def __init__(self, when: datetime) -> None:
+        super().__init__("later")
+        self.when = when
 
 
 class JobRunner:
@@ -73,6 +81,11 @@ class JobRunner:
         except JobCancel as exc:
             _cancel(job, exc.code, now)
             logger.info("job canceled id=%s code=%s", job.id, exc.code)
+        except JobPostpone as exc:
+            job.status = JobStatus.PENDING
+            job.run_at = exc.when
+            job.locked_at = None
+            logger.info("job postponed id=%s", job.id)
         except AIConfigError as exc:
             _cancel(job, exc.code, now)
             logger.info("job canceled id=%s code=%s error=AIConfigError", job.id, exc.code)

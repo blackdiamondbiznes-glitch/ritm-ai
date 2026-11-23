@@ -331,5 +331,17 @@
   "backup_caption": "💾 Резервная копия базы Ritm AI: {day} ({mb} МБ).\nВосстановление: pg_restore --clean --no-owner -d &lt;DATABASE_URL&gt; файл.dump",
   "backup_too_big": "⚠️ Сегодняшняя копия базы {mb} МБ, лимит Telegram {max} МБ. Файл не отправлен: включите другой способ резервного копирования на Render.",
   "backup_failed": "⚠️ Сегодняшнюю копию базы сделать не удалось (причина: {code}). Проверьте логи Render.",
-  "pay_receipt_app": "🧾 Чек отправлен через Mini App · {ref}\nАдмин проверит, результат придёт сюда."
+  "pay_receipt_app": "🧾 Чек отправлен через Mini App · {ref}\nАдмин проверит, результат придёт сюда.",
+  "notify_lesson": "Занятие через {gap}: {title}, {time}",
+  "notify_gap_15": "15 минут",
+  "notify_gap_30": "30 минут",
+  "notify_gap_60": "1 час",
+  "notify_gap_120": "120 минут",
+  "notify_cancel": "Занятие отменено: {title}, {time}",
+  "notify_move": "Занятие перенесено: {title}, {time}",
+  "notify_fee_student": "Оплата: {title}, {amount} сум, срок {date}",
+  "notify_fee_group": "Срок оплаты приближается, пожалуйста, свяжитесь с преподавателем",
+  "notify_fee_digest": "Сегодня {soon} оплат скоро, {late} уже просрочены.",
+  "notify_quota": "Лимит напоминаний исчерпан. В этом месяце новые сообщения не уйдут.",
+  "notify_text": "{text}"
 }

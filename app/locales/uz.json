@@ -331,5 +331,17 @@
   "backup_caption": "💾 Ritm AI baza zaxirasi: {day} ({mb} MB).\nTiklash: pg_restore --clean --no-owner -d &lt;DATABASE_URL&gt; fayl.dump",
   "backup_too_big": "⚠️ Bugungi baza zaxirasi {mb} MB, Telegram chegarasi {max} MB. Fayl yuborilmadi: Render'da boshqa zaxira usulini yoqing.",
   "backup_failed": "⚠️ Bugungi baza zaxirasi olinmadi (sabab: {code}). Render loglarini tekshiring.",
-  "pay_receipt_app": "🧾 Mini App orqali yuborilgan chek · {ref}\nAdmin tekshiradi, natija shu yerga keladi."
+  "pay_receipt_app": "🧾 Mini App orqali yuborilgan chek · {ref}\nAdmin tekshiradi, natija shu yerga keladi.",
+  "notify_lesson": "Dars {gap} keyin: {title}, {time}",
+  "notify_gap_15": "15 daqiqadan",
+  "notify_gap_30": "30 daqiqadan",
+  "notify_gap_60": "1 soatdan",
+  "notify_gap_120": "120 daqiqadan",
+  "notify_cancel": "Dars bekor qilindi: {title}, {time}",
+  "notify_move": "Dars ko'chirildi: {title}, {time}",
+  "notify_fee_student": "To'lov: {title}, {amount} so'm, muddat {date}",
+  "notify_fee_group": "To'lov muddati yaqinlashdi, iltimos o'qituvchingiz bilan bog'laning",
+  "notify_fee_digest": "Bugun {soon} ta to'lov yaqinlashdi, {late} tasi kechikdi.",
+  "notify_quota": "Eslatmalar limiti tugadi. Shu oy yangi xabar yuborilmaydi.",
+  "notify_text": "{text}"
 }

@@ -50,6 +50,7 @@ class TutorLimits:
     max_students: int
     plan_code: str
     fees: bool
+    notifications: int
 
 
 @dataclass(frozen=True)
@@ -165,6 +166,7 @@ class AccessService:
             max_students=plan.max_tutor_students,
             plan_code=plan.code,
             fees=plan.code != "free",
+            notifications=plan.max_tutor_notifications_month,
         )
 
     async def snapshot(self, owner: User) -> PlanSnapshot:

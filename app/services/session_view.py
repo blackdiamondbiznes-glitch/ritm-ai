@@ -30,10 +30,12 @@ class SessionView:
         lessons: LessonRepository,
         groups: GroupRepository,
         now: Clock | None = None,
+        notifier=None,
     ) -> None:
         self._lessons = lessons
         self._groups = groups
         self._now = now or utcnow
+        self._notifier = notifier
 
     async def between(self, owner_id: int, start: object, end: object) -> list[dict]:
         """Lessons and group sessions that start inside the inclusive date range."""
@@ -75,6 +77,7 @@ class SessionView:
         row = await self._lessons.get_owned(owner_id, session_id)
         if row is None:
             raise SessionError("missing")
+        previous_status, previous_start = row.status, row.starts_at
         if "title" in body:
             row.title = _title(body.get("title"))
         if "status" in body:
@@ -89,7 +92,17 @@ class SessionView:
             row.ends_at = end
         row.updated_at = datetime.now(UTC)
         await self._lessons.save(row)
+        await self._changed(owner_id, row, previous_status, previous_start)
         return _public(row, await self._name(owner_id, row.group_id))
+
+    async def _changed(self, owner_id: int, row: TutorLesson, status: str, start) -> None:
+        """Cancel and move reach the same chats as a lesson reminder."""
+        if self._notifier is None or row.group_id is None:
+            return
+        if row.status == "cancelled" and status != "cancelled":
+            await self._notifier.queue_session(owner_id, row, "cancel")
+        elif row.starts_at != start:
+            await self._notifier.queue_session(owner_id, row, "move")
 
     async def for_student(self, user: User, days: int) -> list[dict]:
         """Sessions of groups where this account's membership is active."""

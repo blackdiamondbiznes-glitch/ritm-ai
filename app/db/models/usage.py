@@ -25,7 +25,10 @@ class UsageCounter(Base):
     __table_args__ = (
         UniqueConstraint("owner_id", "metric", "period_key", name="uq_usage_owner_metric_period"),
         Index("ix_usage_counters_owner_id", "owner_id"),
-        CheckConstraint("metric = 'ai_generation'", name="metric_known"),
+        CheckConstraint(
+            "metric IN ('ai_generation', 'tutor_notify')",
+            name="metric_known",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

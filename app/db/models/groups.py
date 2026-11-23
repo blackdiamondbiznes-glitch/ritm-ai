@@ -3,6 +3,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -41,6 +42,14 @@ class TutorGroup(Base):
             name="ck_tutor_groups_fee_uzs",
         ),
         CheckConstraint("due_days >= 0 AND due_days <= 31", name="ck_tutor_groups_due_days"),
+        CheckConstraint(
+            "remind_lesson_min IS NULL OR remind_lesson_min IN (15, 30, 60, 120)",
+            name="ck_tutor_groups_remind_lesson",
+        ),
+        CheckConstraint(
+            "remind_fee_days IS NULL OR remind_fee_days IN (1, 3, 7)",
+            name="ck_tutor_groups_remind_fee",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -64,6 +73,14 @@ class TutorGroup(Base):
     billing_day: Mapped[int | None] = mapped_column(SmallInteger)
     due_days: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=5, server_default="5"
+    )
+    chat_id: Mapped[int | None] = mapped_column(ForeignKey("chats.id", ondelete="SET NULL"))
+    remind_lesson_min: Mapped[int | None] = mapped_column(
+        SmallInteger, default=60, server_default="60"
+    )
+    remind_fee_days: Mapped[int | None] = mapped_column(SmallInteger, default=3, server_default="3")
+    fee_in_group: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

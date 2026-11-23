@@ -9,10 +9,12 @@ from datetime import UTC, datetime
 from app.db.models.jobs import Job, JobStatus
 from app.db.models.reminders import TutorReminder
 from app.db.models.students import TutorStudent
+from app.db.repositories.groups import GroupRepository
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
 from app.services.clock import TASHKENT, utcnow
+from app.services.notify_rules import quiet_wake
 
 REMINDER = "tutor_reminder"
 TEXT_MAX = 300
@@ -35,6 +37,8 @@ class ReminderInput:
     text: str
     student_id: int | None
     send_at: datetime
+    audience: str = "owner"
+    group_id: int | None = None
 
 
 class ReminderService:
@@ -46,11 +50,13 @@ class ReminderService:
         students: StudentRepository,
         jobs: JobRepository | None = None,
         now=utcnow,
+        groups: GroupRepository | None = None,
     ) -> None:
         self._reminders = reminders
         self._students = students
         self._jobs = jobs
         self._now = now
+        self._groups = groups
 
     async def list(self, owner_id: int) -> dict:
         """Every reminder of this owner, plus students that can be attached."""
@@ -62,10 +68,13 @@ class ReminderService:
         """Store a reminder. The job is created later, when it is due."""
         parsed = parse_reminder(body)
         await self._owned_student(owner_id, parsed.student_id)
+        await self._owned_group(owner_id, parsed)
         await self._reminders.add(
             TutorReminder(
                 owner_id=owner_id,
                 student_id=parsed.student_id,
+                group_id=parsed.group_id,
+                audience=parsed.audience,
                 text=parsed.text,
                 send_at=parsed.send_at,
             )
@@ -92,7 +101,7 @@ class ReminderService:
                     chat_id=None,
                     type=REMINDER,
                     payload={"reminder_id": row.id},
-                    run_at=moment,
+                    run_at=quiet_wake(moment) or moment,
                     status=JobStatus.PENDING,
                     attempts=0,
                     max_attempts=5,
@@ -109,6 +118,14 @@ class ReminderService:
         if await self._students.get_owned(owner_id, student_id) is None:
             raise ReminderError("student")
 
+    async def _owned_group(self, owner_id: int, parsed: ReminderInput) -> None:
+        if parsed.audience != "group":
+            return
+        if self._groups is None or parsed.group_id is None:
+            raise ReminderError("group")
+        if await self._groups.get_owned(owner_id, parsed.group_id) is None:
+            raise ReminderError("group")
+
 
 def parse_reminder(body: dict) -> ReminderInput:
     """Validate a new reminder. The time is a Tashkent wall clock."""
@@ -116,7 +133,19 @@ def parse_reminder(body: dict) -> ReminderInput:
     student_id = _student_id(body.get("student_id")) if "student_id" in body else None
     if "send_at" not in body or body.get("send_at") in (None, ""):
         raise ReminderError("when")
-    return ReminderInput(text=text, student_id=student_id, send_at=_when(body.get("send_at")))
+    audience = _audience(body.get("audience"))
+    group_id = _group_id(body.get("group_id")) if "group_id" in body else None
+    if audience == "student" and student_id is None:
+        raise ReminderError("student")
+    if audience == "group" and group_id is None:
+        raise ReminderError("group")
+    return ReminderInput(
+        text=text,
+        student_id=student_id,
+        send_at=_when(body.get("send_at")),
+        audience=audience,
+        group_id=group_id,
+    )
 
 
 def _payload(rows: list[TutorReminder], students: list[TutorStudent]) -> dict:
@@ -127,6 +156,8 @@ def _payload(rows: list[TutorReminder], students: list[TutorStudent]) -> dict:
             "text": row.text,
             "student_id": row.student_id,
             "student_name": names.get(row.student_id) if row.student_id else None,
+            "audience": row.audience or "owner",
+            "group_id": row.group_id,
             "send_at": row.send_at.isoformat(),
             "sent": row.sent_at is not None,
         }
@@ -146,6 +177,22 @@ def _text(value: object) -> str:
     if len(text) > TEXT_MAX:
         raise ReminderError("long")
     return text
+
+
+def _audience(value: object) -> str:
+    if value is None:
+        return "owner"
+    if not isinstance(value, str) or value not in {"owner", "student", "group"}:
+        raise ReminderError("audience")
+    return value
+
+
+def _group_id(value: object) -> int | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ReminderError("group")
+    return value
 
 
 def _student_id(value: object) -> int | None:

@@ -20,6 +20,7 @@ from app.db.models.students import TutorStudent
 from app.db.models.subscriptions import Subscription, SubscriptionSource, SubscriptionStatus
 from app.db.models.system_state import SystemState
 from app.db.models.topics import TutorScore, TutorTopic
+from app.db.models.tutor_notices import TutorNotice
 from app.db.models.usage import UsageCounter, UsageDaily
 from app.db.models.users import User
 from app.db.models.workspaces import Workspace
@@ -54,6 +55,7 @@ __all__ = [
     "TutorInvoice",
     "TutorGroupMember",
     "TutorLesson",
+    "TutorNotice",
     "TutorScore",
     "TutorStudent",
     "TutorTopic",

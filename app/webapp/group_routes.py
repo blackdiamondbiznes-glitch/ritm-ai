@@ -18,6 +18,7 @@ from app.db.repositories.workspaces import WorkspaceRepository
 from app.i18n import t
 from app.services.fees import FeeService
 from app.services.groups import GroupError, GroupService
+from app.services.notify import NotifyError, notify_for
 from app.services.sessions import SessionPlanner
 from app.services.tutor_limits import TutorLimitError, limit_body
 from app.services.workspaces import WorkspaceService
@@ -32,6 +33,8 @@ _STATUS = {
     "time": 400,
     "student": 400,
     "send": 400,
+    "chat": 400,
+    "target": 400,
 }
 
 
@@ -115,6 +118,8 @@ async def groups_announce(request: web.Request) -> web.Response:
     body = await _body(request)
     if isinstance(body, web.Response):
         return body
+    if "text" in body or "to_chat" in body or "to_students" in body:
+        return await _notice(ctx, group_id, body)
     chat_id = body.get("chat_id")
     if isinstance(chat_id, bool) or not isinstance(chat_id, int):
         return _error(400, "bad_request")
@@ -135,6 +140,15 @@ async def groups_announce(request: web.Request) -> web.Response:
     except Exception:
         return _error(400, "send")
     return web.json_response({"ok": True})
+
+
+async def _notice(ctx: WebContext, group_id: int, body: dict[str, Any]) -> web.Response:
+    """Queue a teacher announcement. The enroll link still uses chat_id."""
+    try:
+        data = await notify_for(ctx.session).announce(ctx.user.id, group_id, body)
+    except NotifyError as exc:
+        return _error(_STATUS.get(exc.code, 400), exc.code)
+    return web.json_response(data)
 
 
 async def groups_add_student(request: web.Request) -> web.Response:

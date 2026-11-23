@@ -33,6 +33,7 @@ from app.jobs.reminder import ReminderHandler
 from app.jobs.runner import JobRunner
 from app.jobs.trial_nudge import EXPIRY, REPORT, TrialNudgeHandler, TrialNudgePlanner
 from app.jobs.tutor_fees import refill_fees
+from app.jobs.tutor_notify import prepare as prepare_notices
 from app.jobs.tutor_sessions import refill_sessions
 from app.services.access import AccessService
 from app.services.clock import utcnow
@@ -108,6 +109,7 @@ async def _once(
         StudentRepository(session),
         jobs,
     ).enqueue_due()
+    await prepare_notices(session, bot, access, handlers)
     handlers[REPORT] = nudge
     handlers[EXPIRY] = nudge
     handlers[REMINDER] = ReminderHandler(bot, ReminderRepository(session), UserRepository(session))

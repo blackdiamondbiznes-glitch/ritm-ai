@@ -26,6 +26,7 @@ from app.webapp.grade_routes import setup_grade_routes
 from app.webapp.group_routes import setup_group_routes
 from app.webapp.lesson_routes import setup_lesson_routes
 from app.webapp.members import MemberCountCache
+from app.webapp.notify_routes import setup_notify_routes
 from app.webapp.pay_routes import setup_pay_routes
 from app.webapp.rate_limit import RateLimiter
 from app.webapp.reminder_routes import setup_reminder_routes
@@ -75,6 +76,7 @@ def create_app(
     setup_session_routes(app)
     setup_attendance_routes(app)
     setup_fee_routes(app)
+    setup_notify_routes(app)
     setup_cabinet_routes(app)
     setup_reminder_routes(app)
     setup_role_routes(app)

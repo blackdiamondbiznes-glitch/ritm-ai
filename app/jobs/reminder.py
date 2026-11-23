@@ -8,8 +8,9 @@ from aiogram import Bot
 from app.db.models.jobs import Job
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.users import UserRepository
-from app.jobs.runner import JobCancel
+from app.jobs.runner import JobCancel, JobPostpone
 from app.services.clock import utcnow
+from app.services.notify_rules import quiet_wake
 from app.services.reminders import REMINDER
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,11 @@ class ReminderHandler:
         user = await self._users.get_by_id(row.owner_id)
         if user is None:
             raise JobCancel("owner")
+        if (row.audience or "owner") != "owner":
+            raise JobCancel("audience")
+        wake = quiet_wake(self._now())
+        if wake is not None:
+            raise JobPostpone(wake)
         await self._bot.send_message(user.telegram_id, escape(row.text))
         row.sent_at = self._now()
         await self._reminders.save(row)

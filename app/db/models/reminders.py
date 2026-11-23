@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Text, func, text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -19,6 +19,10 @@ class TutorReminder(Base):
             "send_at",
             postgresql_where=text("queued_at IS NULL"),
         ),
+        CheckConstraint(
+            "audience IN ('owner', 'student', 'group')",
+            name="ck_tutor_reminders_audience",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -27,6 +31,10 @@ class TutorReminder(Base):
     )
     student_id: Mapped[int | None] = mapped_column(
         ForeignKey("tutor_students.id", ondelete="SET NULL")
+    )
+    group_id: Mapped[int | None] = mapped_column(ForeignKey("tutor_groups.id", ondelete="SET NULL"))
+    audience: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="owner", server_default="owner"
     )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     send_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

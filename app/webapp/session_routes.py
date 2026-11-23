@@ -8,6 +8,7 @@ from aiohttp import web
 
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
+from app.services.notify import notify_for
 from app.services.session_view import SessionView
 from app.services.sessions import SessionError
 from app.webapp.context import WebContext
@@ -86,7 +87,11 @@ async def sessions_mine(request: web.Request) -> web.Response:
 
 
 def _view(ctx: WebContext) -> SessionView:
-    return SessionView(LessonRepository(ctx.session), GroupRepository(ctx.session))
+    return SessionView(
+        LessonRepository(ctx.session),
+        GroupRepository(ctx.session),
+        notifier=notify_for(ctx.session),
+    )
 
 
 async def _call(ctx: WebContext, work) -> web.Response:
