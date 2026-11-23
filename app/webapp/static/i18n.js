@@ -38,8 +38,25 @@ const PACKS = {
     ]),
 };
 
+function prefixed(prefix, pack) {
+  const out = { ...pack };
+  for (const [key, value] of Object.entries(pack)) out[`${prefix}${key}`] = value;
+  return out;
+}
+
+/** Flat keys stay for current screens; namespaced copies let a new vertical add only its layer. */
+function mergePacks(shell, chat, tutor, admin) {
+  return Object.assign(
+    {},
+    prefixed("shell.", shell),
+    prefixed("chat.", chat),
+    prefixed("vertical.tutor.", tutor),
+    prefixed("admin.", admin),
+  );
+}
+
 const cache = {
-  uz: { ...shellUz, ...chatUz, ...tutorUz, ...adminUz },
+  uz: mergePacks(shellUz, chatUz, tutorUz, adminUz),
 };
 
 let lang = "uz";
@@ -54,7 +71,7 @@ export async function setLang(code) {
   const next = normalize(code);
   if (!cache[next]) {
     const mods = await PACKS[next]();
-    cache[next] = Object.assign({}, ...mods.map((mod) => mod.default));
+    cache[next] = mergePacks(...mods.map((mod) => mod.default));
   }
   lang = next;
   return lang;

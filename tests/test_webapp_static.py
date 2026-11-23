@@ -124,8 +124,9 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert "renderStudents" in app
     nav = (STATIC / "nav.js").read_text(encoding="utf-8")
     assert "export function navTabs" in nav
-    assert 'tabs = ["cabinet"]' in nav
-    assert 'tabs = ["study"]' in nav
+    assert "teacherTabs" in nav or "cabinet" in nav
+    assert "studentTabs" in nav or "study" in nav
+    assert "currentVertical" in nav
     assert "isTutor()" in nav
     lesson_file = (STATIC / "lessons.js").read_text(encoding="utf-8")
     lesson_keys = set(re.findall(r'\bt\("(\w+)"', lesson_file))

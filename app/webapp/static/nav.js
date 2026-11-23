@@ -1,21 +1,24 @@
 import { haptic, hasRole, isManager, isStudent, isTutor, parseRoute, tg } from "./api.js";
 import { chosenRole } from "./roles.js";
 import { t } from "./i18n.js";
+import { currentVertical } from "./vertical.js";
+import { clearMainButton } from "./main_btn.js";
 
 /** Bottom tabs for the signed-in role. The server still checks every request. */
 export function navTabs() {
+  const vertical = currentVertical();
   const teacher = isTutor() && chosenRole() !== "student";
   const student = (isStudent() && !isManager() && !isTutor()) || chosenRole() === "student";
   if (teacher) {
-    const tabs = ["cabinet"];
-    if (isManager()) tabs.push("chats");
+    const tabs = [...vertical.teacherTabs];
+    if (isManager()) tabs.push(...vertical.teacherCommunityTabs);
     if (hasRole("super_admin")) tabs.push("admin");
     tabs.push("profile");
     return tabs;
   }
   if (student) {
-    const tabs = ["study"];
-    if (hasRole("member")) tabs.push("board", "history");
+    const tabs = [...vertical.studentTabs];
+    if (hasRole("member")) tabs.push(...vertical.studentCommunityTabs);
     tabs.push("profile");
     return tabs;
   }
@@ -60,6 +63,7 @@ export function isRoleHome(tab, sub, id) {
 }
 
 export function syncChrome() {
+  clearMainButton();
   const { tab, sub, id } = parseRoute();
   const nav = document.getElementById("nav");
   if (nav) {
