@@ -1,10 +1,10 @@
-import { api, bootstrap, go, haptic } from "./api.js";
+import { api, bootstrap, forget, go, haptic } from "./api.js";
 import { escapeHtml, t, toast, withBusy } from "./ui.js";
 
 /** A student who has no teacher yet types the code or pastes the link the teacher sent. */
 export function joinCard() {
   return `<div class="card" id="join-card">
-    <div class="card-title">🎓 ${escapeHtml(t("joinTitle"))}</div>
+    <div class="card-title">${escapeHtml(t("joinTitle"))}</div>
     <p class="stu-meta">${escapeHtml(t("joinLead"))}</p>
     <input class="input" id="join-code" maxlength="200" autocomplete="off" placeholder="${escapeHtml(t("joinPlaceholder"))}">
     <button type="button" class="primary" id="join-send">${escapeHtml(t("joinSend"))}</button>
@@ -35,6 +35,7 @@ async function send() {
   input.classList.toggle("bad", !data.ok);
   if (!data.ok) return;
   haptic("success");
+  forget("/api/me/");
   await bootstrap();
   go("study");
 }

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.attendance import TutorAttendance
@@ -42,7 +42,7 @@ class LearningRepository:
         ]
 
     async def next_lessons(self, group_ids: list[int], now: datetime) -> dict[int, TutorLesson]:
-        """The soonest future session of each group. Cancelled sessions are skipped."""
+        """The running or soonest future session of each group. Cancelled sessions are skipped."""
         if not group_ids:
             return {}
         stmt = (
@@ -50,7 +50,10 @@ class LearningRepository:
             .where(
                 TutorLesson.group_id.in_(group_ids),
                 TutorLesson.starts_at.is_not(None),
-                TutorLesson.starts_at >= now,
+                or_(
+                    TutorLesson.ends_at >= now,
+                    and_(TutorLesson.ends_at.is_(None), TutorLesson.starts_at >= now),
+                ),
                 TutorLesson.status != "cancelled",
             )
             .distinct(TutorLesson.group_id)

@@ -97,6 +97,7 @@ def _next(lesson) -> dict | None:
         return None
     return {
         "starts_at": lesson.starts_at.isoformat(),
+        "ends_at": lesson.ends_at.isoformat() if lesson.ends_at else None,
         "status": lesson.status,
         "meeting_url": getattr(lesson, "meeting_url", None),
     }

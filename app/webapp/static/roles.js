@@ -1,9 +1,24 @@
-import { go, state, tg } from "./api.js";
-import { escapeHtml, t } from "./ui.js";
+import { isManager, isStudent, isTutor, state, tg } from "./api.js";
 
 const ROLE_KEY = "ritm.role";
 
-/** Read a one-shot teacher/student hint, then leave the hash usable as a route. */
+function saved() {
+  try {
+    return localStorage.getItem(ROLE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function save(role) {
+  try {
+    localStorage.setItem(ROLE_KEY, role);
+  } catch {
+    /* private mode: the choice lasts for this session only */
+  }
+}
+
+/** Read a one-shot teacher/student hint, then leave the hash usable as a route. No buttons are drawn. */
 export function applyRoleHint() {
   const hash = location.hash || "";
   const hinted = hash.match(/^#role=(teacher|student)$/);
@@ -17,7 +32,7 @@ export function applyRoleHint() {
   else if (roleQuery === "teacher" || roleQuery === "student") role = roleQuery;
   else if (start === "teacher" || start === "student") role = start;
   if (!role) return null;
-  localStorage.setItem(ROLE_KEY, role);
+  save(role);
   if (hinted) history.replaceState(null, "", "#/home");
   if (role === "teacher" && (hash === "#/cabinet" || startapp === "cabinet" || start === "cabinet")) {
     if (!hash.startsWith("#/cabinet")) history.replaceState(null, "", "#/cabinet");
@@ -29,54 +44,33 @@ export function modes() {
   return (state.dash && state.dash.modes) || { teaching: [], learning: [], pending: [] };
 }
 
-function teaches() {
-  return (modes().teaching || []).some(
-    (row) => Number(row.groups || 0) > 0 || Number(row.students || 0) > 0,
-  );
+function learns() {
+  return (modes().learning || []).length > 0;
 }
 
-/** Teacher when the account teaches, unless the saved choice is student and both exist. */
+/** This account both runs a cabinet and attends one: only then can the mode change. */
+export function bothRoles() {
+  return isTutor() && learns();
+}
+
+/** Teacher when the account teaches, unless the remembered choice is student and both exist. */
 export function chosenRole() {
-  const data = modes();
-  const teaching = teaches();
-  const learning = (data.learning || []).length > 0;
-  if (teaching && learning) {
-    const saved = localStorage.getItem(ROLE_KEY);
-    return saved === "student" ? "student" : "teacher";
-  }
+  const teaching = isTutor();
+  const learning = learns();
+  if (teaching && learning) return saved() === "student" ? "student" : "teacher";
   if (teaching) return "teacher";
   if (learning) return "student";
   return "";
 }
 
-/** Segmented switch. Hidden unless this account both teaches and studies. */
-export function mountRoles() {
-  const bar = document.getElementById("rolebar");
-  if (!bar) return;
-  const data = modes();
-  const teaching = teaches();
-  const learning = (data.learning || []).length > 0;
-  if (!teaching || !learning) {
-    bar.hidden = true;
-    bar.replaceChildren();
-    return;
-  }
-  const role = chosenRole();
-  bar.hidden = false;
-  bar.innerHTML = `<div class="chips">${button("teacher", role)}${button("student", role)}</div>`;
-  bar.querySelectorAll("[data-role]").forEach((node) => {
-    node.addEventListener("click", () => {
-      const next = node.getAttribute("data-role");
-      if (next !== "teacher" && next !== "student") return;
-      localStorage.setItem(ROLE_KEY, next);
-      mountRoles();
-      go(next === "student" ? "study" : "cabinet");
-    });
-  });
+/** The student app (Bosh / Darslar / Profil) is shown. */
+export function studentMode() {
+  return (isStudent() && !isManager() && !isTutor()) || chosenRole() === "student";
 }
 
-function button(role, current) {
-  const on = role === current ? " selected" : "";
-  const label = role === "teacher" ? t("roleTeacher") : t("roleStudent");
-  return `<button type="button" class="chip-btn${on}" data-role="${role}">${escapeHtml(label)}</button>`;
+/** Flip the remembered mode for a two-role account and return the new one. */
+export function switchRole() {
+  const next = chosenRole() === "student" ? "teacher" : "student";
+  save(next);
+  return next;
 }

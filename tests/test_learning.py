@@ -159,6 +159,38 @@ async def test_two_teachers_and_a_pending_request_stay_in_their_places() -> None
         await engine.dispose()
 
 
+async def test_a_running_lesson_stays_next_until_it_ends() -> None:
+    """The join button stays while the lesson runs: next_session holds it until ends_at."""
+    engine = create_async_engine(_URL)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as session:
+        await _purge(session, (A, PUPIL))
+        teacher, space = await _user(session, A, "Lola Karimova")
+        pupil, _space_p = await _user(session, PUPIL, "Ali")
+        english = _group(teacher, space, "Ingliz tili", "B1", "eng7code", None, "none")
+        session.add(english)
+        await session.flush()
+        ali = _card(teacher, space, "Ali Valiyev", PUPIL, "ali-run")
+        session.add(ali)
+        await session.flush()
+        session.add(_member(english, ali, "active"))
+        await _lesson(session, teacher, space, english, NOW - timedelta(hours=2), "done")
+        await _lesson(session, teacher, space, english, NOW - timedelta(minutes=30), "scheduled")
+        await _lesson(session, teacher, space, english, NOW + timedelta(days=2), "scheduled")
+        await session.commit()
+        payload = await _service(session).for_user(pupil)
+    try:
+        nxt = payload["groups"][0]["next_session"]
+        running = NOW - timedelta(minutes=30)
+        assert datetime.fromisoformat(nxt["starts_at"]) == running
+        assert datetime.fromisoformat(nxt["ends_at"]) == running + timedelta(hours=1)
+    finally:
+        async with factory() as session:
+            await _purge(session, (A, PUPIL))
+            await session.commit()
+        await engine.dispose()
+
+
 def _group(owner, space, name, level, code, chat_id, mode) -> TutorGroup:
     return TutorGroup(
         owner_id=owner.id,

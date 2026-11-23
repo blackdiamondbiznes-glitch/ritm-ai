@@ -1,5 +1,5 @@
-import { haptic, hasRole, isManager, isStudent, isTutor, parseRoute, tg } from "./api.js";
-import { chosenRole } from "./roles.js";
+import { haptic, hasRole, isManager, isTutor, parseRoute, tg } from "./api.js";
+import { studentMode } from "./roles.js";
 import { t } from "./i18n.js";
 import { currentVertical } from "./vertical.js";
 import { clearMainButton } from "./main_btn.js";
@@ -7,8 +7,8 @@ import { clearMainButton } from "./main_btn.js";
 /** Bottom tabs for the signed-in role. The server still checks every request. */
 export function navTabs() {
   const vertical = currentVertical();
-  const teacher = isTutor() && chosenRole() !== "student";
-  const student = (isStudent() && !isManager() && !isTutor()) || chosenRole() === "student";
+  const student = studentMode();
+  const teacher = isTutor() && !student;
   if (teacher) {
     const tabs = [...vertical.teacherTabs];
     if (isManager()) tabs.push(...vertical.teacherCommunityTabs);
@@ -16,12 +16,7 @@ export function navTabs() {
     tabs.push("profile");
     return tabs;
   }
-  if (student) {
-    const tabs = [...vertical.studentTabs];
-    if (hasRole("member")) tabs.push(...vertical.studentCommunityTabs);
-    tabs.push("profile");
-    return tabs;
-  }
+  if (student) return [...vertical.studentTabs, "profile"];
   if (isManager()) {
     const tabs = ["home", "chats", "board", "report", "profile"];
     if (hasRole("super_admin")) tabs.splice(tabs.indexOf("profile"), 0, "admin");
@@ -59,6 +54,7 @@ export function labelNav() {
 export function isRoleHome(tab, sub, id) {
   if (tab === "cabinet") return !sub && !id;
   if (tab === "study" || tab === "boards") return !id;
+  if (tab === "agenda") return true;
   return false;
 }
 
@@ -72,7 +68,7 @@ export function syncChrome() {
     nav.querySelectorAll("[data-tab]").forEach((btn) => {
       const name = btn.getAttribute("data-tab");
       btn.hidden = !tabs.includes(name);
-      const on = name === tab || (name === "cabinet" && tab === "cabinet") || (name === "study" && (tab === "study" || tab === "boards"));
+      const on = name === tab || (name === "study" && tab === "boards");
       btn.classList.toggle("active", on && !btn.hidden);
     });
   }
@@ -85,7 +81,7 @@ export function syncChrome() {
       tab === "study" ||
       tab === "boards" ||
       (sub && (tab === "admin" || tab === "profile")) ||
-      (tab === "history" && !navTabs().includes("history")));
+      ((tab === "history" || tab === "board") && !navTabs().includes(tab)));
   if (nested) back.show();
   else back.hide();
 }

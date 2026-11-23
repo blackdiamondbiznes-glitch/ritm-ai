@@ -1,7 +1,9 @@
-import { api, cached, forget, go, haptic, isManager, isStudent, isTutor, load, loadDash, openLink, persist, remember, state, tg } from "./api.js";
+import { api, cached, forget, go, hasRole, haptic, isManager, isTutor, load, loadDash, openLink, persist, remember, state, tg } from "./api.js";
 import { setLang } from "./i18n.js";
 import { icon } from "./icons.js";
 import { labelNav } from "./nav.js";
+import { bothRoles, chosenRole, studentMode, switchRole } from "./roles.js";
+import { currentVertical } from "./vertical.js";
 import {
   current,
   escapeHtml,
@@ -21,6 +23,7 @@ const LANG_NAMES = { uz: "🇺🇿 O‘zbekcha", ru: "🇷🇺 Русский", 
 const SETTINGS = "/api/me/settings";
 const PAYMENTS = "/api/me/payments";
 const CONNECT = "/api/connect";
+const LEARNING = "/api/me/learning";
 const TERMS = "/api/docs/terms";
 const FAQ_COUNT = 7;
 const PRIVACY_COUNT = 6;
@@ -65,6 +68,17 @@ function bindRows(root = document) {
     node.addEventListener("click", () => {
       haptic("light");
       go(node.getAttribute("data-go"));
+    });
+  });
+  root.querySelectorAll('[data-act="role"]').forEach((node) => {
+    node.addEventListener("click", () => {
+      haptic("light");
+      go(currentVertical().home[switchRole()]);
+    });
+  });
+  root.querySelectorAll('[data-act="close"]').forEach((node) => {
+    node.addEventListener("click", () => {
+      if (tg && tg.close) tg.close();
     });
   });
   root.querySelectorAll('[data-act="support"]').forEach((node) => {
@@ -118,6 +132,8 @@ export function renderProfile() {
   const zone = prefs ? prefs.default_timezone : "";
   const founder = founderValue(plan);
   const student = onlyStudent();
+  const studying = studentMode();
+  const learning = studying ? cached(LEARNING) : undefined;
   const pills = [`<span class="pill pill-ok">● ${escapeHtml(t("tgLinked"))}</span>`]
     .concat(roles.map((role) => `<span class="pill">${escapeHtml(role)}</span>`))
     .join("");
@@ -128,11 +144,12 @@ export function renderProfile() {
       ${user.username ? `<div class="phead-user">@${escapeHtml(user.username)}</div>` : ""}
       <div class="phead-pills">${pills}</div>
     </div>
+    ${studying ? group(t("myGroups"), groupRows(learning)) : ""}
     ${group(t("secMain"), [
       manager ? row({ icon: "bell", title: t("rowNotify"), value: notifyValue, go: "profile/notify" }) : "",
       row({ icon: "globe", title: t("rowLang"), value: langName(user.language), go: "profile/lang" }),
-      student ? "" : row({ icon: "cap", title: t(isTutor() ? "navCabinet" : "cabEnable"), go: "cabinet" }),
-      isStudent() ? row({ icon: "book", title: t("studyNav"), go: "study" }) : "",
+      bothRoles() ? roleRow() : "",
+      student || isTutor() ? "" : row({ icon: "cap", title: t("cabEnable"), go: "cabinet" }),
       manager ? row({ icon: "clock", title: t("rowTz"), sub: t("rowTzSub"), value: zone ? zoneName(zone) : "", go: "profile/tz" }) : "",
     ])}
     ${
@@ -152,6 +169,7 @@ export function renderProfile() {
             row({ icon: "plus", title: manager ? t("rowConnect") : t("ownCtaBtn"), sub: t("rowConnectSub"), go: "profile/connect" }),
           ])
     }
+    ${studying ? group(t("secCommunity"), communityRows()) : ""}
     ${group(t("secHelp"), [
       me.support ? row({ icon: "chat", title: t("rowSupport"), value: `@${me.support}`, act: "support" }) : "",
       row({ icon: "help", title: t("rowFaq"), go: "profile/faq" }),
@@ -161,10 +179,19 @@ export function renderProfile() {
       row({ icon: "lock", title: t("rowPrivacy"), go: "profile/privacy" }),
     ])}
     ${student ? `<button type="button" class="link-muted" data-go="cabinet">${escapeHtml(t("cabTeacherAsk"))}</button>` : ""}
+    ${studying && tg && tg.close ? `<button type="button" class="link-muted close-app" data-act="close">${escapeHtml(t("closeApp"))}</button>` : ""}
     <p class="app-foot">${escapeHtml(t("appVersion"))}</p>
   `);
   bindAvatar(name);
   bindRows();
+  if (studying && learning === undefined) {
+    load(LEARNING)
+      .then(() => {
+        const { tab, sub } = currentRoute();
+        if (tab === "profile" && !sub) renderProfile();
+      })
+      .catch(() => {});
+  }
   if (!prefs && manager) {
     load(SETTINGS)
       .then(() => {
@@ -173,6 +200,37 @@ export function renderProfile() {
       })
       .catch(() => {});
   }
+}
+
+/** The student's groups; a quiet line when there are none yet. */
+function groupRows(learning) {
+  if (!learning) return [];
+  const rows = (learning.groups || []).map(({ group: item }) => {
+    const days = (item.weekdays || []).map((day) => t(`day${day}`)).join(", ");
+    const sub = [item.teacher_name, days && `${days} · ${item.start}–${item.end}`].filter(Boolean).join(" · ");
+    return row({ icon: "book", title: `${item.name || ""}${item.level ? ` · ${item.level}` : ""}`, sub, go: `study/${Number(item.id)}` });
+  });
+  if (rows.length) return rows;
+  return [`<div class="lrow static"><span class="lrow-text"><span class="lrow-sub">${escapeHtml(t("myGroupsEmpty"))}</span></span></div>`];
+}
+
+/** Only a two-role account sees this; the choice is remembered on the device. */
+function roleRow() {
+  const toTeacher = chosenRole() === "student";
+  return row({
+    icon: toTeacher ? "cap" : "book",
+    title: t(toTeacher ? "roleToTeacher" : "roleToStudent"),
+    sub: t("roleSwitchSub"),
+    act: "role",
+  });
+}
+
+/** Leaderboard and history moved off the bottom bar of the student app. */
+function communityRows() {
+  if (!hasRole("member")) return [];
+  return currentVertical().studentCommunityLinks.map((tab) =>
+    row({ icon: tab === "board" ? "trophy" : "history", title: t(tab === "board" ? "navBoard" : "navHistory"), go: tab }),
+  );
 }
 
 function currentRoute() {

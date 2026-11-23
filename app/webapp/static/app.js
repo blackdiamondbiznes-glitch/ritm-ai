@@ -1,5 +1,5 @@
-import { applyTheme, bootstrap, go, hasRole, isManager, isStudent, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
-import { applyRoleHint, chosenRole, mountRoles } from "./roles.js";
+import { applyTheme, bootstrap, go, hasRole, isManager, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
+import { applyRoleHint, studentMode } from "./roles.js";
 import { initScrollers } from "./scroller.js";
 import { bindNav, labelNav, navTabs, syncChrome } from "./nav.js";
 import { current, setBusy, setHtml, showError, skeleton, ticket } from "./ui.js";
@@ -84,6 +84,10 @@ async function boot() {
         if (id) go("study");
         return;
       }
+      if ((tab === "board" || tab === "history") && studentMode()) {
+        go("profile");
+        return;
+      }
       if (tab === "chats" && sub === "edit" && id) go(`chats/${id}`);
       else if (tab === "profile" && sub) go("profile");
       else go(tab === "chats" || tab === "report" ? tab : "home");
@@ -97,18 +101,14 @@ async function boot() {
     dashAt = Date.now();
     labelNav();
     syncChrome();
-    mountRoles();
     const { tab } = parseRoute();
-    const teacherHome =
-      hinted === "teacher" ||
-      (isTutor() &&
-        chosenRole() !== "student" &&
-        (tab === "home" || !location.hash || location.hash === "#/home" || location.hash === "#/cabinet"));
+    const student = studentMode();
+    const atHome = tab === "home" || location.hash === "#/cabinet";
     if (hinted === "student") {
       go("study");
-    } else if (teacherHome) {
+    } else if (hinted === "teacher" || (isTutor() && !student && atHome)) {
       go("cabinet");
-    } else if (isStudent() && !isTutor() && !isManager() && (tab === "home" || tab === "chats")) {
+    } else if (student && (tab === "home" || (tab === "chats" && !isManager()))) {
       go("study");
     } else if (tab === "home" || tab === "chats" || tab === "profile") await route({ fresh: true });
     else if (!warm) await route({ fresh: true });
@@ -123,7 +123,7 @@ async function boot() {
 }
 
 function skeletonFor(tab) {
-  if (tab === "board" || tab === "report" || tab === "history" || tab === "admin" || tab === "cabinet") return "list";
+  if (["board", "report", "history", "admin", "cabinet", "agenda"].includes(tab)) return "list";
   return "home";
 }
 
@@ -146,6 +146,10 @@ async function warmUp() {
       paths.push(report.chartPath("all"));
     }
   }
+  if (studentMode() && (tab === "study" || tab === "agenda" || tab === "profile")) {
+    const study = await loaders.study();
+    paths.push(...study.STUDY_PATHS);
+  }
   if (tab === "profile") {
     const profile = await loaders.profile();
     paths.push(...profile.profileWarmPaths());
@@ -160,15 +164,16 @@ async function warmUp() {
 async function route(opts = {}) {
   const seq = ticket();
   const { tab, sub, id } = parseRoute();
-  if (tab === "home" && isTutor() && chosenRole() !== "student") {
-    go("cabinet");
+  if (tab === "home" && (isTutor() || studentMode())) {
+    go(studentMode() ? "study" : "cabinet");
     return;
   }
   if (tab === "students") {
     go(sub === "new" ? "cabinet/new" : id ? `cabinet/${id}` : "cabinet");
     return;
   }
-  if (!id && tab !== "history" && tab !== "cabinet" && tab !== "boards" && tab !== "study" && !navTabs().includes(tab)) {
+  const linked = tab === "history" || (tab === "board" && hasRole("member"));
+  if (!id && !linked && tab !== "cabinet" && tab !== "boards" && tab !== "study" && !navTabs().includes(tab)) {
     go("home");
     return;
   }
@@ -204,6 +209,10 @@ async function route(opts = {}) {
   }
   if (tab === "admin") {
     await (await loaders.admin()).renderAdmin(sub, id, seq);
+    return;
+  }
+  if (tab === "agenda") {
+    await (await loaders.study()).renderAgenda(seq);
     return;
   }
   if (tab === "boards" || tab === "study") {

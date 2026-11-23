@@ -117,7 +117,7 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert 'data-tab="cabinet" hidden' in html
     assert 'data-tab="study" hidden' in html
     assert 'data-i18n="navCab"' in html
-    assert 'data-i18n="navStudy"' in html
+    assert 'data-i18n="navToday"' in html
     assert 'go: "cabinet"' in (STATIC / "profile.js").read_text(encoding="utf-8")
     assert 'data-tab="students"' not in html
     app = (STATIC / "app.js").read_text(encoding="utf-8")
@@ -217,3 +217,25 @@ def test_shell_language_packs_are_preloaded_not_all_screens() -> None:
     assert "themeParams" in (STATIC / "api.js").read_text(encoding="utf-8")
     assert "Inter," not in (STATIC / "theme.css").read_text(encoding="utf-8")
     assert "err-retry" in (STATIC / "ui.js").read_text(encoding="utf-8")
+
+
+def test_student_app_has_three_tabs_and_no_role_buttons() -> None:
+    """Phase A/B: no O'quvchi/O'qituvchi bar; student app is Bosh / Darslar / Profil."""
+    keys = _locale_keys()["uz"]
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    app = (STATIC / "app.js").read_text(encoding="utf-8")
+    roles = (STATIC / "roles.js").read_text(encoding="utf-8")
+    vertical = (STATIC / "vertical.js").read_text(encoding="utf-8")
+    assert "rolebar" not in html
+    assert "rolebar" not in (STATIC / "layout.css").read_text(encoding="utf-8")
+    assert "mountRoles" not in app and "mountRoles" not in roles
+    assert 'data-tab="agenda" hidden' in html and 'id="i-calendar"' in html
+    assert 'studentTabs: ["study", "agenda"]' in vertical
+    assert "renderAgenda" in app
+    assert '<link rel="modulepreload" href="/s/study.js">' not in html
+    for name in ("study.js", "profile.js", "roles.js", "nav.js"):
+        used = set(re.findall(r'\bt\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
+        assert not used - keys, (name, used - keys)
+    profile = (STATIC / "profile.js").read_text(encoding="utf-8")
+    assert 'act: "role"' in profile and "bothRoles()" in profile
+    assert "ritm.role" in roles

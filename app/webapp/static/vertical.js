@@ -12,8 +12,10 @@ export const tutor = {
   },
   teacherTabs: ["cabinet"],
   teacherCommunityTabs: ["chats"],
-  studentTabs: ["study"],
-  studentCommunityTabs: ["board", "history"],
+  /** Client app: today (Bosh) and agenda (Darslar); Profil is added by the shell. */
+  studentTabs: ["study", "agenda"],
+  /** Community screens stay reachable from Profil, not from the bottom bar. */
+  studentCommunityLinks: ["board", "history"],
 };
 
 /** Niche selects the pack later. Until then every cabinet is the tutor vertical. */
