@@ -13,7 +13,7 @@ import {
   toast,
   withBusy,
 } from "./ui.js";
-import { showsPlan } from "./home.js";
+import { onlyStudent, showsPlan } from "./home.js";
 import { renderPlanPay } from "./pay.js";
 
 const LANG_NAMES = { uz: "🇺🇿 O‘zbekcha", ru: "🇷🇺 Русский", en: "🇬🇧 English" };
@@ -116,6 +116,7 @@ export function renderProfile() {
   const notifyValue = prefs ? (offCount ? t("valSomeOff", { n: offCount }) : t("valOn")) : "";
   const zone = prefs ? prefs.default_timezone : "";
   const founder = founderValue(plan);
+  const student = onlyStudent();
   const pills = [`<span class="pill pill-ok">● ${escapeHtml(t("tgLinked"))}</span>`]
     .concat(roles.map((role) => `<span class="pill">${escapeHtml(role)}</span>`))
     .join("");
@@ -129,7 +130,7 @@ export function renderProfile() {
     ${group(t("secMain"), [
       manager ? row({ icon: "🔔", color: "#f59e0b", title: t("rowNotify"), value: notifyValue, go: "profile/notify" }) : "",
       row({ icon: "🌐", color: "#3b82f6", title: t("rowLang"), value: langName(user.language), go: "profile/lang" }),
-      row({ icon: "🎓", color: "#14b8a6", title: t(isTutor() ? "navCabinet" : "cabEnable"), go: "cabinet" }),
+      student ? "" : row({ icon: "🎓", color: "#14b8a6", title: t(isTutor() ? "navCabinet" : "cabEnable"), go: "cabinet" }),
       isStudent() ? row({ icon: "🎒", color: "#0ea5e9", title: t("studyNav"), go: "study" }) : "",
       manager ? row({ icon: "🕐", color: "#8b5cf6", title: t("rowTz"), sub: t("rowTzSub"), value: zone ? zoneName(zone) : "", go: "profile/tz" }) : "",
     ])}
@@ -156,6 +157,7 @@ export function renderProfile() {
       row({ icon: "📄", color: "#64748b", title: t("rowTerms"), go: "profile/terms" }),
       row({ icon: "🔒", color: "#475569", title: t("rowPrivacy"), go: "profile/privacy" }),
     ])}
+    ${student ? `<button type="button" class="link-muted" data-go="cabinet">${escapeHtml(t("cabTeacherAsk"))}</button>` : ""}
     <p class="app-foot">${escapeHtml(t("appVersion"))}</p>
   `);
   bindAvatar(name);

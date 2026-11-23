@@ -56,8 +56,8 @@ function card(item) {
     <div class="card-title">${escapeHtml(group.name || "")}${escapeHtml(level)}</div>
     <div class="stu-meta">${escapeHtml(group.teacher_name || "")} · ${escapeHtml(whenDays(group))}</div>
     <div class="stu-meta">${escapeHtml(nextLine(item.next_session))}</div>
-    <div class="stu-meta">${escapeHtml(t("learnAtt"))}: ${escapeHtml(percent(item.attendance))}</div>
-    <div class="stu-meta">${escapeHtml(t("learnFee"))}: ${escapeHtml(feeLine(item.fee))}</div>
+    ${attRow(item.attendance)}
+    ${feeRow(item.fee)}
     <div class="stu-meta">${escapeHtml(rankLine(item.ranking))}</div>
     <a class="primary" href="#/study/${Number(group.id)}">${escapeHtml(t("learnMore"))}</a>
   </div>`;
@@ -85,7 +85,7 @@ function paintDetail(item) {
       ${scoreRows(item.scores)}
     </div>
     <div class="card">
-      <div class="card-title">${escapeHtml(t("learnAtt"))} · ${escapeHtml(percent(item.attendance))}</div>
+      <div class="card-title">${escapeHtml(attTitle(item.attendance))}</div>
       ${markRows(item.attendance)}
     </div>
     <div class="card">
@@ -142,6 +142,28 @@ function markRows(attendance) {
 function nextLine(session) {
   if (!session || !session.starts_at) return t("learnNoLesson");
   return t("learnNext", { when: stamp(session.starts_at) });
+}
+
+/** No lesson marked yet: a quiet note instead of "Davomat: —". */
+function attRow(attendance) {
+  if (!hasRate(attendance)) return `<div class="stu-meta muted">${escapeHtml(t("learnNoAttendance"))}</div>`;
+  return `<div class="stu-meta">${escapeHtml(t("learnAtt"))}: ${escapeHtml(percent(attendance))}</div>`;
+}
+
+function attTitle(attendance) {
+  if (!hasRate(attendance)) return t("learnAtt");
+  return `${t("learnAtt")} · ${percent(attendance)}`;
+}
+
+function hasRate(attendance) {
+  return Boolean(attendance) && attendance.rate != null;
+}
+
+/** No fee info: a quiet note instead of a red-looking "To'lov belgilanmagan". */
+function feeRow(fee) {
+  const known = fee && (fee.status === "paid" || fee.status === "waived" || fee.lessons_total != null || fee.amount != null);
+  if (!known) return `<div class="stu-meta muted">${escapeHtml(t("learnFeeNone"))}</div>`;
+  return `<div class="stu-meta">${escapeHtml(t("learnFee"))}: ${escapeHtml(feeLine(fee))}</div>`;
 }
 
 function feeLine(fee) {
