@@ -6,7 +6,7 @@ import { openChat, renderChats } from "./chats.js";
 import { MY_CHARTS, renderHistory } from "./history.js";
 import { renderHome } from "./home.js";
 import { renderChatProfile } from "./chatprofile.js";
-import { renderBoards } from "./boards.js";
+import { renderStudy, renderStudyDetail } from "./study.js";
 import { renderFeeForm } from "./fee_form.js";
 import { renderNotice } from "./notice.js";
 import { renderFees } from "./fees.js";
@@ -75,7 +75,8 @@ async function boot() {
         return;
       }
       if (tab === "study" || tab === "boards") {
-        go("profile");
+        if (id) go("study");
+        else go("profile");
         return;
       }
       if (tab === "chats" && sub === "edit" && id) go(`chats/${id}`);
@@ -177,7 +178,8 @@ async function route(opts = {}) {
     return;
   }
   if (tab === "boards" || tab === "study") {
-    await renderBoards(seq);
+    if (tab === "study" && id) await renderStudyDetail(id, seq);
+    else await renderStudy(seq);
     return;
   }
   if (tab === "cabinet") {

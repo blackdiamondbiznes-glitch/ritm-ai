@@ -146,6 +146,10 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert '<link rel="modulepreload" href="/s/schedule.js">' in html
     assert "renderSchedule" in (STATIC / "app.js").read_text(encoding="utf-8")
     assert "nextMarkup" in boards
+    assert '<link rel="modulepreload" href="/s/study.js">' in html
+    assert "renderStudy" in app
+    study = (STATIC / "study.js").read_text(encoding="utf-8")
+    assert not set(re.findall(r'\bt\("(\w+)"', study)) - keys
 
 
 def test_desktop_scroll_buttons_are_mouse_only() -> None:
