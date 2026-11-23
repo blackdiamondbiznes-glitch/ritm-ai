@@ -9,6 +9,9 @@ from dataclasses import dataclass
 from app.db.models.groups import TutorGroup, TutorGroupMember
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.users import UserRepository
+from app.services.access import AccessService
+from app.services.tutor_limits import ensure_group_room
 
 NAME_MAX = 80
 LEVEL_MAX = 40
@@ -38,9 +41,17 @@ class GroupInput:
 class GroupService:
     """Create groups and place the owner's students in them."""
 
-    def __init__(self, groups: GroupRepository, students: StudentRepository) -> None:
+    def __init__(
+        self,
+        groups: GroupRepository,
+        students: StudentRepository,
+        access: AccessService | None = None,
+        users: UserRepository | None = None,
+    ) -> None:
         self._groups = groups
         self._students = students
+        self._access = access
+        self._users = users
 
     async def list(self, owner_id: int) -> dict:
         """Every group of this owner, with how many students sit in each."""
@@ -50,6 +61,8 @@ class GroupService:
     async def create(self, owner_id: int, body: dict) -> dict:
         """Store a group and return the list, including the new id."""
         parsed = parse_group(body)
+        if self._access is not None and self._users is not None:
+            await ensure_group_room(self._access, self._users, self._groups, owner_id)
         row = await self._groups.add(
             TutorGroup(
                 owner_id=owner_id,
@@ -85,7 +98,11 @@ class GroupService:
         if row is None:
             raise GroupError("missing")
         members = await self._groups.members(group_id)
-        everyone = await self._students.list_for_owner(owner_id)
+        everyone = [
+            item
+            for item in await self._students.list_for_owner(owner_id)
+            if item.status != "pending"
+        ]
         inside = {item.id for item in members}
         outside = [{"id": item.id, "name": item.name} for item in everyone if item.id not in inside]
         outside.sort(key=lambda item: item["name"].casefold())
@@ -109,12 +126,17 @@ class GroupService:
         """Put one of this owner's students into the group. A repeat is a no-op."""
         if await self._groups.get_owned(owner_id, group_id) is None:
             raise GroupError("missing")
-        if await self._students.get_owned(owner_id, student_id) is None:
+        student = await self._students.get_owned(owner_id, student_id)
+        if student is None or student.status == "pending":
             raise GroupError("student")
-        if await self._groups.membership(group_id, student_id) is None:
+        link = await self._groups.membership(group_id, student_id)
+        if link is None:
             await self._groups.add_member(
-                TutorGroupMember(group_id=group_id, student_id=student_id)
+                TutorGroupMember(group_id=group_id, student_id=student_id, status="active")
             )
+        elif link.status == "pending":
+            link.status = "active"
+            await self._groups.save_member(link)
         return await self.open(owner_id, group_id)
 
     async def remove_student(self, owner_id: int, group_id: int, student_id: int) -> dict:

@@ -1,6 +1,7 @@
 """Tutor group queries. No validation here."""
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.groups import TutorGroup, TutorGroupMember
@@ -18,7 +19,13 @@ class GroupRepository:
         count = func.count(TutorGroupMember.id)
         stmt = (
             select(TutorGroup, count)
-            .outerjoin(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
+            .outerjoin(
+                TutorGroupMember,
+                and_(
+                    TutorGroupMember.group_id == TutorGroup.id,
+                    TutorGroupMember.status == "active",
+                ),
+            )
             .where(TutorGroup.owner_id == owner_id)
             .group_by(TutorGroup.id)
             .order_by(TutorGroup.start_min.asc(), TutorGroup.id.desc())
@@ -43,7 +50,10 @@ class GroupRepository:
         stmt = (
             select(TutorStudent)
             .join(TutorGroupMember, TutorGroupMember.student_id == TutorStudent.id)
-            .where(TutorGroupMember.group_id == group_id)
+            .where(
+                TutorGroupMember.group_id == group_id,
+                TutorGroupMember.status == "active",
+            )
             .order_by(TutorStudent.name.asc(), TutorStudent.id.asc())
         )
         result = await self._session.execute(stmt)
@@ -70,6 +80,17 @@ class GroupRepository:
         await self._session.flush()
         return row
 
+    async def add_member_once(self, group_id: int, student_id: int, status: str) -> bool:
+        """Insert a membership unless this pair already exists."""
+        stmt = (
+            pg_insert(TutorGroupMember)
+            .values(group_id=group_id, student_id=student_id, status=status)
+            .on_conflict_do_nothing(constraint="uq_tutor_group_members")
+            .returning(TutorGroupMember.id)
+        )
+        created = (await self._session.execute(stmt)).scalar_one_or_none()
+        return created is not None
+
     async def save(self, row: TutorGroup) -> TutorGroup:
         """Flush changes on a group already loaded in this session."""
         self._session.add(row)
@@ -86,7 +107,10 @@ class GroupRepository:
         stmt = (
             select(TutorGroupMember.id)
             .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
-            .where(TutorStudent.telegram_id == telegram_id)
+            .where(
+                TutorStudent.telegram_id == telegram_id,
+                TutorGroupMember.status == "active",
+            )
             .limit(1)
         )
         result = await self._session.execute(stmt)
@@ -97,7 +121,10 @@ class GroupRepository:
         stmt = (
             select(TutorGroup)
             .join(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
-            .where(TutorGroupMember.student_id == student_id)
+            .where(
+                TutorGroupMember.student_id == student_id,
+                TutorGroupMember.status == "active",
+            )
             .order_by(TutorGroup.start_min.asc(), TutorGroup.id.asc())
         )
         result = await self._session.execute(stmt)
@@ -107,3 +134,78 @@ class GroupRepository:
         """Remove a student from a group. The student record stays."""
         await self._session.delete(row)
         await self._session.flush()
+
+    async def save_member(self, row: TutorGroupMember) -> TutorGroupMember:
+        """Flush a membership that is already loaded."""
+        self._session.add(row)
+        await self._session.flush()
+        return row
+
+    async def count_for_owner(self, owner_id: int) -> int:
+        """How many groups this owner has."""
+        stmt = select(func.count()).select_from(TutorGroup).where(TutorGroup.owner_id == owner_id)
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def count_pending_for_owner(self, owner_id: int) -> int:
+        """Registration requests still waiting for this owner."""
+        stmt = (
+            select(func.count())
+            .select_from(TutorGroupMember)
+            .join(TutorGroup, TutorGroup.id == TutorGroupMember.group_id)
+            .where(TutorGroup.owner_id == owner_id, TutorGroupMember.status == "pending")
+        )
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one())
+
+    async def pending_for_owner(
+        self, owner_id: int
+    ) -> list[tuple[TutorGroupMember, TutorGroup, TutorStudent]]:
+        """Requests newest last, so the teacher sees the oldest first."""
+        stmt = (
+            select(TutorGroupMember, TutorGroup, TutorStudent)
+            .join(TutorGroup, TutorGroup.id == TutorGroupMember.group_id)
+            .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
+            .where(TutorGroup.owner_id == owner_id, TutorGroupMember.status == "pending")
+            .order_by(TutorGroupMember.created_at.asc(), TutorGroupMember.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return [(member, group, student) for member, group, student in result.all()]
+
+    async def memberships_for_student(self, student_id: int) -> list[TutorGroupMember]:
+        """Every membership of this card, including ones still waiting."""
+        stmt = select(TutorGroupMember).where(TutorGroupMember.student_id == student_id)
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def active_for_students(self, student_ids: list[int]) -> list[tuple[TutorGroup, int]]:
+        """Active groups for these cards, as (group, student id)."""
+        if not student_ids:
+            return []
+        stmt = (
+            select(TutorGroup, TutorGroupMember.student_id)
+            .join(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
+            .where(
+                TutorGroupMember.student_id.in_(student_ids),
+                TutorGroupMember.status == "active",
+            )
+            .order_by(TutorGroup.start_min.asc(), TutorGroup.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return [(group, int(student_id)) for group, student_id in result.all()]
+
+    async def active_members(self, group_ids: list[int]) -> list[tuple[int, TutorStudent]]:
+        """Active students in these groups, as (group id, student)."""
+        if not group_ids:
+            return []
+        stmt = (
+            select(TutorGroupMember.group_id, TutorStudent)
+            .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
+            .where(
+                TutorGroupMember.group_id.in_(group_ids),
+                TutorGroupMember.status == "active",
+            )
+            .order_by(TutorStudent.name.asc(), TutorStudent.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return [(int(group_id), student) for group_id, student in result.all()]

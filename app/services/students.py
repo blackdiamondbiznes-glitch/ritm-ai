@@ -13,6 +13,10 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.users import UserRepository
+from app.services.access import AccessService
+from app.services.student_view import lesson_brief, reminder_brief
+from app.services.tutor_limits import ensure_student_room
 
 STATUSES = frozenset({"paid", "debtor", "inactive"})
 NAME_MAX = 80
@@ -51,19 +55,26 @@ class StudentService:
         lessons: LessonRepository | None = None,
         reminders: ReminderRepository | None = None,
         groups: GroupRepository | None = None,
+        access: AccessService | None = None,
+        users: UserRepository | None = None,
     ) -> None:
         self._students = students
         self._lessons = lessons
         self._reminders = reminders
         self._groups = groups
+        self._access = access
+        self._users = users
 
     async def list(self, owner_id: int) -> dict:
-        """Every student of this owner, plus counts by status."""
-        return _payload(await self._students.list_for_owner(owner_id))
+        """Every visible student of this owner, plus counts by status."""
+        rows = await self._students.list_for_owner(owner_id)
+        return _payload([row for row in rows if row.status != "pending"])
 
     async def create(self, owner_id: int, body: dict) -> dict:
         """Store a new student. A missing status starts as owing."""
         parsed = parse_student(body)
+        if self._access is not None and self._users is not None:
+            await ensure_student_room(self._access, self._users, self._students, owner_id)
         now = datetime.now(UTC)
         row = await self._students.add(
             TutorStudent(
@@ -85,7 +96,7 @@ class StudentService:
 
     async def update(self, owner_id: int, student_id: int, body: dict) -> dict:
         """Change the fields present in `body`. Other fields stay as they are."""
-        row = await self._students.get_owned(owner_id, student_id)
+        row = await self._visible(owner_id, student_id)
         if row is None:
             raise StudentError("missing")
         parsed = parse_student(body, current=row)
@@ -102,18 +113,18 @@ class StudentService:
 
     async def profile(self, owner_id: int, student_id: int) -> dict:
         """One student plus only the lessons and reminders tied to them."""
-        row = await self._students.get_owned(owner_id, student_id)
+        row = await self._visible(owner_id, student_id)
         if row is None:
             raise StudentError("missing")
         lessons = []
         if self._lessons is not None:
             owned = await self._lessons.list_for_owner(owner_id)
-            lessons = [_lesson_brief(item) for item in owned if item.student_id == student_id]
+            lessons = [lesson_brief(item) for item in owned if item.student_id == student_id]
         reminders = []
         if self._reminders is not None:
             owned_notes = await self._reminders.list_for_owner(owner_id)
             reminders = [
-                _reminder_brief(item) for item in owned_notes if item.student_id == student_id
+                reminder_brief(item) for item in owned_notes if item.student_id == student_id
             ]
         groups = await self._group_names(owner_id, student_id)
         return {"student": _one(row), "lessons": lessons, "reminders": reminders, "groups": groups}
@@ -145,6 +156,12 @@ class StudentService:
             if link is not None:
                 await self._groups.delete_member(link)
 
+    async def _visible(self, owner_id: int, student_id: int) -> TutorStudent | None:
+        row = await self._students.get_owned(owner_id, student_id)
+        if row is None or row.status == "pending":
+            return None
+        return row
+
     async def _group_names(self, owner_id: int, student_id: int) -> list[dict]:
         if self._groups is None:
             return []
@@ -155,7 +172,7 @@ class StudentService:
 
     async def remove(self, owner_id: int, student_id: int) -> dict:
         """Delete one of this owner's students."""
-        row = await self._students.get_owned(owner_id, student_id)
+        row = await self._visible(owner_id, student_id)
         if row is None:
             raise StudentError("missing")
         await self._students.delete(row)
@@ -198,25 +215,6 @@ def _one(row: TutorStudent) -> dict:
         "amount_uzs": row.amount_uzs,
         "note": row.note,
         "join_code": row.join_code,
-    }
-
-
-def _lesson_brief(row) -> dict:
-    return {
-        "id": row.id,
-        "title": row.title,
-        "status": row.status,
-        "starts_at": row.starts_at.isoformat() if row.starts_at else None,
-        "amount_uzs": row.amount_uzs,
-    }
-
-
-def _reminder_brief(row) -> dict:
-    return {
-        "id": row.id,
-        "text": row.text,
-        "send_at": row.send_at.isoformat(),
-        "sent": row.sent_at is not None,
     }
 
 

@@ -27,6 +27,8 @@ def summarize(students: list[TutorStudent], lessons: list[TutorLesson]) -> dict:
     student_counts = {"paid": 0, "debtor": 0, "inactive": 0}
     debt = 0
     for row in students:
+        if row.status == "pending":
+            continue
         student_counts[row.status] = student_counts.get(row.status, 0) + 1
         if row.status == "debtor":
             debt += row.amount_uzs

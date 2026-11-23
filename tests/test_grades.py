@@ -5,7 +5,8 @@ from datetime import date
 from app.db.models.students import TutorStudent
 from app.db.models.topics import TutorScore
 from app.db.models.users import User
-from app.services.grades import GradeService, rank
+from app.services.enrollment import EnrollmentService
+from app.services.grades import rank
 
 
 def _student(student_id: int, name: str) -> TutorStudent:
@@ -40,6 +41,11 @@ class _Students:
         self.row = row
         return row
 
+    async def by_owner_telegram(self, owner_id: int, telegram_id: int) -> TutorStudent | None:
+        if self.row.owner_id == owner_id and self.row.telegram_id == telegram_id:
+            return self.row
+        return None
+
 
 class _Users:
     def __init__(self, owner: User) -> None:
@@ -54,7 +60,7 @@ async def test_tutor_cannot_claim_their_own_student() -> None:
         id=4, owner_id=1, name="Ali", status="paid", amount_uzs=0, join_code="abc123"
     )
     owner = User(id=1, telegram_id=555, full_name="Tutor")
-    service = GradeService(None, _Students(student), None, _Users(owner))  # type: ignore[arg-type]
+    service = EnrollmentService(None, _Students(student), _Users(owner))  # type: ignore[arg-type]
     assert await service.claim("abc123", 555) == "own"
     assert student.telegram_id is None
     assert await service.claim("abc123", 777) == "ok"

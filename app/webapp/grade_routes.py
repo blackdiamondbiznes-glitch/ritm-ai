@@ -9,7 +9,6 @@ from aiohttp import web
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.topics import TopicRepository
-from app.db.repositories.users import UserRepository
 from app.services.grades import GradeError, GradeService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
@@ -99,7 +98,6 @@ def _service(ctx: WebContext) -> GradeService:
         GroupRepository(ctx.session),
         StudentRepository(ctx.session),
         TopicRepository(ctx.session),
-        UserRepository(ctx.session),
     )
 
 

@@ -29,3 +29,10 @@ def test_debt_is_the_sum_of_owing_students_only() -> None:
     assert data["students"]["debt_uzs"] == 170_000
     assert data["lessons"]["scheduled"] == 1
     assert data["lessons"]["done"] == 1
+
+
+def test_pending_cards_stay_off_the_cabinet() -> None:
+    data = summarize([_student("pending", 50_000), _student("debtor", 10)], [])
+    assert data["students"]["debtor"] == 1
+    assert data["students"]["debt_uzs"] == 10
+    assert "pending" not in data["students"]

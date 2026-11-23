@@ -12,6 +12,18 @@ class TopicRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def list_for_groups(self, group_ids: list[int]) -> list[TutorTopic]:
+        """Topics for several groups. Empty input does not hit the database."""
+        if not group_ids:
+            return []
+        stmt = (
+            select(TutorTopic)
+            .where(TutorTopic.group_id.in_(group_ids))
+            .order_by(TutorTopic.held_on.asc(), TutorTopic.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
     async def list_for_group(self, group_id: int) -> list[TutorTopic]:
         """Newest lesson day first."""
         stmt = (

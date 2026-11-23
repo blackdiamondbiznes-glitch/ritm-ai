@@ -44,6 +44,10 @@ class TutorGroupMember(Base):
     __table_args__ = (
         UniqueConstraint("group_id", "student_id", name="uq_tutor_group_members"),
         Index("ix_tutor_group_members_student_id", "student_id"),
+        CheckConstraint(
+            "status IN ('active', 'pending')",
+            name="ck_tutor_group_members_status",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -52,4 +56,10 @@ class TutorGroupMember(Base):
     )
     student_id: Mapped[int] = mapped_column(
         ForeignKey("tutor_students.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="active", server_default="active"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -27,6 +27,7 @@ from app.services.access import AccessService
 from app.services.admin import AdminService
 from app.services.admin_posts import AdminPostService
 from app.services.answers import QuizAnswerService
+from app.services.enrollment import EnrollmentService
 from app.services.grades import GradeService
 from app.services.leaderboard import LeaderboardService
 from app.services.lifecycle import ChatLifecycleService
@@ -90,7 +91,12 @@ class ServicesMiddleware(BaseMiddleware):
             GroupRepository(session),
             StudentRepository(session),
             TopicRepository(session),
-            UserRepository(session),
+        )
+        data["enrollment"] = EnrollmentService(
+            GroupRepository(session),
+            StudentRepository(session),
+            users,
+            access,
         )
         data["audit"] = audit
         data["payments"] = PaymentService(

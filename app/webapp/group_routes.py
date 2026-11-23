@@ -13,6 +13,7 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.i18n import t
 from app.services.groups import GroupError, GroupService
+from app.services.tutor_limits import TutorLimitError, limit_body
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -159,12 +160,19 @@ async def groups_remove_student(request: web.Request) -> web.Response:
 
 
 def _service(ctx: WebContext) -> GroupService:
-    return GroupService(GroupRepository(ctx.session), StudentRepository(ctx.session))
+    return GroupService(
+        GroupRepository(ctx.session),
+        StudentRepository(ctx.session),
+        ctx.access,
+        ctx.users,
+    )
 
 
 async def _call(ctx: WebContext, work) -> web.Response:
     try:
         data = await work(_service(ctx))
+    except TutorLimitError as exc:
+        return web.json_response(limit_body(exc), status=403)
     except GroupError as exc:
         return _error(_STATUS.get(exc.code, 400), exc.code)
     return web.json_response(data)

@@ -8,10 +8,11 @@ from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.callbacks import EnrollCB
+from app.bot.enroll_notice import teacher_notifier
 from app.bot.keyboards.menu import main_menu
 from app.db.models.users import User
 from app.i18n import t
-from app.services.grades import GradeService
+from app.services.enrollment import EnrollmentService
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +25,17 @@ async def on_group_enroll(
     callback_data: EnrollCB,
     session: AsyncSession,
     current_user: User,
-    grades: GradeService,
+    enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
     bot: Bot,
 ) -> None:
-    """Save the membership, then answer in the group and in the private chat."""
-    result = await grades.enroll(
-        callback_data.c, current_user.telegram_id, current_user.full_name or ""
+    """Save the request, then answer in the group and in the private chat."""
+    result = await enrollment.enroll(
+        callback_data.c,
+        current_user.telegram_id,
+        current_user.full_name or "",
+        notify=teacher_notifier(bot),
     )
     await session.commit()
     text = t(f"enroll_{result}", lang)[:200]

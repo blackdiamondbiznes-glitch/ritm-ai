@@ -43,6 +43,15 @@ class AccessDecision:
 
 
 @dataclass(frozen=True)
+class TutorLimits:
+    """Cabinet caps taken from the effective plan. Trial uses Pro."""
+
+    max_groups: int
+    max_students: int
+    plan_code: str
+
+
+@dataclass(frozen=True)
 class PlanSnapshot:
     """What the owner can use right now."""
 
@@ -146,6 +155,15 @@ class AccessService:
             return frozenset()
         plan = await self.get_effective_plan(owner)
         return frozenset(plan.modules or [])
+
+    async def tutor_limits(self, owner: User) -> TutorLimits:
+        """Groups and students allowed on the plan this owner is using."""
+        plan = await self.get_effective_plan(owner)
+        return TutorLimits(
+            max_groups=plan.max_tutor_groups,
+            max_students=plan.max_tutor_students,
+            plan_code=plan.code,
+        )
 
     async def snapshot(self, owner: User) -> PlanSnapshot:
         """Numbers for the plan screen and the chat card."""

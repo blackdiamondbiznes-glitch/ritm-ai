@@ -1,4 +1,5 @@
 import { api, go, haptic, state, tg } from "./api.js";
+import { showLimit } from "./limits.js";
 import { bindCabinetSwitch, cabinetSwitch, current, escapeHtml, formatNumber, setHtml, showError, skeleton, t, toast, withBusy } from "./ui.js";
 
 const STATUSES = ["paid", "debtor", "inactive"];
@@ -13,7 +14,6 @@ const ERROR_KEY = {
   missing: "stuMissing",
   group: "stuGroupNeed",
 };
-
 let cache = null;
 let filter = "all";
 let catalog = [];
@@ -135,7 +135,7 @@ function paintProfile(data) {
     go(`cabinet/students/${row.id}/edit`);
   });
   document.getElementById("stu-delete").addEventListener("click", (event) => {
-    withBusy(event.currentTarget, () => destroy(row.id)).catch((err) => toast(t(ERROR_KEY[err.code] || "error"), "err"));
+    withBusy(event.currentTarget, () => destroy(row.id)).catch((err) => (showLimit(err) ? null : toast(t(ERROR_KEY[err.code] || "error"), "err")));
   });
 }
 
@@ -292,13 +292,13 @@ function paintForm(row, selectedIds) {
   const saveButton = document.getElementById("stu-save");
   if (saveButton) {
     saveButton.addEventListener("click", (event) => {
-      withBusy(event.currentTarget, () => save(row)).catch((err) => toast(t(ERROR_KEY[err.code] || "error"), "err"));
+      withBusy(event.currentTarget, () => save(row)).catch((err) => (showLimit(err) ? null : toast(t(ERROR_KEY[err.code] || "error"), "err")));
     });
   }
   const remove = document.getElementById("stu-delete");
   if (remove) {
     remove.addEventListener("click", (event) => {
-      withBusy(event.currentTarget, () => destroy(row.id)).catch((err) => toast(t(ERROR_KEY[err.code] || "error"), "err"));
+      withBusy(event.currentTarget, () => destroy(row.id)).catch((err) => (showLimit(err) ? null : toast(t(ERROR_KEY[err.code] || "error"), "err")));
     });
   }
 }

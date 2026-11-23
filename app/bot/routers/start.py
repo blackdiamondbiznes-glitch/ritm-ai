@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.callbacks import LangCB, MenuCB
+from app.bot.enroll_notice import teacher_notifier
 from app.bot.keyboards.menu import back_menu, language_picker, main_menu
 from app.bot.routers.join import (
     code_from_text,
@@ -16,7 +17,7 @@ from app.bot.routers.join import (
 from app.bot.view import show_screen
 from app.db.models.users import User
 from app.i18n import t
-from app.services.grades import GradeService
+from app.services.enrollment import EnrollmentService
 from app.services.user_prefs import PrefsError, needs_language, set_language
 
 router = Router(name="start")
@@ -30,7 +31,7 @@ async def open_menu(
     lang: str,
     is_super_admin: bool,
     current_user: User,
-    grades: GradeService,
+    enrollment: EnrollmentService,
     command: CommandObject | None = None,
 ) -> None:
     """Show the main menu. A ranking link is claimed before the menu."""
@@ -39,7 +40,12 @@ async def open_menu(
     enroll = enroll_from_args(args) or enroll_code_from_text(text)
     if enroll and (text.startswith("/start") or args.startswith("enroll_")):
         await state.clear()
-        result = await grades.enroll(enroll, current_user.telegram_id, current_user.full_name or "")
+        result = await enrollment.enroll(
+            enroll,
+            current_user.telegram_id,
+            current_user.full_name or "",
+            notify=teacher_notifier(message.bot),
+        )
         await message.answer(
             t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
         )
@@ -47,7 +53,7 @@ async def open_menu(
     code = join_from_args(args) or code_from_text(text)
     if code and (text.startswith("/start") or args.startswith("join_")):
         await state.clear()
-        result = await grades.claim(code, current_user.telegram_id)
+        result = await enrollment.claim(code, current_user.telegram_id)
         await message.answer(
             t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
         )

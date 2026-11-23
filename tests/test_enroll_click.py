@@ -52,8 +52,12 @@ class _Grades:
         self.result = result
         self.calls: list[tuple[str, int, str]] = []
 
-    async def enroll(self, code: str, telegram_id: int, full_name: str) -> str:
+    async def enroll(self, code: str, telegram_id: int, full_name: str, notify=None) -> str:
         self.calls.append((code, telegram_id, full_name))
+        if notify is not None and self.result == "pending":
+            await notify(
+                type("Owner", (), {"telegram_id": 1, "language_code": "uz"})(), full_name, "A"
+            )
         return self.result
 
 
@@ -119,4 +123,4 @@ async def test_a_blocked_chat_still_gets_the_group_alert() -> None:
     )
     assert session.commits == 1
     alert = _of(bot, AnswerCallbackQuery)[0]
-    assert "guruhda" in alert.text
+    assert "yozilgansiz" in alert.text

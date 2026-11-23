@@ -11,6 +11,7 @@ from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
 from app.services.students import StudentError, StudentService
+from app.services.tutor_limits import TutorLimitError, limit_body
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -96,12 +97,16 @@ def _service(ctx: WebContext) -> StudentService:
         LessonRepository(ctx.session),
         ReminderRepository(ctx.session),
         GroupRepository(ctx.session),
+        ctx.access,
+        ctx.users,
     )
 
 
 async def _call(ctx: WebContext, work) -> web.Response:
     try:
         data = await work(_service(ctx))
+    except TutorLimitError as exc:
+        return web.json_response(limit_body(exc), status=403)
     except StudentError as exc:
         return _error(_STATUS.get(exc.code, 400), exc.code)
     return web.json_response(data)

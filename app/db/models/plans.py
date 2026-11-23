@@ -21,6 +21,12 @@ class Plan(Base):
     founder_price_uzs: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     period_days: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
     max_chats: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_tutor_groups: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=2, server_default="2"
+    )
+    max_tutor_students: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=40, server_default="40"
+    )
     ai_generations_per_month: Mapped[int] = mapped_column(Integer, nullable=False)
     modules: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")

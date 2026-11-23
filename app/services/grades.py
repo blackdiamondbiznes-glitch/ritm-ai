@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import re
-import secrets
 from datetime import date, datetime
 
-from app.db.models.groups import TutorGroup, TutorGroupMember
+from app.db.models.groups import TutorGroup
 from app.db.models.students import TutorStudent
 from app.db.models.topics import TutorScore, TutorTopic
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.topics import TopicRepository
-from app.db.repositories.users import UserRepository
 from app.services.clock import TASHKENT
 from app.services.groups import _hhmm
 
@@ -37,12 +35,10 @@ class GradeService:
         groups: GroupRepository,
         students: StudentRepository,
         topics: TopicRepository,
-        users: UserRepository,
     ) -> None:
         self._groups = groups
         self._students = students
         self._topics = topics
-        self._users = users
 
     async def board(self, owner_id: int, group_id: int) -> dict:
         """Topics and the ranking for one of this owner's groups."""
@@ -109,60 +105,45 @@ class GradeService:
         return await self._groups.studies(telegram_id)
 
     async def boards_for(self, telegram_id: int) -> list[dict]:
-        """Rankings of the groups this Telegram account studies in. Names and totals only."""
-        found = []
+        """Rankings for this account. At most five queries, full names kept."""
+        cards = await self._students.by_telegram(telegram_id)
+        if not cards:
+            return []
+        owned = {card.id: card for card in cards}
+        links = await self._groups.active_for_students(list(owned))
+        chosen: list[tuple[TutorGroup, int]] = []
         seen: set[int] = set()
-        for student in await self._students.by_telegram(telegram_id):
-            for group in await self._groups.groups_for_student(student.id):
-                if group.id in seen or group.owner_id != student.owner_id:
-                    continue
-                seen.add(group.id)
-                members = await self._groups.members(group.id)
-                topics = await self._topics.list_for_group(group.id)
-                scores = await self._topics.scores_for([item.id for item in topics])
-                found.append(_public_group(group, rank(members, scores), student.id))
+        for group, student_id in links:
+            card = owned.get(student_id)
+            if card is None or group.owner_id != card.owner_id or group.id in seen:
+                continue
+            seen.add(group.id)
+            chosen.append((group, student_id))
+        if not chosen:
+            return []
+        group_ids = [group.id for group, _student_id in chosen]
+        member_rows = await self._groups.active_members(group_ids)
+        topics = await self._topics.list_for_groups(group_ids)
+        topic_ids = [topic.id for topic in topics]
+        scores = await self._topics.scores_for(topic_ids)
+        members: dict[int, list[TutorStudent]] = {group_id: [] for group_id in group_ids}
+        for group_id, student in member_rows:
+            members.setdefault(group_id, []).append(student)
+        by_topic: dict[int, list] = {}
+        for score in scores:
+            by_topic.setdefault(score.topic_id, []).append(score)
+        topics_by_group: dict[int, list] = {group_id: [] for group_id in group_ids}
+        for topic in topics:
+            topics_by_group.setdefault(topic.group_id, []).append(topic)
+        found = []
+        for group, student_id in chosen:
+            group_topics = topics_by_group.get(group.id, [])
+            group_scores = [score for topic in group_topics for score in by_topic.get(topic.id, [])]
+            found.append(
+                _public_group(group, rank(members.get(group.id, []), group_scores), student_id)
+            )
         found.sort(key=lambda item: (not item["today"], item["start"]))
         return found
-
-    async def claim(self, code: str, telegram_id: int) -> str:
-        """Link the student invite to this Telegram account. Returns ok, missing, or taken."""
-        row = await self._students.by_join_code(code)
-        if row is None:
-            return "missing"
-        owner = await self._users.get_by_id(row.owner_id)
-        if owner is not None and owner.telegram_id == telegram_id:
-            return "own"
-        if row.telegram_id is not None and row.telegram_id != telegram_id:
-            return "taken"
-        row.telegram_id = telegram_id
-        await self._students.save(row)
-        return "ok"
-
-    async def enroll(self, code: str, telegram_id: int, full_name: str) -> str:
-        """Register this Telegram account into the group. Returns ok, missing, own, or already."""
-        group = await self._groups.by_enroll_code(code)
-        if group is None:
-            return "missing"
-        owner = await self._users.get_by_id(group.owner_id)
-        if owner is not None and owner.telegram_id == telegram_id:
-            return "own"
-        rows = await self._students.by_telegram(telegram_id)
-        student = next((row for row in rows if row.owner_id == group.owner_id), None)
-        if student is None:
-            student = await self._students.add(
-                TutorStudent(
-                    owner_id=group.owner_id,
-                    name=_enroll_name(full_name),
-                    status="paid",
-                    amount_uzs=0,
-                    telegram_id=telegram_id,
-                    join_code=secrets.token_hex(5),
-                )
-            )
-        if await self._groups.membership(group.id, student.id) is not None:
-            return "already"
-        await self._groups.add_member(TutorGroupMember(group_id=group.id, student_id=student.id))
-        return "ok"
 
     async def _owned(self, owner_id: int, group_id: int) -> TutorGroup:
         group = await self._groups.get_owned(owner_id, group_id)
@@ -267,11 +248,6 @@ def _public_group(group: TutorGroup, ranking: list[dict], student_id: int) -> di
             for item in ranking
         ],
     }
-
-
-def _enroll_name(value: str) -> str:
-    text = _SPACE.sub(" ", (value or "").strip())
-    return text[:80] or "O'quvchi"
 
 
 def _title(value: object) -> str:

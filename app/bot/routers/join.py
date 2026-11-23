@@ -6,10 +6,11 @@ from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from app.bot.enroll_notice import teacher_notifier
 from app.bot.keyboards.menu import main_menu
 from app.db.models.users import User
 from app.i18n import t
-from app.services.grades import GradeService
+from app.services.enrollment import EnrollmentService
 
 router = Router(name="join")
 
@@ -20,7 +21,7 @@ async def claim_join(
     command: CommandObject,
     state: FSMContext,
     current_user: User,
-    grades: GradeService,
+    enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
 ) -> None:
@@ -29,12 +30,12 @@ async def claim_join(
     args = command.args or ""
     enroll = enroll_from_args(args) or enroll_code_from_text(text)
     if enroll:
-        await _enroll(message, state, current_user, grades, lang, is_super_admin, enroll)
+        await _enroll(message, state, current_user, enrollment, lang, is_super_admin, enroll)
         return
     code = join_from_args(args) or code_from_text(text)
     if code is None:
         raise SkipHandler()
-    await _reply(message, state, current_user, grades, lang, is_super_admin, code)
+    await _reply(message, state, current_user, enrollment, lang, is_super_admin, code)
 
 
 @router.message(F.text.contains("start=enroll_"))
@@ -42,7 +43,7 @@ async def claim_pasted_enroll(
     message: Message,
     state: FSMContext,
     current_user: User,
-    grades: GradeService,
+    enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
 ) -> None:
@@ -50,7 +51,7 @@ async def claim_pasted_enroll(
     code = enroll_code_from_text(message.text or "")
     if code is None:
         raise SkipHandler()
-    await _enroll(message, state, current_user, grades, lang, is_super_admin, code)
+    await _enroll(message, state, current_user, enrollment, lang, is_super_admin, code)
 
 
 @router.message(F.text.contains("start=join_"))
@@ -58,7 +59,7 @@ async def claim_pasted_link(
     message: Message,
     state: FSMContext,
     current_user: User,
-    grades: GradeService,
+    enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
 ) -> None:
@@ -66,20 +67,25 @@ async def claim_pasted_link(
     code = code_from_text(message.text or "")
     if code is None:
         raise SkipHandler()
-    await _reply(message, state, current_user, grades, lang, is_super_admin, code)
+    await _reply(message, state, current_user, enrollment, lang, is_super_admin, code)
 
 
 async def _enroll(
     message: Message,
     state: FSMContext,
     current_user: User,
-    grades: GradeService,
+    enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
     code: str,
 ) -> None:
     await state.clear()
-    result = await grades.enroll(code, current_user.telegram_id, current_user.full_name or "")
+    result = await enrollment.enroll(
+        code,
+        current_user.telegram_id,
+        current_user.full_name or "",
+        notify=teacher_notifier(message.bot),
+    )
     await message.answer(t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
 
 
@@ -87,13 +93,13 @@ async def _reply(
     message: Message,
     state: FSMContext,
     current_user: User,
-    grades: GradeService,
+    enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
     code: str,
 ) -> None:
     await state.clear()
-    result = await grades.claim(code, current_user.telegram_id)
+    result = await enrollment.claim(code, current_user.telegram_id)
     await message.answer(t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
 
 

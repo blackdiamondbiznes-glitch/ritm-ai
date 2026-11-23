@@ -28,7 +28,7 @@ class TutorStudent(Base):
         Index("ix_tutor_students_telegram_id", "telegram_id"),
         Index("ix_tutor_students_join_code", "join_code", unique=True),
         CheckConstraint(
-            "status IN ('paid', 'debtor', 'inactive')",
+            "status IN ('paid', 'debtor', 'inactive', 'pending')",
             name="ck_tutor_students_status",
         ),
         CheckConstraint(

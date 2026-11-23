@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -12,7 +12,14 @@ class TutorReminder(Base):
     """One reminder. `queued_at` stops a second job. `sent_at` means it went out."""
 
     __tablename__ = "tutor_reminders"
-    __table_args__ = (Index("ix_tutor_reminders_owner_id", "owner_id"),)
+    __table_args__ = (
+        Index("ix_tutor_reminders_owner_id", "owner_id"),
+        Index(
+            "ix_tutor_reminders_due",
+            "send_at",
+            postgresql_where=text("queued_at IS NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(

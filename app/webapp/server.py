@@ -27,6 +27,7 @@ from app.webapp.members import MemberCountCache
 from app.webapp.pay_routes import setup_pay_routes
 from app.webapp.rate_limit import RateLimiter
 from app.webapp.reminder_routes import setup_reminder_routes
+from app.webapp.request_routes import setup_request_routes
 from app.webapp.routes import setup_routes
 from app.webapp.settings_routes import setup_settings_routes
 from app.webapp.student_routes import setup_student_routes
@@ -64,6 +65,7 @@ def create_app(
     setup_pay_routes(app)
     setup_student_routes(app)
     setup_group_routes(app)
+    setup_request_routes(app)
     setup_grade_routes(app)
     setup_lesson_routes(app)
     setup_cabinet_routes(app)
