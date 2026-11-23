@@ -61,7 +61,7 @@ function card(item) {
     ${attRow(item.attendance)}
     ${feeRow(item.fee)}
     <div class="stu-meta">${escapeHtml(rankLine(item.ranking))}</div>
-    <a class="primary" href="#/study/${Number(group.id)}">${escapeHtml(t("learnMore"))}</a>
+    <a class="${joinButton(item.next_session) ? "ghost wide" : "primary"}" href="#/study/${Number(group.id)}">${escapeHtml(t("learnMore"))}</a>
   </div>`;
 }
 
