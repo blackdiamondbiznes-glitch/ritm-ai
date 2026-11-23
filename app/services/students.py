@@ -150,9 +150,7 @@ class StudentService:
             return []
         rows = await self._groups.groups_for_student(student_id)
         return [
-            {"id": group.id, "name": group.name}
-            for group in rows
-            if group.owner_id == owner_id
+            {"id": group.id, "name": group.name} for group in rows if group.owner_id == owner_id
         ]
 
     async def remove(self, owner_id: int, student_id: int) -> dict:

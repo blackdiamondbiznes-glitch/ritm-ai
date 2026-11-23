@@ -80,9 +80,7 @@ async def _enroll(
 ) -> None:
     await state.clear()
     result = await grades.enroll(code, current_user.telegram_id, current_user.full_name or "")
-    await message.answer(
-        t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
-    )
+    await message.answer(t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
 
 
 async def _reply(
@@ -96,9 +94,7 @@ async def _reply(
 ) -> None:
     await state.clear()
     result = await grades.claim(code, current_user.telegram_id)
-    await message.answer(
-        t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
-    )
+    await message.answer(t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
 
 
 def enroll_from_args(args: str) -> str | None:

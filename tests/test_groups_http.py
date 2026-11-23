@@ -23,9 +23,11 @@ pytestmark = pytest.mark.skipif(not _URL.startswith("postgresql"), reason="Postg
 
 async def _purge(session) -> None:
     ids = select(User.id).where(User.telegram_id.in_(_IDS))
-    await session.execute(delete(TutorGroupMember).where(TutorGroupMember.group_id.in_(
-        select(TutorGroup.id).where(TutorGroup.owner_id.in_(ids))
-    )))
+    await session.execute(
+        delete(TutorGroupMember).where(
+            TutorGroupMember.group_id.in_(select(TutorGroup.id).where(TutorGroup.owner_id.in_(ids)))
+        )
+    )
     await session.execute(delete(TutorGroup).where(TutorGroup.owner_id.in_(ids)))
     await session.execute(delete(TutorStudent).where(TutorStudent.owner_id.in_(ids)))
     await session.execute(delete(User).where(User.telegram_id.in_(_IDS)))

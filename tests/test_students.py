@@ -139,9 +139,7 @@ async def test_create_places_the_student_in_the_chosen_group() -> None:
     groups = _GroupBook()
     service._groups = groups
     await groups.add(
-        TutorGroup(
-            id=3, owner_id=1, name="Ingliz", weekdays="1,3", start_min=480, end_min=600
-        )
+        TutorGroup(id=3, owner_id=1, name="Ingliz", weekdays="1,3", start_min=480, end_min=600)
     )
     created = await service.create(1, {"name": "Ali", "group_ids": [3]})
     assert groups.links[0].student_id == created["created_id"]

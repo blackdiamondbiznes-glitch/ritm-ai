@@ -161,9 +161,7 @@ class GradeService:
             )
         if await self._groups.membership(group.id, student.id) is not None:
             return "already"
-        await self._groups.add_member(
-            TutorGroupMember(group_id=group.id, student_id=student.id)
-        )
+        await self._groups.add_member(TutorGroupMember(group_id=group.id, student_id=student.id))
         return "ok"
 
     async def _owned(self, owner_id: int, group_id: int) -> TutorGroup:
