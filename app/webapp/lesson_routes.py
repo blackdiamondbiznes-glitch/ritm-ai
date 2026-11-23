@@ -8,7 +8,9 @@ from aiohttp import web
 
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.lessons import LessonError, LessonService
+from app.services.workspaces import WorkspaceService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -77,7 +79,11 @@ async def lessons_delete(request: web.Request) -> web.Response:
 
 
 def _service(ctx: WebContext) -> LessonService:
-    return LessonService(LessonRepository(ctx.session), StudentRepository(ctx.session))
+    return LessonService(
+        LessonRepository(ctx.session),
+        StudentRepository(ctx.session),
+        WorkspaceService(WorkspaceRepository(ctx.session), ctx.users),
+    )
 
 
 async def _call(ctx: WebContext, work) -> web.Response:

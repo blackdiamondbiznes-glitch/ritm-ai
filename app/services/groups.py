@@ -11,6 +11,7 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.users import UserRepository
 from app.services.access import AccessService
+from app.services.sessions import SessionPlanner
 from app.services.tutor_limits import ensure_group_room
 from app.services.workspaces import WorkspaceService
 
@@ -49,12 +50,14 @@ class GroupService:
         access: AccessService | None = None,
         users: UserRepository | None = None,
         spaces: WorkspaceService | None = None,
+        planner: SessionPlanner | None = None,
     ) -> None:
         self._groups = groups
         self._students = students
         self._access = access
         self._users = users
         self._spaces = spaces
+        self._planner = planner
 
     async def list(self, owner_id: int) -> dict:
         """Every group of this owner, with how many students sit in each."""
@@ -79,6 +82,8 @@ class GroupService:
                 enroll_code=secrets.token_hex(5),
             )
         )
+        if self._planner is not None:
+            await self._planner.fill(row)
         payload = await self.list(owner_id)
         payload["created_id"] = row.id
         return payload
@@ -95,6 +100,8 @@ class GroupService:
         row.start_min = parsed.start_min
         row.end_min = parsed.end_min
         await self._groups.save(row)
+        if self._planner is not None:
+            await self._planner.refill(row)
         return await self.open(owner_id, group_id)
 
     async def open(self, owner_id: int, group_id: int) -> dict:

@@ -11,6 +11,7 @@ from app.db.models.students import TutorStudent
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
 from app.services.clock import TASHKENT
+from app.services.workspaces import WorkspaceService
 
 STATUSES = frozenset({"scheduled", "done", "cancelled"})
 TITLE_MAX = 120
@@ -43,9 +44,15 @@ class LessonInput:
 class LessonService:
     """Create, edit and list lessons for one owner."""
 
-    def __init__(self, lessons: LessonRepository, students: StudentRepository) -> None:
+    def __init__(
+        self,
+        lessons: LessonRepository,
+        students: StudentRepository,
+        spaces: WorkspaceService | None = None,
+    ) -> None:
         self._lessons = lessons
         self._students = students
+        self._spaces = spaces
 
     async def list(self, owner_id: int) -> dict:
         """Every lesson of this owner, plus the students that can be attached."""
@@ -58,12 +65,15 @@ class LessonService:
         parsed = parse_lesson(body)
         await self._owned_student(owner_id, parsed.student_id)
         now = datetime.now(UTC)
+        workspace_id = await self._spaces.id_for(owner_id) if self._spaces is not None else 0
         await self._lessons.add(
             TutorLesson(
                 owner_id=owner_id,
+                workspace_id=workspace_id,
                 student_id=parsed.student_id,
                 title=parsed.title,
                 status=parsed.status,
+                source="manual",
                 amount_uzs=parsed.amount_uzs,
                 starts_at=parsed.starts_at,
                 note=parsed.note,

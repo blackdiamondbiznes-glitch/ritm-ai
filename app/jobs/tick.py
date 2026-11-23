@@ -32,6 +32,7 @@ from app.jobs.quiz import QUIZ, QuizHandler
 from app.jobs.reminder import ReminderHandler
 from app.jobs.runner import JobRunner
 from app.jobs.trial_nudge import EXPIRY, REPORT, TrialNudgeHandler, TrialNudgePlanner
+from app.jobs.tutor_sessions import refill_sessions
 from app.services.access import AccessService
 from app.services.clock import utcnow
 from app.services.generate import ContentGenerator
@@ -110,6 +111,7 @@ async def _once(
     handlers[EXPIRY] = nudge
     handlers[REMINDER] = ReminderHandler(bot, ReminderRepository(session), UserRepository(session))
     await JobRunner(ScheduleRepository(session), jobs, handlers).run_once()
+    await refill_sessions(session)
     await SystemStateRepository(session).put(LAST_TICK, utcnow().isoformat())
 
 

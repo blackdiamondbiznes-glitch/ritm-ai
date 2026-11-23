@@ -1,9 +1,15 @@
 """Tutor lesson queries. No validation here."""
 
-from sqlalchemy import select
+from datetime import datetime
+
+from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.groups import TutorGroup, TutorGroupMember
 from app.db.models.lessons import TutorLesson
+from app.db.models.students import TutorStudent
+from app.db.models.users import User
 
 
 class LessonRepository:
@@ -47,3 +53,75 @@ class LessonRepository:
         """Remove a lesson."""
         await self._session.delete(row)
         await self._session.flush()
+
+    async def insert_slot(self, values: dict) -> int | None:
+        """Insert one slot. A taken (group, planned_at) pair inserts nothing."""
+        stmt = (
+            pg_insert(TutorLesson)
+            .values(values)
+            .on_conflict_do_nothing(
+                index_elements=["group_id", "planned_at"],
+                index_where=text("planned_at IS NOT NULL"),
+            )
+            .returning(TutorLesson.id)
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def replaceable(self, group_id: int, now: datetime) -> list[TutorLesson]:
+        """Future schedule rows still on their original slot and still scheduled."""
+        stmt = select(TutorLesson).where(
+            TutorLesson.group_id == group_id,
+            TutorLesson.source == "schedule",
+            TutorLesson.status == "scheduled",
+            TutorLesson.starts_at == TutorLesson.planned_at,
+            TutorLesson.starts_at > now,
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def delete_many(self, rows: list[TutorLesson]) -> None:
+        """Remove these lessons. An empty list does nothing."""
+        if not rows:
+            return
+        for row in rows:
+            await self._session.delete(row)
+        await self._session.flush()
+
+    async def in_range(
+        self, owner_id: int, start: datetime, end: datetime
+    ) -> list[tuple[TutorLesson, str | None]]:
+        """This owner's lessons that start in [start, end), with the group name."""
+        stmt = (
+            select(TutorLesson, TutorGroup.name)
+            .outerjoin(TutorGroup, TutorGroup.id == TutorLesson.group_id)
+            .where(
+                TutorLesson.owner_id == owner_id,
+                TutorLesson.starts_at >= start,
+                TutorLesson.starts_at < end,
+            )
+            .order_by(TutorLesson.starts_at.asc(), TutorLesson.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return [(row, name) for row, name in result.all()]
+
+    async def for_learner(
+        self, telegram_id: int, skip_owner_id: int, start: datetime, end: datetime
+    ) -> list[tuple[TutorLesson, str, str | None]]:
+        """Sessions in groups where this Telegram account is an active member."""
+        stmt = (
+            select(TutorLesson, TutorGroup.name, User.full_name)
+            .join(TutorGroup, TutorGroup.id == TutorLesson.group_id)
+            .join(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
+            .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
+            .join(User, User.id == TutorGroup.owner_id)
+            .where(
+                TutorStudent.telegram_id == telegram_id,
+                TutorGroup.owner_id != skip_owner_id,
+                TutorGroupMember.status == "active",
+                TutorLesson.starts_at >= start,
+                TutorLesson.starts_at < end,
+            )
+            .order_by(TutorLesson.starts_at.asc(), TutorLesson.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return [(row, name, teacher) for row, name, teacher in result.all()]

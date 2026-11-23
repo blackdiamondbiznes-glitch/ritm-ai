@@ -219,6 +219,11 @@ class GroupRepository:
         result = await self._session.execute(stmt)
         return list(result.all())
 
+    async def all_groups(self) -> list[TutorGroup]:
+        """Every group, oldest first. The daily fill walks this list."""
+        result = await self._session.execute(select(TutorGroup).order_by(TutorGroup.id.asc()))
+        return list(result.scalars().all())
+
     async def active_members(self, group_ids: list[int]) -> list[tuple[int, TutorStudent]]:
         """Active students in these groups, as (group id, student)."""
         if not group_ids:

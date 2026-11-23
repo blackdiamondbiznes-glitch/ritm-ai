@@ -10,10 +10,12 @@ from aiohttp import web
 from app.bot.keyboards.enroll import enroll_keyboard
 from app.db.repositories.chats import ChatRepository
 from app.db.repositories.groups import GroupRepository
+from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.workspaces import WorkspaceRepository
 from app.i18n import t
 from app.services.groups import GroupError, GroupService
+from app.services.sessions import SessionPlanner
 from app.services.tutor_limits import TutorLimitError, limit_body
 from app.services.workspaces import WorkspaceService
 from app.webapp.context import WebContext
@@ -162,12 +164,14 @@ async def groups_remove_student(request: web.Request) -> web.Response:
 
 
 def _service(ctx: WebContext) -> GroupService:
+    session = ctx.session
     return GroupService(
-        GroupRepository(ctx.session),
-        StudentRepository(ctx.session),
+        GroupRepository(session),
+        StudentRepository(session),
         ctx.access,
         ctx.users,
-        WorkspaceService(WorkspaceRepository(ctx.session), ctx.users),
+        WorkspaceService(WorkspaceRepository(session), ctx.users),
+        SessionPlanner(LessonRepository(session), GroupRepository(session)),
     )
 
 
