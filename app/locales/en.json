@@ -370,5 +370,9 @@
   "learn_m9": "Sep",
   "learn_m10": "Oct",
   "learn_m11": "Nov",
-  "learn_m12": "Dec"
+  "learn_m12": "Dec",
+  "menu_title_student": "Hello!\nLessons, marks, attendance and homework are behind the “Open my studies” button.",
+  "join_ok_named": "✅ You joined the “{group}” group (teacher: {teacher}).\nLessons, marks and homework are in the mini app.",
+  "join_ok_teacher": "✅ You are now one of {teacher}'s students.\nLessons, marks and homework are in the mini app.",
+  "enroll_pending_named": "📨 Your request to join “{group}” was sent to the teacher ({teacher}).\nWe will message you when it is approved. You can see its status in the mini app."
 }

@@ -67,6 +67,23 @@ class EnrollmentService:
         await self._students.save(row)
         return "ok"
 
+    async def describe(self, kind: str, code: str) -> tuple[str | None, str | None]:
+        """Group name and teacher display name behind a join_ or enroll_ code."""
+        from app.db.repositories.users import teacher_name_of
+
+        if kind == "enroll":
+            group = await self._groups.by_enroll_code(code)
+            if group is None:
+                return None, None
+            owner = await self._users.get_by_id(group.owner_id)
+            return group.name, teacher_name_of(owner) or None
+        row = await self._students.by_join_code(code)
+        if row is None:
+            return None, None
+        owner = await self._users.get_by_id(row.owner_id)
+        groups = await self._groups.groups_for_student(row.id)
+        return (groups[0].name if groups else None), teacher_name_of(owner) or None
+
     async def enroll(
         self,
         code: str,

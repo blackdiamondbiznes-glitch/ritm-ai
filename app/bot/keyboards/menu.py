@@ -40,6 +40,21 @@ def main_menu(
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def student_menu(lang: str, is_admin: bool, webapp_url: str | None = None) -> InlineKeyboardMarkup:
+    """Only-student accounts: their study page, help and language. No owner or plan rows."""
+    rows = []
+    url = webapp_url if webapp_url is not None else _menu_webapp_url()
+    if url:
+        rows.append([_web(f"🎒 {t('learn_open', lang)}", _role_url(url, "student"))])
+    else:
+        rows.append([_btn(t("menu_learn", lang), MenuCB(a="learn").pack())])
+    rows.append([_btn(t("menu_help", lang), MenuCB(a="help").pack())])
+    rows.append([_btn(t("menu_language", lang), MenuCB(a="lang").pack())])
+    if is_admin:
+        rows.append([_btn(t("menu_admin", lang), MenuCB(a="admin").pack())])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 def study_keyboard(lang: str, url: str | None) -> InlineKeyboardMarkup:
     """Open the Mini App in student mode, or go back when no URL is configured."""
     rows = []

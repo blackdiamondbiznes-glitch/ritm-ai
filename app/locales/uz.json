@@ -370,5 +370,9 @@
   "learn_m9": "sen",
   "learn_m10": "okt",
   "learn_m11": "noy",
-  "learn_m12": "dek"
+  "learn_m12": "dek",
+  "menu_title_student": "Assalomu alaykum.\nDarslar, baholar, davomat va uy vazifalari «O‘qishimni ochish» tugmasida.",
+  "join_ok_named": "✅ Siz «{group}» guruhiga qo‘shildingiz (o‘qituvchi: {teacher}).\nDarslar, baholar va uy vazifalari Mini ilovada.",
+  "join_ok_teacher": "✅ Siz {teacher} o‘quvchilari qatoriga qo‘shildingiz.\nDarslar, baholar va uy vazifalari Mini ilovada.",
+  "enroll_pending_named": "📨 «{group}» guruhiga so‘rovingiz o‘qituvchiga yuborildi (o‘qituvchi: {teacher}).\nTasdiqlangach xabar beramiz. So‘rov holatini Mini ilovada ko‘rasiz."
 }

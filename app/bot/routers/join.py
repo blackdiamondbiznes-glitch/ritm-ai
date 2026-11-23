@@ -9,10 +9,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.bot.enroll_notice import teacher_notifier
-from app.bot.keyboards.menu import main_menu
+from app.bot.join_reply import join_answer
+from app.bot.menus import menu_for
 from app.db.models.users import User
+from app.db.repositories.chats import ChatRepository
 from app.i18n import t
 from app.services.enrollment import EnrollmentService
+from app.services.roles import RoleService
 
 router = Router(name="join")
 logger = logging.getLogger(__name__)
@@ -34,13 +37,17 @@ async def claim_join(
     enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
+    modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
 ) -> None:
     """Bind this chat to a student or a group, or let another /start handler run."""
     text = message.text or ""
     args = command.args or ""
     enroll = enroll_from_args(args) or enroll_code_from_text(text)
     if enroll:
-        await _enroll(message, state, current_user, enrollment, lang, is_super_admin, enroll)
+        await _enroll(
+            message, state, current_user, enrollment, lang, is_super_admin, enroll, modes, chats
+        )
         return
     code = join_from_args(args) or code_from_text(text)
     if code is None:
@@ -51,10 +58,11 @@ async def claim_join(
         await state.clear()
         log_link(kind, args.split("_", 1)[1], "missing", current_user.telegram_id)
         await message.answer(
-            t(f"{kind}_missing", lang), reply_markup=main_menu(lang, is_super_admin)
+            t(f"{kind}_missing", lang),
+            reply_markup=await menu_for(lang, is_super_admin, current_user, modes, chats),
         )
         return
-    await _reply(message, state, current_user, enrollment, lang, is_super_admin, code)
+    await _reply(message, state, current_user, enrollment, lang, is_super_admin, code, modes, chats)
 
 
 @router.message(F.text.contains("start=enroll_"))
@@ -65,12 +73,16 @@ async def claim_pasted_enroll(
     enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
+    modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
 ) -> None:
     """Accept a group registration URL pasted into the chat."""
     code = enroll_code_from_text(message.text or "")
     if code is None:
         raise SkipHandler()
-    await _enroll(message, state, current_user, enrollment, lang, is_super_admin, code)
+    await _enroll(
+        message, state, current_user, enrollment, lang, is_super_admin, code, modes, chats
+    )
 
 
 @router.message(F.text.contains("start=join_"))
@@ -81,12 +93,14 @@ async def claim_pasted_link(
     enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
+    modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
 ) -> None:
     """Accept the ranking URL if it was pasted into the chat instead of opened."""
     code = code_from_text(message.text or "")
     if code is None:
         raise SkipHandler()
-    await _reply(message, state, current_user, enrollment, lang, is_super_admin, code)
+    await _reply(message, state, current_user, enrollment, lang, is_super_admin, code, modes, chats)
 
 
 async def _enroll(
@@ -97,6 +111,8 @@ async def _enroll(
     lang: str,
     is_super_admin: bool,
     code: str,
+    modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
 ) -> None:
     await state.clear()
     result = await enrollment.enroll(
@@ -106,7 +122,10 @@ async def _enroll(
         notify=teacher_notifier(message.bot),
     )
     log_link("enroll", code, result, current_user.telegram_id)
-    await message.answer(t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
+    text, markup = await join_answer(
+        "enroll", code, result, lang, current_user, is_super_admin, enrollment, modes, chats
+    )
+    await message.answer(text, reply_markup=markup)
 
 
 async def _reply(
@@ -117,11 +136,16 @@ async def _reply(
     lang: str,
     is_super_admin: bool,
     code: str,
+    modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
 ) -> None:
     await state.clear()
     result = await enrollment.claim(code, current_user.telegram_id)
     log_link("join", code, result, current_user.telegram_id)
-    await message.answer(t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin))
+    text, markup = await join_answer(
+        "join", code, result, lang, current_user, is_super_admin, enrollment, modes, chats
+    )
+    await message.answer(text, reply_markup=markup)
 
 
 def _broken_kind(args: str) -> str | None:

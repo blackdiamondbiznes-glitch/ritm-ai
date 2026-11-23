@@ -60,6 +60,9 @@ class _Grades:
             )
         return self.result
 
+    async def describe(self, kind: str, code: str) -> tuple[str | None, str | None]:
+        return "Ingliz A1", "Malika <opa>"
+
 
 class _Session:
     def __init__(self) -> None:
@@ -104,7 +107,8 @@ async def test_tap_saves_the_membership_and_answers() -> None:
     assert "yozildingiz" in alert.text
     sent = _of(bot, SendMessage)
     assert sent[0].chat_id == 50
-    assert "yozildingiz" in sent[0].text
+    assert "«Ingliz A1»" in sent[0].text
+    assert "Malika &lt;opa&gt;" in sent[0].text
 
 
 async def test_a_blocked_chat_still_gets_the_group_alert() -> None:

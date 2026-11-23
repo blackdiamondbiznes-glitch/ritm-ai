@@ -26,7 +26,7 @@ async def test_bare_group_code_sends_a_request_and_unknown_code_answers(client) 
         "ok": True,
         "kind": "enroll",
         "result": "pending",
-        "text": t("enroll_pending", "uz"),
+        "text": t("enroll_pending_named", "uz", group="Ingliz", teacher="Owner"),
     }
     assert [chat for chat, _text in bot.sent] == [OWNER]
     again = await (

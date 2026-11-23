@@ -37,6 +37,7 @@ from tests.test_payment_bot_flow import _URL, Recorder, _detach, _release_module
 TEACHER, NEWBIE, KNOWN = 9760000001, 9760000002, 9760000003
 _IDS = (TEACHER, NEWBIE, KNOWN)
 CODE, ENROLL = "a1b2c3d4e5", "f6e5d4c3b2"
+JOINED = t("join_ok_teacher", "uz", teacher="Teacher")
 
 pytestmark = pytest.mark.skipif(not _URL.startswith("postgresql"), reason="Postgres is required")
 
@@ -132,9 +133,19 @@ async def world():
         await engine.dispose()
 
 
+def _buttons(rec, chat_id: int) -> list[str]:
+    """Button labels of the last message sent to chat_id."""
+    sent = [c for c in rec.calls if int(getattr(c, "chat_id", 0) or 0) == chat_id]
+    markup = sent[-1].reply_markup
+    return [button.text for row in markup.inline_keyboard for button in row]
+
+
 async def test_new_account_claims_a_personal_link(world) -> None:
     await world["start"](NEWBIE, f"join_{CODE}")
-    assert world["rec"].texts(NEWBIE) == [t("join_ok", "uz")]
+    assert world["rec"].texts(NEWBIE) == [JOINED]
+    labels = _buttons(world["rec"], NEWBIE)
+    assert labels[1:] == [t("menu_help", "uz"), t("menu_language", "uz")]
+    assert t("learn_open", "uz") in labels[0] or labels[0] == t("menu_learn", "uz")
     async with world["sessions"]() as s:
         row = (
             await s.execute(select(TutorStudent).where(TutorStudent.join_code == CODE))
@@ -146,7 +157,7 @@ async def test_returning_account_claims_and_repeats_get_answers(world) -> None:
     await world["start"](KNOWN, f"join_{CODE}")
     await world["start"](KNOWN, f"join_{CODE}")
     await world["start"](NEWBIE, f"join_{CODE}")
-    assert world["rec"].texts(KNOWN) == [t("join_ok", "uz"), t("join_ok", "uz")]
+    assert world["rec"].texts(KNOWN) == [JOINED, JOINED]
     assert world["rec"].texts(NEWBIE) == [t("join_taken", "uz")]
 
 
@@ -160,13 +171,14 @@ async def test_every_payload_answers(world) -> None:
     teacher = world["rec"].texts(TEACHER)
     assert teacher[0] == t("join_own", "uz")
     assert "B1" in teacher[1]  # the new group request reaches the teacher
-    assert world["rec"].texts(NEWBIE) == [t("enroll_pending", "uz"), t("enroll_missing", "uz")]
+    pending = t("enroll_pending_named", "uz", group="B1", teacher="Second")
+    assert world["rec"].texts(NEWBIE) == [pending, t("enroll_missing", "uz")]
 
 
 async def test_start_right_after_my_chat_member_is_answered(world) -> None:
     await world["member"](NEWBIE)
     await world["start"](NEWBIE, f"join_{CODE}")
-    assert world["rec"].texts(NEWBIE) == [t("join_ok", "uz")]
+    assert world["rec"].texts(NEWBIE) == [JOINED]
 
 
 async def test_throttle_runs_once_per_update_even_when_handlers_skip(world) -> None:

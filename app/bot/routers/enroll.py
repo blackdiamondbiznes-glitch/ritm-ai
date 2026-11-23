@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.callbacks import EnrollCB
 from app.bot.enroll_notice import teacher_notifier
-from app.bot.keyboards.menu import main_menu
+from app.bot.join_reply import join_answer
 from app.db.models.users import User
+from app.db.repositories.chats import ChatRepository
 from app.i18n import t
 from app.services.enrollment import EnrollmentService
 from app.services.roles import RoleService
@@ -31,6 +32,7 @@ async def on_group_enroll(
     is_super_admin: bool,
     bot: Bot,
     modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
 ) -> None:
     """Save the request, then answer in the group and in the private chat."""
     result = await enrollment.enroll(
@@ -42,18 +44,19 @@ async def on_group_enroll(
     await session.commit()
     text = t(f"enroll_{result}", lang)[:200]
     logger.info("group enroll result=%s user_id=%s", result, current_user.telegram_id)
-    teaching = False
-    learning = False
-    if modes is not None:
-        found = await modes.for_user(current_user)
-        teaching = bool(found["teaching"])
-        learning = bool(found["learning"])
     await callback.answer(text, show_alert=True)
+    private, markup = await join_answer(
+        "enroll",
+        callback_data.c,
+        result,
+        lang,
+        current_user,
+        is_super_admin,
+        enrollment,
+        modes,
+        chats,
+    )
     try:
-        await bot.send_message(
-            current_user.telegram_id,
-            text,
-            reply_markup=main_menu(lang, is_super_admin, teaching=teaching, learning=learning),
-        )
+        await bot.send_message(current_user.telegram_id, private, reply_markup=markup)
     except TelegramAPIError:
         logger.info("group enroll dm skipped user_id=%s", current_user.telegram_id)

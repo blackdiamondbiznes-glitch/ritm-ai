@@ -9,7 +9,7 @@ import re
 from aiohttp import web
 
 from app.bot.enroll_notice import teacher_notifier
-from app.i18n import t
+from app.bot.join_reply import NAMED, reply_text
 from app.webapp.request_routes import _service
 from app.webapp.routes import _context, _error
 
@@ -71,6 +71,8 @@ async def join(request: web.Request) -> web.Response:
         result,
         user.telegram_id,
     )
-    return web.json_response(
-        {"ok": result in OK, "kind": kind, "result": result, "text": t(f"{kind}_{result}", lang)}
-    )
+    group, teacher = (None, None)
+    if code is not None and (kind, result) in NAMED:
+        group, teacher = await service.describe(kind, code)
+    text = reply_text(kind, result, lang, group, teacher)
+    return web.json_response({"ok": result in OK, "kind": kind, "result": result, "text": text})
