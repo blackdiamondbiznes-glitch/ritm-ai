@@ -7,6 +7,7 @@ const ROUTES = {
   schedule: "cabinet/schedule",
   lessons: "cabinet/lessons",
   reminders: "cabinet/reminders",
+  fees: "cabinet/fees",
 };
 
 export function cabinetSwitch(active) {
@@ -20,6 +21,7 @@ export function cabinetSwitch(active) {
     ["students", "stuTitle"],
     ["lessons", "lesTitle"],
     ["reminders", "remTitle"],
+    ["fees", "feeNav"],
   ];
   return `<div class="seg">${keys.map(([id, key]) => item(id, key)).join("")}</div>`;
 }

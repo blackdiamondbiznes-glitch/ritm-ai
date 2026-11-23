@@ -6,10 +6,10 @@ const PLAN = { free: "Free", start: "Start", pro: "Pro", agency: "Ultra" };
 /** Show the cabinet cap and a button that opens the plan screen. */
 export function showLimit(err) {
   const code = err && err.code;
-  if (code !== "limit_groups" && code !== "limit_students") return false;
+  if (code !== "limit_groups" && code !== "limit_students" && code !== "limit_fees") return false;
   const data = (err && err.data) || {};
   const plan = PLAN[data.plan] || data.plan || "";
-  const key = code === "limit_groups" ? "limitGroups" : "limitStudents";
+  const key = code === "limit_groups" ? "limitGroups" : code === "limit_fees" ? "limitFees" : "limitStudents";
   toast(t(key, { plan, limit: data.limit }), "err");
   const main = document.getElementById("main");
   if (main && !document.getElementById("limit-plan")) {

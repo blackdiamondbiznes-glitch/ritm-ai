@@ -7,8 +7,10 @@ export function groupTabs(group, active) {
   };
   const home = `#/cabinet/groups/${group.id}`;
   const roll = `#/cabinet/groups/${group.id}/attendance`;
+  const fee = `#/cabinet/groups/${group.id}/fee`;
   const lead = group.start ? `<p>${escapeHtml(schedule(group))}</p>` : "";
-  return `<div class="seg">${tab("home", "grpNav", home)}${tab("roll", "attNav", roll)}</div>
+  const bar = `${tab("home", "grpNav", home)}${tab("roll", "attNav", roll)}${tab("fee", "feeNav", fee)}`;
+  return `<div class="seg">${bar}</div>
     <div class="header"><h1>${escapeHtml(group.name)}</h1>${lead}</div>`;
 }
 
