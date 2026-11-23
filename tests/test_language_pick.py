@@ -28,9 +28,19 @@ def _codes(markup) -> list[str]:
     return [row[0].callback_data for row in markup.inline_keyboard]
 
 
+class _Links:
+    """Plain /start never claims a student. The argument is still required."""
+
+    async def enroll(self, *_args: object, **_kwargs: object) -> str:
+        raise AssertionError("menu start must not enroll")
+
+    async def claim(self, *_args: object, **_kwargs: object) -> str:
+        raise AssertionError("menu start must not claim")
+
+
 async def test_new_user_gets_the_language_picker_before_the_menu() -> None:
     bot = _Bot()
-    await open_menu(_message(bot, text="/start"), _state(), "uz", False, _user())
+    await open_menu(_message(bot, text="/start"), _state(), "uz", False, _user(), _Links())
     sent = _of(bot, SendMessage)
     assert len(sent) == 1
     assert "Choose your language" in sent[0].text
@@ -42,7 +52,12 @@ async def test_new_user_gets_the_language_picker_before_the_menu() -> None:
 async def test_existing_user_with_a_language_goes_straight_to_the_menu() -> None:
     bot = _Bot()
     await open_menu(
-        _message(bot, text="/start"), _state(), "ru", False, _user(ui_language_set=True)
+        _message(bot, text="/start"),
+        _state(),
+        "ru",
+        False,
+        _user(ui_language_set=True),
+        _Links(),
     )
     sent = _of(bot, SendMessage)
     assert "Choose your language" not in sent[0].text

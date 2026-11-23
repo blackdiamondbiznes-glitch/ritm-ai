@@ -11,6 +11,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from app.db.models.audit import AuditLog
 from app.db.models.payments import Payment, PaymentEvent
 from app.db.models.subscriptions import Subscription
@@ -394,4 +396,7 @@ def test_migrations_0010_and_0011_downgrade_and_upgrade() -> None:
     run("upgrade", "0010_payment_trust")
     assert "0010_payment_trust" in run("current")
     run("upgrade", "head")
-    assert "0013_lookup_indexes (head)" in run("current")
+    cfg = Config(str(root / "alembic.ini"))
+    head = ScriptDirectory.from_config(cfg).get_current_head()
+    assert head is not None
+    assert f"{head} (head)" in run("current")
