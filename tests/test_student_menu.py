@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 from app.bot.join_reply import reply_text
 from app.bot.keyboards.menu import student_menu
-from app.bot.menus import home_view, menu_for
+from app.bot.menus import help_text_for, home_view, menu_for
 from app.db.repositories.users import teacher_name_of
 from app.i18n import t
 
@@ -66,9 +66,14 @@ async def test_owner_teacher_and_newcomer_keep_full_menu() -> None:
         _Modes(),
     ]
     chats = [_Chats(1), _Chats(), _Chats()]
-    for modes, owned in zip(cases, chats, strict=True):
+    expected = [
+        t("menu_title", "uz"),
+        t("menu_title_teacher", "uz"),
+        t("menu_title", "uz"),
+    ]
+    for modes, owned, want in zip(cases, chats, expected, strict=True):
         title, markup = await home_view("uz", False, _user(), modes, owned)
-        assert title == t("menu_title", "uz")
+        assert title == want
         assert len(_labels(markup)) > 3
 
 
@@ -113,3 +118,15 @@ def test_teacher_name_falls_back_to_telegram_name() -> None:
         "Malika opa"
     )
     assert teacher_name_of(None) == ""
+
+
+async def test_teacher_gets_teacher_title_and_help() -> None:
+    title, markup = await home_view(
+        "uz", False, _user(), _Modes(teaching=[{"groups": 2, "students": 1}]), _Chats()
+    )
+    assert title == t("menu_title_teacher", "uz")
+    assert len(_labels(markup)) > 3
+    help_text = await help_text_for("ru", _user(), _Modes(teaching=[{"groups": 1}]), _Chats())
+    assert help_text == t("help_text_teacher", "ru")
+    student_help = await help_text_for("en", _user(), _Modes(learning=[{}]), _Chats())
+    assert student_help == t("help_text_student", "en")

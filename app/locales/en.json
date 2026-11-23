@@ -375,5 +375,8 @@
   "menu_title_student": "Hello!\nLessons, marks, attendance and homework are behind the “Open my studies” button.",
   "join_ok_named": "✅ You joined the “{group}” group (teacher: {teacher}).\nLessons, marks and homework are in the mini app.",
   "join_ok_teacher": "✅ You are now one of {teacher}'s students.\nLessons, marks and homework are in the mini app.",
-  "enroll_pending_named": "📨 Your request to join “{group}” was sent to the teacher ({teacher}).\nWe will message you when it is approved. You can see its status in the mini app."
+  "enroll_pending_named": "📨 Your request to join “{group}” was sent to the teacher ({teacher}).\nWe will message you when it is approved. You can see its status in the mini app.",
+  "menu_title_teacher": "Hello.\nThe cabinet is where you run lessons, attendance and fees.\nChoose a section below.",
+  "help_text_teacher": "Ritm AI is your teaching cabinet.\n\nUse the Teacher cabinet button for lessons, attendance, grades and fees.\nInvite students with the group link.\n\nCommands: /menu /help /cancel /language",
+  "help_text_student": "Ritm AI holds your lessons, grades, attendance and homework.\n\nOpen the Mini App with the Study button.\nChange the language from Language.\n\nCommands: /menu /help /cancel /language"
 }

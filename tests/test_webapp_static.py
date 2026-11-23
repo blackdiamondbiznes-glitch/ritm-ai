@@ -1,19 +1,21 @@
-"""Mini App static checks: locale parity and the admin module is wired and preloaded."""
+"""Mini App static checks: locale parity and screens are wired and lazy-loaded."""
 
 import re
 from pathlib import Path
 
 STATIC = Path(__file__).resolve().parents[1] / "app" / "webapp" / "static"
+PACKS = ("shell", "chat", "tutor", "admin")
 
 
 def _locale_keys() -> dict[str, set[str]]:
-    source = (STATIC / "i18n.js").read_text(encoding="utf-8")
-    body = source[source.index("const T = {") : source.index("\n};", source.index("const T = {"))]
-    parts = re.split(r"\n  (uz|ru|en): \{\n", body)
-    return {
-        parts[i]: set(re.findall(r"^    (\w+):", parts[i + 1], re.M))
-        for i in range(1, len(parts), 2)
-    }
+    keys: dict[str, set[str]] = {}
+    for lang in ("uz", "ru", "en"):
+        found: set[str] = set()
+        for pack in PACKS:
+            text = (STATIC / f"i18n_{pack}_{lang}.js").read_text(encoding="utf-8")
+            found |= set(re.findall(r"^  (\w+):", text, re.M))
+        keys[lang] = found
+    return keys
 
 
 def test_mini_app_locales_have_identical_keys() -> None:
@@ -31,11 +33,12 @@ def test_admin_strings_are_translated() -> None:
 
 def test_admin_tab_is_wired_and_preloaded() -> None:
     html = (STATIC / "index.html").read_text(encoding="utf-8")
-    assert '<link rel="modulepreload" href="/s/admin.js">' in html
+    app = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert 'import("./admin.js")' in app
+    assert 'import("./notice.js")' in app
+    assert '<link rel="modulepreload" href="/s/admin.js">' not in html
     assert 'data-tab="admin" hidden' in html
-    assert "renderAdmin" in (STATIC / "app.js").read_text(encoding="utf-8")
-    assert "renderNotice" in (STATIC / "app.js").read_text(encoding="utf-8")
-    assert '<link rel="modulepreload" href="/s/notice.js">' in html
+    assert "renderAdmin" in app
     notice = (STATIC / "notice.js").read_text(encoding="utf-8")
     missing = set(re.findall(r't\("(\w+)"', notice)) - _locale_keys()["uz"]
     assert not missing, missing
@@ -55,7 +58,8 @@ def test_chart_screens_are_translated_and_preloaded() -> None:
         used = set(re.findall(r't\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
         assert not used - keys, (name, used - keys)
     html = (STATIC / "index.html").read_text(encoding="utf-8")
-    assert '<link rel="modulepreload" href="/s/charts.js">' in html
+    assert '<link rel="modulepreload" href="/s/charts.js">' not in html
+    assert 'import("./report.js")' in (STATIC / "app.js").read_text(encoding="utf-8")
     charts = (STATIC / "charts.js").read_text(encoding="utf-8")
     # Dependency-free: no imports beyond our own modules, accessible SVG.
     assert set(re.findall(r'from "([^"]+)"', charts)) == {"./i18n.js", "./ui.js"}
@@ -64,12 +68,14 @@ def test_chart_screens_are_translated_and_preloaded() -> None:
 
 
 def _locale_key_lists() -> dict[str, list[str]]:
-    source = (STATIC / "i18n.js").read_text(encoding="utf-8")
-    body = source[source.index("const T = {") : source.index("\n};", source.index("const T = {"))]
-    parts = re.split(r"\n  (uz|ru|en): \{\n", body)
-    return {
-        parts[i]: re.findall(r"^    (\w+):", parts[i + 1], re.M) for i in range(1, len(parts), 2)
-    }
+    lists: dict[str, list[str]] = {}
+    for lang in ("uz", "ru", "en"):
+        keys: list[str] = []
+        for pack in PACKS:
+            text = (STATIC / f"i18n_{pack}_{lang}.js").read_text(encoding="utf-8")
+            keys.extend(re.findall(r"^  (\w+):", text, re.M))
+        lists[lang] = keys
+    return lists
 
 
 def test_no_duplicate_locale_keys() -> None:
@@ -94,8 +100,11 @@ def test_settings_screens_are_translated_and_preloaded() -> None:
         for s in ("draft", "pending", "approved", "rejected", "disputed", "canceled", "expired")
     } <= keys
     html = (STATIC / "index.html").read_text(encoding="utf-8")
-    for module in ("chatprofile.js", "scroller.js", "profile.js"):
-        assert f'<link rel="modulepreload" href="/s/{module}">' in html
+    app = (STATIC / "app.js").read_text(encoding="utf-8")
+    for module in ("chatprofile.js", "profile.js"):
+        assert f'import("./{module}")' in app
+        assert f'<link rel="modulepreload" href="/s/{module}">' not in html
+    assert "initScrollers" in app
 
 
 def test_tutor_students_screen_is_translated_and_preloaded() -> None:
@@ -103,7 +112,8 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     used = set(re.findall(r'\bt\("(\w+)"', (STATIC / "students.js").read_text(encoding="utf-8")))
     assert not used - keys, used - keys
     html = (STATIC / "index.html").read_text(encoding="utf-8")
-    assert '<link rel="modulepreload" href="/s/students.js">' in html
+    assert '<link rel="modulepreload" href="/s/students.js">' not in html
+    assert 'import("./students.js")' in (STATIC / "app.js").read_text(encoding="utf-8")
     assert 'data-tab="cabinet" hidden' in html
     assert 'data-tab="study" hidden' in html
     assert 'data-i18n="navCab"' in html
@@ -120,8 +130,8 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     lesson_file = (STATIC / "lessons.js").read_text(encoding="utf-8")
     lesson_keys = set(re.findall(r'\bt\("(\w+)"', lesson_file))
     assert not lesson_keys - keys, lesson_keys - keys
-    assert '<link rel="modulepreload" href="/s/lessons.js">' in html
-    assert '<link rel="modulepreload" href="/s/summary.js">' in html
+    assert '<link rel="modulepreload" href="/s/lessons.js">' not in html
+    assert '<link rel="modulepreload" href="/s/summary.js">' not in html
     assert 'data-tab="lessons"' not in html
     summary = (STATIC / "summary.js").read_text(encoding="utf-8")
     reminders = (STATIC / "reminders.js").read_text(encoding="utf-8")
@@ -129,11 +139,11 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert not set(re.findall(r'\bt\("(\w+)"', summary)) - keys
     assert not set(re.findall(r'\bt\("(\w+)"', reminders)) - keys
     assert not set(re.findall(r'\bt\("(\w+)"', groups)) - keys
-    assert '<link rel="modulepreload" href="/s/groups.js">' in html
-    assert '<link rel="modulepreload" href="/s/boards.js">' in html
+    assert '<link rel="modulepreload" href="/s/groups.js">' not in html
+    assert '<link rel="modulepreload" href="/s/boards.js">' not in html
     boards = (STATIC / "boards.js").read_text(encoding="utf-8")
     assert not set(re.findall(r'\bt\("(\w+)"', boards)) - keys
-    assert '<link rel="modulepreload" href="/s/reminders.js">' in html
+    assert '<link rel="modulepreload" href="/s/reminders.js">' not in html
     for name in (
         "schedule.js",
         "next.js",
@@ -155,11 +165,11 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     ):
         used = set(re.findall(r'\bt\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
         assert not used - keys, (name, used - keys)
-    assert '<link rel="modulepreload" href="/s/schedule.js">' in html
+    assert '<link rel="modulepreload" href="/s/schedule.js">' not in html
     assert "renderSchedule" in (STATIC / "app.js").read_text(encoding="utf-8")
     assert "nextMarkup" in boards
-    assert '<link rel="modulepreload" href="/s/study.js">' in html
-    assert '<link rel="modulepreload" href="/s/reports.js">' in html
+    assert '<link rel="modulepreload" href="/s/study.js">' not in html
+    assert '<link rel="modulepreload" href="/s/reports.js">' not in html
     assert "renderReports" in app
     assert "renderStudy" in app
     study = (STATIC / "study.js").read_text(encoding="utf-8")
@@ -183,3 +193,26 @@ def test_support_link_points_at_telegram_only() -> None:
     api = (STATIC / "api.js").read_text(encoding="utf-8")
     assert r"^https:\/\/t\.me\/" in api
     assert "https://t.me/${handle}" in (STATIC / "profile.js").read_text(encoding="utf-8")
+
+
+def test_shell_language_packs_are_preloaded_not_all_screens() -> None:
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    for name in (
+        "app.js",
+        "api.js",
+        "i18n.js",
+        "i18n_shell_uz.js",
+        "i18n_chat_uz.js",
+        "i18n_tutor_uz.js",
+        "ui.js",
+        "nav.js",
+    ):
+        assert f'<link rel="modulepreload" href="/s/{name}">' in html
+    assert "i18n_admin_uz.js" not in html
+    assert "i18n_shell_ru.js" not in html
+    app = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert 'import("./admin.js")' in app
+    assert "min-height: 44px" in (STATIC / "layout.css").read_text(encoding="utf-8")
+    assert "themeParams" in (STATIC / "api.js").read_text(encoding="utf-8")
+    assert "Inter," not in (STATIC / "theme.css").read_text(encoding="utf-8")
+    assert "err-retry" in (STATIC / "ui.js").read_text(encoding="utf-8")

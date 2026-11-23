@@ -26,7 +26,7 @@ def install_errors(dispatcher: Dispatcher, settings: Settings | None = None) -> 
         if message is None:
             return
         try:
-            await bot.send_message(message.chat.id, t("error_generic", "uz"))
+            await bot.send_message(message.chat.id, t("error_generic", error_language(event)))
         except TelegramAPIError:
             logger.info("could not send error notice")
 
@@ -71,6 +71,23 @@ def error_context(update: Update | TelegramObject | None) -> tuple[int | None, i
     user = getattr(message, "from_user", None)
     chat = getattr(message, "chat", None)
     return getattr(user, "id", None), getattr(chat, "id", None)
+
+
+def error_language(event: ErrorEvent) -> str:
+    """Best-effort UI language from the update. Falls back to Uzbek."""
+    update = event.update
+    tg_user = None
+    message = getattr(update, "message", None) or getattr(update, "edited_message", None)
+    if message is not None:
+        tg_user = getattr(message, "from_user", None)
+    if tg_user is None:
+        callback = getattr(update, "callback_query", None)
+        if callback is not None:
+            tg_user = getattr(callback, "from_user", None)
+    code = str(getattr(tg_user, "language_code", "") or "")[:2].lower()
+    if code in {"uz", "ru", "en"}:
+        return code
+    return "uz"
 
 
 def _message(event: ErrorEvent) -> Message | None:

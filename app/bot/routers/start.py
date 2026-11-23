@@ -10,7 +10,7 @@ from app.bot.callbacks import LangCB, MenuCB
 from app.bot.enroll_notice import teacher_notifier
 from app.bot.join_reply import join_answer
 from app.bot.keyboards.menu import back_menu, language_picker, main_menu
-from app.bot.menus import home_view, menu_for
+from app.bot.menus import help_text_for, home_view, menu_for
 from app.bot.routers.join import (
     code_from_text,
     enroll_code_from_text,
@@ -124,9 +124,16 @@ async def pick_language(
 
 
 @router.message(Command("help"))
-async def help_command(message: Message, lang: str) -> None:
-    """Static help."""
-    await message.answer(t("help_text", lang), reply_markup=back_menu(lang))
+async def help_command(
+    message: Message,
+    lang: str,
+    current_user: User,
+    modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
+) -> None:
+    """Role-specific help."""
+    text = await help_text_for(lang, current_user, modes, chats)
+    await message.answer(text, reply_markup=back_menu(lang))
 
 
 @router.message(Command("cancel"))
@@ -166,6 +173,13 @@ async def home(
 
 
 @router.callback_query(MenuCB.filter(F.a == "help"))
-async def help_screen(callback: CallbackQuery, lang: str) -> None:
+async def help_screen(
+    callback: CallbackQuery,
+    lang: str,
+    current_user: User,
+    modes: RoleService | None = None,
+    chats: ChatRepository | None = None,
+) -> None:
     """Help, edited in place."""
-    await show_screen(callback, t("help_text", lang), back_menu(lang))
+    text = await help_text_for(lang, current_user, modes, chats)
+    await show_screen(callback, text, back_menu(lang))

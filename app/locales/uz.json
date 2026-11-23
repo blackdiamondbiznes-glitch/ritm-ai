@@ -375,5 +375,8 @@
   "menu_title_student": "Assalomu alaykum.\nDarslar, baholar, davomat va uy vazifalari «O‘qishimni ochish» tugmasida.",
   "join_ok_named": "✅ Siz «{group}» guruhiga qo‘shildingiz (o‘qituvchi: {teacher}).\nDarslar, baholar va uy vazifalari Mini ilovada.",
   "join_ok_teacher": "✅ Siz {teacher} o‘quvchilari qatoriga qo‘shildingiz.\nDarslar, baholar va uy vazifalari Mini ilovada.",
-  "enroll_pending_named": "📨 «{group}» guruhiga so‘rovingiz o‘qituvchiga yuborildi (o‘qituvchi: {teacher}).\nTasdiqlangach xabar beramiz. So‘rov holatini Mini ilovada ko‘rasiz."
+  "enroll_pending_named": "📨 «{group}» guruhiga so‘rovingiz o‘qituvchiga yuborildi (o‘qituvchi: {teacher}).\nTasdiqlangach xabar beramiz. So‘rov holatini Mini ilovada ko‘rasiz.",
+  "menu_title_teacher": "Assalomu alaykum.\nKabinetda darslar, davomat va to‘lovlar yuritiladi.\nQuyidan kerakli bo‘limni tanlang.",
+  "help_text_teacher": "Ritm AI — o‘qituvchi kabineti.\n\n«O‘qituvchi kabineti» tugmasi bilan darslar, davomat, baholar va to‘lovlarni yuritasiz.\nO‘quvchilarni guruh havolasi orqali qo‘shasiz.\n\nBuyruqlar: /menu /help /cancel /language",
+  "help_text_student": "Ritm AI — darslar, baholar, davomat va uy vazifalari shu yerda.\n\n«O‘qishimni ochish» tugmasi bilan Mini ilovani oching.\nTilni «Til» tugmasidan o‘zgartirasiz.\n\nBuyruqlar: /menu /help /cancel /language"
 }

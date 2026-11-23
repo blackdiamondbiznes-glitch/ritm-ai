@@ -60,7 +60,24 @@ async def home_view(
     chats: ChatRepository | None = None,
 ) -> tuple[str, InlineKeyboardMarkup]:
     """Title and keyboard for /start, /menu and the Back button."""
-    student, _found = await only_student(user, modes, chats)
+    student, found = await only_student(user, modes, chats)
     if student:
         return t("menu_title_student", lang), student_menu(lang, is_admin)
-    return t("menu_title", lang), await menu_for(lang, is_admin, user, modes, chats)
+    markup = await menu_for(lang, is_admin, user, modes, chats)
+    title = t("menu_title_teacher", lang) if actually_teaches(found) else t("menu_title", lang)
+    return title, markup
+
+
+async def help_text_for(
+    lang: str,
+    user: User,
+    modes: RoleService | None,
+    chats: ChatRepository | None = None,
+) -> str:
+    """Role-specific help: student, teacher, or channel-owner default."""
+    student, found = await only_student(user, modes, chats)
+    if student:
+        return t("help_text_student", lang)
+    if actually_teaches(found):
+        return t("help_text_teacher", lang)
+    return t("help_text", lang)
