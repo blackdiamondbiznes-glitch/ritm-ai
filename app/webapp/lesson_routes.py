@@ -16,6 +16,7 @@ from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
 _STATUS = {
+    "link": 400,
     "missing": 404,
     "empty": 400,
     "long": 400,

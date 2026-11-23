@@ -333,6 +333,7 @@
   "backup_failed": "⚠️ Сегодняшнюю копию базы сделать не удалось (причина: {code}). Проверьте логи Render.",
   "pay_receipt_app": "🧾 Чек отправлен через Mini App · {ref}\nАдмин проверит, результат придёт сюда.",
   "notify_lesson": "Занятие через {gap}: {title}, {time}",
+  "lesson_join": "Войти на урок",
   "notify_gap_15": "15 минут",
   "notify_gap_30": "30 минут",
   "notify_gap_60": "1 час",

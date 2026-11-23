@@ -95,7 +95,11 @@ def _group(group, teacher: str | None) -> dict:
 def _next(lesson) -> dict | None:
     if lesson is None or lesson.starts_at is None:
         return None
-    return {"starts_at": lesson.starts_at.isoformat(), "status": lesson.status}
+    return {
+        "starts_at": lesson.starts_at.isoformat(),
+        "status": lesson.status,
+        "meeting_url": getattr(lesson, "meeting_url", None),
+    }
 
 
 def _attendance(rows: list[tuple]) -> dict:

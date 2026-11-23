@@ -295,4 +295,8 @@ export default {
   lesStudentBad: "That student is not yours.",
   lesMissing: "Lesson not found.",
   lesDeleteAsk: "Delete this lesson?",
+  lesLink: "Online lesson link",
+  lesLinkHint: "Zoom, Google Meet or any link. Students see it in the reminder and in “My studies”.",
+  lesLinkBad: "The link must start with https:// (up to 500 characters).",
+  learnJoin: "Join lesson",
 };

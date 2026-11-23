@@ -289,6 +289,20 @@ export function openLink(url) {
   else window.open(url, "_blank", "noopener");
 }
 
+/** Open an online lesson link (Zoom, Meet...) outside the Mini App. */
+export function openUrl(url) {
+  if (!/^https?:\/\//i.test(url || "")) return;
+  if (tg && tg.openLink) tg.openLink(url);
+  else window.open(url, "_blank", "noopener");
+}
+
+document.addEventListener("click", (event) => {
+  const node = event.target instanceof Element ? event.target.closest("[data-open-url]") : null;
+  if (!node) return;
+  event.preventDefault();
+  openUrl(node.getAttribute("data-open-url"));
+});
+
 /** Save the current session snapshot (after a local change such as the app language). */
 export function persist() {
   writeStore();

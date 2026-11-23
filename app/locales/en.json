@@ -333,6 +333,7 @@
   "backup_failed": "⚠️ Today's database backup failed (reason: {code}). Check the Render logs.",
   "pay_receipt_app": "🧾 Receipt sent from the Mini App · {ref}\nAn admin will check it; the result will come here.",
   "notify_lesson": "Lesson in {gap}: {title}, {time}",
+  "lesson_join": "Join lesson",
   "notify_gap_15": "15 minutes",
   "notify_gap_30": "30 minutes",
   "notify_gap_60": "1 hour",

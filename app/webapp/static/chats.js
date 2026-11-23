@@ -1,4 +1,5 @@
 import { RESULT } from "./i18n.js";
+import { icon } from "./icons.js";
 import { api, cached, forget, go, haptic, load, remember, state, tg } from "./api.js";
 import { profileLabels, profilePath } from "./chatprofile.js";
 import { withPlan } from "./home.js";
@@ -36,7 +37,7 @@ export function renderChats() {
         ? chats.map((chat) => chatCard(withPlan(chat, plan), `data-go="${chat.id}"`)).join("")
         : `<div class="card muted">${escapeHtml(t("empty"))}</div>`
     }
-    <button type="button" class="ghost wide" id="connectChat">➕ ${escapeHtml(t("rowConnect"))}</button>
+    <button type="button" class="ghost wide" id="connectChat">${escapeHtml(t("rowConnect"))}</button>
   `);
   document.getElementById("connectChat").onclick = () => {
     haptic("light");
@@ -82,17 +83,17 @@ export function renderChat(detail, note) {
   const quiz = detail.quiz || { time: "09:00", enabled: false };
   const board = detail.leaderboard || { time: "09:00", enabled: false, weekday: 1 };
   const mods = detail.modules || {};
-  const locked = (label) => `<p class="locked">🔒 ${escapeHtml(label)}: ${escapeHtml(t("module"))}</p>`;
+  const locked = (label) => `<p class="locked">${escapeHtml(label)}: ${escapeHtml(t("module"))}</p>`;
   const labels = profileLabels(chat.id, profile);
   const profileFacts = profile
     ? `<p>${escapeHtml(labels ? labels.niche : profile.niche_code)} · ${escapeHtml(labels ? labels.language : profile.language)} · ${escapeHtml(profile.timezone)}</p>
        <p class="muted">${escapeHtml(labels ? labels.tone : profile.tone)} · ${escapeHtml(labels ? labels.audience : profile.audience_level)}</p>`
     : `<p class="muted">${escapeHtml(t("profileNeed"))}</p>`;
-  const profileHtml = `${profileFacts}<button type="button" class="ghost wide keep" id="editProfile">✏️ ${escapeHtml(profile ? t("cpEdit") : t("cpFill"))}</button>`;
+  const profileHtml = `${profileFacts}<button type="button" class="ghost wide keep" id="editProfile">${escapeHtml(profile ? t("cpEdit") : t("cpFill"))}</button>`;
   const quizBody = mods.quiz ? scheduleBlock("quiz", t("quiz"), quiz, true) : locked(t("quiz"));
   const apqBody = mods.admin_post_quiz
     ? `<div class="sub-block">
-        <div class="sub-title">🧩 ${escapeHtml(t("apq"))}</div>
+        <div class="sub-title">${escapeHtml(t("apq"))}</div>
         ${toggleField("admin_post_quiz", mods.admin_post_quiz_on, t("apqOn"), t("apqOff"), t("apqHint"))}
       </div>`
     : "";
@@ -108,16 +109,16 @@ export function renderChat(detail, note) {
       <div class="header-pills">${roleBadge(access.role)}<span class="pill">${escapeHtml(t("statusOn"))}</span>${members}</div>
     </div>
     ${note ? `<p class="ok note">${escapeHtml(note)}</p>` : ""}
-    ${readOnly ? `<div class="readonly-note">🔒 ${escapeHtml(t("readOnly"))}</div>` : ""}
+    ${readOnly ? `<div class="readonly-note">${escapeHtml(t("readOnly"))}</div>` : ""}
     <div id="settings"${readOnly ? ' class="readonly"' : ""}>
-      ${section("👤", t("profile"), profileHtml)}
-      ${section("📝", t("daily"), scheduleBlock("daily", t("daily"), daily, true))}
-      ${section("🎯", t("quiz"), quizBody + apqBody)}
-      ${section("🏆", t("board"), boardBody)}
+      ${section(icon("user"), t("profile"), profileHtml)}
+      ${section(icon("note"), t("daily"), scheduleBlock("daily", t("daily"), daily, true))}
+      ${section(icon("target"), t("quiz"), quizBody + apqBody)}
+      ${section(icon("trophy"), t("board"), boardBody)}
       ${
         access.can_manage_admins
           ? section(
-              "👥",
+              icon("users"),
               t("adminsTitle"),
               toggleField("admins_can_edit", access.admins_can_edit, t("adminsEditOn"), t("adminsEditOff"), t("adminsEditHint")),
             )
@@ -132,20 +133,20 @@ export function renderChat(detail, note) {
     </div>`
     }
     ${access.can_act ? section(
-      "⚡",
+      icon("bolt"),
       t("quick"),
       `<p class="muted small-text">${escapeHtml(t("quickHint"))}</p>
        <div class="row quick" data-busy-group>
-        <button type="button" class="ghost" id="postNow">📝 ${escapeHtml(t("postNow"))}</button>
-        ${mods.quiz ? `<button type="button" class="ghost" id="quizNow">🎯 ${escapeHtml(t("quizNow"))}</button>` : ""}
-        ${mods.leaderboard ? `<button type="button" class="ghost" id="boardNow">🏆 ${escapeHtml(t("boardNow"))}</button>` : ""}
+        <button type="button" class="ghost" id="postNow">${escapeHtml(t("postNow"))}</button>
+        ${mods.quiz ? `<button type="button" class="ghost" id="quizNow">${escapeHtml(t("quizNow"))}</button>` : ""}
+        ${mods.leaderboard ? `<button type="button" class="ghost" id="boardNow">${escapeHtml(t("boardNow"))}</button>` : ""}
       </div>`,
       "quick-card",
     ) : ""}
     ${
       access.role === "owner" || access.role === "super"
         ? section(
-            "🔌",
+            icon("plug"),
             t("dangerTitle"),
             `<p class="muted small-text">${escapeHtml(t("dangerHint"))}</p>
              <button type="button" class="danger wide-btn" id="disconnect">${escapeHtml(t("dangerTitle"))}</button>`,

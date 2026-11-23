@@ -25,6 +25,7 @@ const ERROR_KEY = {
   when: "lesWhenBad",
   student: "lesStudentBad",
   missing: "lesMissing",
+  link: "lesLinkBad",
 };
 
 let cache = null;
@@ -142,6 +143,9 @@ function paintForm(row, presetStudent) {
         <select class="input" id="les-student">${options}</select></label>
       <label class="field"><span class="field-label">${escapeHtml(t("lesWhen"))}</span>
         ${whenInput("les-when", whenValue(row && row.starts_at))}</label>
+      <label class="field"><span class="field-label">${escapeHtml(t("lesLink"))}</span>
+        <input class="input" id="les-link" type="url" inputmode="url" maxlength="500" placeholder="https://zoom.us/j/…" value="${escapeHtml(row ? row.meeting_url || "" : "")}">
+        <span class="form-hint">${escapeHtml(t("lesLinkHint"))}</span></label>
       <label class="field"><span class="field-label">${escapeHtml(t("stuAmount"))}</span>
         <input class="input" id="les-amount" inputmode="numeric" value="${row ? row.amount_uzs : 0}"></label>
       <label class="field"><span class="field-label">${escapeHtml(t("stuNote"))}</span>
@@ -186,6 +190,7 @@ async function save(row) {
     starts_at: readWhen("les-when"),
     amount_uzs: amount,
     note: document.getElementById("les-note").value,
+    meeting_url: document.getElementById("les-link").value.trim(),
     status: document.getElementById("les-status").getAttribute("data-value"),
   };
   const path = row ? `/api/tutor/lessons/${row.id}` : "/api/tutor/lessons";

@@ -10,6 +10,7 @@ from app.db.models.users import User
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.services.clock import TASHKENT, Clock, utcnow
+from app.services.meeting_link import clean_meeting_url
 from app.services.sessions import SessionError
 
 TITLE_MAX = 120
@@ -63,6 +64,7 @@ class SessionView:
                 "ends_at": end,
                 "planned_at": start,
                 "note": None,
+                "meeting_url": _link(body.get("meeting_url")),
             }
         )
         if new_id is None:
@@ -84,6 +86,8 @@ class SessionView:
             row.status = _status(body.get("status"))
         if "note" in body:
             row.note = _note(body.get("note"))
+        if "meeting_url" in body:
+            row.meeting_url = _link(body.get("meeting_url"))
         if "starts_at" in body or "ends_at" in body:
             start = _wall(body["starts_at"]) if "starts_at" in body else row.starts_at
             end = _wall(body["ends_at"]) if "ends_at" in body else row.ends_at
@@ -134,6 +138,7 @@ def _public(row: TutorLesson, group_name: str | None, teacher_name: str | None =
         "status": row.status,
         "title": row.title,
         "source": row.source,
+        "meeting_url": row.meeting_url,
     }
     if teacher_name is not None:
         data["teacher_name"] = teacher_name
@@ -218,3 +223,10 @@ def _note(value: object) -> str | None:
     if len(text) > NOTE_MAX:
         raise SessionError("note")
     return text
+
+
+def _link(value: object) -> str | None:
+    try:
+        return clean_meeting_url(value)
+    except ValueError as exc:
+        raise SessionError("link") from exc

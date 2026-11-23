@@ -198,3 +198,47 @@ async def test_owner_week_hides_other_teachers_and_pending_groups(client) -> Non
     by_id = {row["id"]: row for row in await after.json()}
     assert by_id[future[0]["id"]]["title"] == "Kochdi"
     assert by_id[future[1]["id"]]["status"] == "cancelled"
+
+
+_ZOOM = "https://us05web.zoom.us/j/123456789?pwd=abc"
+
+
+async def test_session_link_reaches_the_owner_week(client) -> None:
+    http, heads, _sessions = client
+    created = await http.post(
+        "/api/tutor/groups",
+        headers=heads["owner"],
+        json={
+            "name": "Ingliz",
+            "weekdays": [1, 2, 3, 4, 5, 6, 7],
+            "start": "23:00",
+            "end": "23:30",
+        },
+    )
+    group_id = (await created.json())["created_id"]
+    today = datetime.now(TASHKENT).date().isoformat()
+    rows = await (
+        await http.get(f"/api/tutor/sessions?from={today}&to={today}", headers=heads["owner"])
+    ).json()
+    session_id = next(row["id"] for row in rows if row["group_id"] == group_id)
+    saved = await http.patch(
+        f"/api/tutor/sessions/{session_id}", headers=heads["owner"], json={"meeting_url": _ZOOM}
+    )
+    assert saved.status == 200 and (await saved.json())["meeting_url"] == _ZOOM
+    bad = await http.patch(
+        f"/api/tutor/sessions/{session_id}",
+        headers=heads["owner"],
+        json={"meeting_url": "ftp://x.uz/a"},
+    )
+    assert bad.status == 400 and (await bad.json())["error"] == "link"
+    extra = await http.post(
+        f"/api/tutor/groups/{group_id}/sessions",
+        headers=heads["owner"],
+        json={
+            "title": "Qo'shimcha",
+            "starts_at": f"{today}T07:00",
+            "ends_at": f"{today}T08:00",
+            "meeting_url": _ZOOM,
+        },
+    )
+    assert extra.status == 200 and (await extra.json())["meeting_url"] == _ZOOM

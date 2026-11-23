@@ -333,6 +333,7 @@
   "backup_failed": "⚠️ Bugungi baza zaxirasi olinmadi (sabab: {code}). Render loglarini tekshiring.",
   "pay_receipt_app": "🧾 Mini App orqali yuborilgan chek · {ref}\nAdmin tekshiradi, natija shu yerga keladi.",
   "notify_lesson": "Dars {gap} keyin: {title}, {time}",
+  "lesson_join": "Darsga kirish",
   "notify_gap_15": "15 daqiqadan",
   "notify_gap_30": "30 daqiqadan",
   "notify_gap_60": "1 soatdan",

@@ -1,5 +1,6 @@
 import { api, cached, forget, go, haptic, isManager, isStudent, isTutor, load, loadDash, openLink, persist, remember, state, tg } from "./api.js";
 import { setLang } from "./i18n.js";
+import { icon } from "./icons.js";
 import { labelNav } from "./nav.js";
 import {
   current,
@@ -34,10 +35,10 @@ export function profileWarmPaths() {
 
 /* ---------- building blocks ---------- */
 
-function row({ icon, color, title, sub = "", value = "", go: target = "", act = "", chevron = true }) {
+function row({ icon: name, title, sub = "", value = "", go: target = "", act = "", chevron = true }) {
   const attrs = target ? `data-go="${escapeHtml(target)}"` : act ? `data-act="${escapeHtml(act)}"` : "";
   return `<button type="button" class="lrow" ${attrs}>
-    <span class="tile" style="--tile:${color}">${icon}</span>
+    <span class="tile">${icon(name)}</span>
     <span class="lrow-text"><span class="lrow-title">${escapeHtml(title)}</span>${sub ? `<span class="lrow-sub">${escapeHtml(sub)}</span>` : ""}</span>
     ${value ? `<span class="lrow-value">${escapeHtml(value)}</span>` : ""}
     ${chevron ? `<span class="chev" aria-hidden="true">›</span>` : ""}
@@ -128,18 +129,18 @@ export function renderProfile() {
       <div class="phead-pills">${pills}</div>
     </div>
     ${group(t("secMain"), [
-      manager ? row({ icon: "🔔", color: "#f59e0b", title: t("rowNotify"), value: notifyValue, go: "profile/notify" }) : "",
-      row({ icon: "🌐", color: "#3b82f6", title: t("rowLang"), value: langName(user.language), go: "profile/lang" }),
-      student ? "" : row({ icon: "🎓", color: "#14b8a6", title: t(isTutor() ? "navCabinet" : "cabEnable"), go: "cabinet" }),
-      isStudent() ? row({ icon: "🎒", color: "#0ea5e9", title: t("studyNav"), go: "study" }) : "",
-      manager ? row({ icon: "🕐", color: "#8b5cf6", title: t("rowTz"), sub: t("rowTzSub"), value: zone ? zoneName(zone) : "", go: "profile/tz" }) : "",
+      manager ? row({ icon: "bell", title: t("rowNotify"), value: notifyValue, go: "profile/notify" }) : "",
+      row({ icon: "globe", title: t("rowLang"), value: langName(user.language), go: "profile/lang" }),
+      student ? "" : row({ icon: "cap", title: t(isTutor() ? "navCabinet" : "cabEnable"), go: "cabinet" }),
+      isStudent() ? row({ icon: "book", title: t("studyNav"), go: "study" }) : "",
+      manager ? row({ icon: "clock", title: t("rowTz"), sub: t("rowTzSub"), value: zone ? zoneName(zone) : "", go: "profile/tz" }) : "",
     ])}
     ${
       showsPlan()
         ? group(t("secSub"), [
-            row({ icon: "💎", color: "#06b6d4", title: t("rowPlan"), value: plan.plan_name || "", go: "profile/plan" }),
-            row({ icon: "💳", color: "#22c55e", title: t("rowPayments"), sub: t("rowPaymentsSub"), go: "profile/payments" }),
-            founder ? row({ icon: "🎁", color: "#ec4899", title: t("rowFounder"), value: founder, go: "profile/founder" }) : "",
+            row({ icon: "gem", title: t("rowPlan"), value: plan.plan_name || "", go: "profile/plan" }),
+            row({ icon: "card", title: t("rowPayments"), sub: t("rowPaymentsSub"), go: "profile/payments" }),
+            founder ? row({ icon: "gift", title: t("rowFounder"), value: founder, go: "profile/founder" }) : "",
           ])
         : ""
     }
@@ -147,17 +148,17 @@ export function renderProfile() {
       student
         ? ""
         : group(t("secChats"), [
-            manager ? row({ icon: "💬", color: "#0ea5e9", title: t("rowChats"), value: t("valCount", { n: chats.length }), go: "chats" }) : "",
-            row({ icon: "➕", color: "#10b981", title: manager ? t("rowConnect") : t("ownCtaBtn"), sub: t("rowConnectSub"), go: "profile/connect" }),
+            manager ? row({ icon: "chat", title: t("rowChats"), value: t("valCount", { n: chats.length }), go: "chats" }) : "",
+            row({ icon: "plus", title: manager ? t("rowConnect") : t("ownCtaBtn"), sub: t("rowConnectSub"), go: "profile/connect" }),
           ])
     }
     ${group(t("secHelp"), [
-      me.support ? row({ icon: "💬", color: "#6366f1", title: t("rowSupport"), value: `@${me.support}`, act: "support" }) : "",
-      row({ icon: "❓", color: "#f97316", title: t("rowFaq"), go: "profile/faq" }),
+      me.support ? row({ icon: "chat", title: t("rowSupport"), value: `@${me.support}`, act: "support" }) : "",
+      row({ icon: "help", title: t("rowFaq"), go: "profile/faq" }),
     ])}
     ${group(t("secDocs"), [
-      row({ icon: "📄", color: "#64748b", title: t("rowTerms"), go: "profile/terms" }),
-      row({ icon: "🔒", color: "#475569", title: t("rowPrivacy"), go: "profile/privacy" }),
+      row({ icon: "doc", title: t("rowTerms"), go: "profile/terms" }),
+      row({ icon: "lock", title: t("rowPrivacy"), go: "profile/privacy" }),
     ])}
     ${student ? `<button type="button" class="link-muted" data-go="cabinet">${escapeHtml(t("cabTeacherAsk"))}</button>` : ""}
     <p class="app-foot">${escapeHtml(t("appVersion"))}</p>
@@ -231,20 +232,20 @@ async function patchSettings(body) {
 
 function renderNotify(seq) {
   return withData(SETTINGS, seq, (prefs) => {
-    const sw = (id, on, title, hint, icon, color) => `<label class="lrow">
-      <span class="tile" style="--tile:${color}">${icon}</span>
+    const sw = (id, on, title, hint, name) => `<label class="lrow">
+      <span class="tile">${icon(name)}</span>
       <span class="lrow-text"><span class="lrow-title">${escapeHtml(title)}</span><span class="lrow-sub">${escapeHtml(hint)}</span></span>
       <input type="checkbox" class="switch" id="${id}"${on ? " checked" : ""} />
     </label>`;
-    const info = (icon, title) => `<div class="lrow static"><span class="tile" style="--tile:#334155">${icon}</span>
+    const info = (name, title) => `<div class="lrow static"><span class="tile">${icon(name)}</span>
       <span class="lrow-text"><span class="lrow-title">${escapeHtml(title)}</span></span><span class="lrow-value">✓</span></div>`;
     setHtml(`
       ${subHead(t("rowNotify"))}
       ${group("", [
-        sw("notify_reports", prefs.notify_reports, t("ntReports"), t("ntReportsHint"), "📊", "#f59e0b"),
-        sw("notify_expiry", prefs.notify_expiry, t("ntExpiry"), t("ntExpiryHint"), "⏳", "#ef4444"),
+        sw("notify_reports", prefs.notify_reports, t("ntReports"), t("ntReportsHint"), "chart"),
+        sw("notify_expiry", prefs.notify_expiry, t("ntExpiry"), t("ntExpiryHint"), "hourglass"),
       ])}
-      ${group(t("ntAlways"), [info("💳", t("ntAlwaysPay")), info("⚠️", t("ntAlwaysGone"))])}
+      ${group(t("ntAlways"), [info("card", t("ntAlwaysPay")), info("alert", t("ntAlwaysGone"))])}
       <p class="muted small-text pad-x">${escapeHtml(t("ntWhere"))}</p>
     `);
     bindRows();
@@ -386,7 +387,7 @@ function renderFounder() {
   const slots = plan.founder_slots || 0;
   const left = plan.founder_remaining || 0;
   const status = plan.founder_keep
-    ? `<p class="ok">✅ ${escapeHtml(t("founderKeep"))}</p>`
+    ? `<p class="ok">${escapeHtml(t("founderKeep"))}</p>`
     : left > 0
       ? `<p class="big">${escapeHtml(t("founderLeft", { left, slots }))}</p>`
       : `<p class="muted">${escapeHtml(t("founderGone"))}</p>`;
@@ -394,7 +395,7 @@ function renderFounder() {
   setHtml(`
     ${subHead(t("rowFounder"))}
     <div class="card">
-      <div class="founder-badge">🎁 −30%</div>
+      <div class="founder-badge">−30%</div>
       <p>${escapeHtml(t("founderAbout", { slots }))}</p>
       ${status}
       ${slots ? `<div class="meter"><i style="width:${pct}%"></i></div>` : ""}
@@ -436,7 +437,7 @@ function paintConnect(data, seq) {
   const items = pending
     .map(
       (item) => `<div class="lrow static pending-row" data-busy-group>
-        <span class="tile" style="--tile:${item.type === "channel" ? "#0ea5e9" : "#10b981"}">${item.type === "channel" ? "📢" : "👥"}</span>
+        <span class="tile">${icon(item.type === "channel" ? "megaphone" : "users")}</span>
         <span class="lrow-text"><span class="lrow-title">${escapeHtml(item.title || String(item.telegram_chat_id))}</span></span>
         <button type="button" class="ghost small" data-decline="${item.telegram_chat_id}">${escapeHtml(t("cnDecline"))}</button>
         <button type="button" class="primary small" data-confirm="${item.telegram_chat_id}"${data.can_confirm === false ? " disabled" : ""}>${escapeHtml(t("cnConfirm"))}</button>
@@ -452,16 +453,16 @@ function paintConnect(data, seq) {
         <li>${escapeHtml(t("cnStep3"))}</li>
       </ol>
       <div class="cn-links">
-        ${links.group ? `<button type="button" class="primary" data-link="${escapeHtml(links.group)}">👥 ${escapeHtml(t("cnGroup"))}</button>` : ""}
-        ${links.channel ? `<button type="button" class="ghost" data-link="${escapeHtml(links.channel)}">📢 ${escapeHtml(t("cnChannel"))}</button>` : ""}
+        ${links.group ? `<button type="button" class="primary" data-link="${escapeHtml(links.group)}">${escapeHtml(t("cnGroup"))}</button>` : ""}
+        ${links.channel ? `<button type="button" class="ghost" data-link="${escapeHtml(links.channel)}">${escapeHtml(t("cnChannel"))}</button>` : ""}
       </div>
       ${limit}
     </div>
     <div class="lgroup-title">${escapeHtml(t("cnPending"))}</div>
     ${items ? `<div class="lgroup-body">${items}</div>${full}` : `<div class="card muted">${escapeHtml(t("cnNone"))}</div>`}
     <div class="row quick">
-      <button type="button" class="ghost" id="cnRefresh">🔄 ${escapeHtml(t("cnRefresh"))}</button>
-      ${links.bot ? `<button type="button" class="ghost" data-link="${escapeHtml(links.bot)}">🤖 ${escapeHtml(t("cnInBot"))}</button>` : ""}
+      <button type="button" class="ghost" id="cnRefresh">${escapeHtml(t("cnRefresh"))}</button>
+      ${links.bot ? `<button type="button" class="ghost" data-link="${escapeHtml(links.bot)}">${escapeHtml(t("cnInBot"))}</button>` : ""}
     </div>
   `);
   bindRows();
@@ -540,7 +541,7 @@ function renderFaq() {
   setHtml(`
     ${subHead(t("rowFaq"))}
     <div class="lgroup-body faq-list">${items}</div>
-    ${support ? group("", [row({ icon: "💬", color: "#6366f1", title: t("rowSupport"), value: `@${support}`, act: "support" })]) : ""}
+    ${support ? group("", [row({ icon: "chat", title: t("rowSupport"), value: `@${support}`, act: "support" })]) : ""}
   `);
   bindRows();
 }

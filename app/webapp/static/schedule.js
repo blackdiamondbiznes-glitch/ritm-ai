@@ -25,6 +25,7 @@ const ERROR_KEY = {
   range: "schRange",
   choice: "error",
   note: "stuNoteLong",
+  link: "lesLinkBad",
 };
 const STATUS_KEY = { scheduled: "lesScheduled", done: "lesDone", cancelled: "lesCancelled" };
 
@@ -114,6 +115,9 @@ function paintOne(row) {
         ${whenInput("sch-start", wall(row.starts_at))}</label>
       <label class="field"><span class="field-label">${escapeHtml(t("schEnd"))}</span>
         ${clockInput("sch-end-time", wall(end).slice(11, 16))}</label>
+      <label class="field"><span class="field-label">${escapeHtml(t("lesLink"))}</span>
+        <input class="input" id="sch-link" type="url" inputmode="url" maxlength="500" placeholder="https://zoom.us/j/…" value="${escapeHtml(row.meeting_url || "")}">
+        <span class="form-hint">${escapeHtml(t("lesLinkHint"))}</span></label>
       <p class="stu-meta">${escapeHtml(t(STATUS_KEY[row.status] || "lesScheduled"))}</p>
       ${row.group_id ? `<a class="ghost att-back" href="#/cabinet/schedule/${row.id}/attendance">${escapeHtml(t("attNav"))}</a>` : ""}
       <button type="button" class="primary" id="sch-save">${escapeHtml(t("save"))}</button>
@@ -132,6 +136,7 @@ function paintOne(row) {
       title: document.getElementById("sch-title").value,
       starts_at: readWhen("sch-start"),
       ends_at: endWall(readWhen("sch-start"), readClock("sch-end-time")),
+      meeting_url: document.getElementById("sch-link").value.trim(),
     }),
   );
   bindAction("sch-done", () => send(row, { status: "done" }));

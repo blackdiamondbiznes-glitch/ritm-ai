@@ -23,7 +23,7 @@ export function cabinetSwitch(active) {
     ["reminders", "remTitle"],
     ["fees", "feeNav"],
   ];
-  return `<div class="seg">${keys.map(([id, key]) => item(id, key)).join("")}</div>`;
+  return `<div class="seg cab-switch">${keys.map(([id, key]) => item(id, key)).join("")}</div>`;
 }
 
 export function bindCabinetSwitch() {

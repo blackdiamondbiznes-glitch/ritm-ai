@@ -150,3 +150,30 @@ async def test_teacher_name_is_saved_trimmed_and_cleared(client) -> None:
     assert bad.status == 400
     cleared = await http.post("/api/tutor/name", headers=heads["owner"], json={"name": ""})
     assert (await cleared.json())["teacher_name"] == ""
+
+
+_ZOOM = "https://us05web.zoom.us/j/123456789?pwd=abc"
+
+
+async def test_lesson_api_saves_checks_and_clears_the_link(client) -> None:
+    http, heads = client
+    created = await http.post(
+        "/api/tutor/lessons",
+        headers=heads["owner"],
+        json={"title": "Algebra", "meeting_url": _ZOOM},
+    )
+    assert created.status == 200
+    row = (await created.json())["lessons"][0]
+    assert row["meeting_url"] == _ZOOM
+    bad = await http.patch(
+        f"/api/tutor/lessons/{row['id']}", headers=heads["owner"], json={"meeting_url": "zoom"}
+    )
+    assert bad.status == 400 and (await bad.json())["error"] == "link"
+    kept = await http.patch(
+        f"/api/tutor/lessons/{row['id']}", headers=heads["owner"], json={"status": "done"}
+    )
+    assert (await kept.json())["lessons"][0]["meeting_url"] == _ZOOM
+    cleared = await http.patch(
+        f"/api/tutor/lessons/{row['id']}", headers=heads["owner"], json={"meeting_url": ""}
+    )
+    assert (await cleared.json())["lessons"][0]["meeting_url"] is None

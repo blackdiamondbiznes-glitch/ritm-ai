@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { icon } from "./icons.js";
 import { escapeHtml, t } from "./ui.js";
 
 const TZ = "Asia/Tashkent";
@@ -46,5 +47,10 @@ function one(row) {
   return `<div class="stu-row"><div>
     <div class="chat-name">${escapeHtml(row.group_name || row.title)}</div>
     <div class="stu-meta">${escapeHtml(`${when}${teacher}`)}</div>
-  </div></div>`;
+  </div></div>${join(row.meeting_url)}`;
+}
+
+function join(url) {
+  if (!url) return "";
+  return `<button type="button" class="primary join-btn" data-open-url="${escapeHtml(url)}">${icon("video")}<span>${escapeHtml(t("learnJoin"))}</span></button>`;
 }

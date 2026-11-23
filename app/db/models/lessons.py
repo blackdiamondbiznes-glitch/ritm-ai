@@ -65,6 +65,7 @@ class TutorLesson(Base):
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     planned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(String(300))
+    meeting_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -295,4 +295,8 @@ export default {
   lesStudentBad: "Bu o‘quvchi sizniki emas.",
   lesMissing: "Dars topilmadi.",
   lesDeleteAsk: "Bu darsni o‘chirasizmi?",
+  lesLink: "Online dars havolasi",
+  lesLinkHint: "Zoom, Google Meet yoki boshqa havola. O‘quvchiga eslatmada va “O‘qishim”da chiqadi.",
+  lesLinkBad: "Havola https:// bilan boshlanishi kerak (500 belgigacha).",
+  learnJoin: "Darsga kirish",
 };

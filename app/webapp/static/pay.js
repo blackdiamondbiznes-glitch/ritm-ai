@@ -45,7 +45,7 @@ function paint(data, ui) {
   else if (data.plans && data.plans.length && data.cards && data.cards.length) body = pickerCard(data);
   else body = data.failed ? "" : `<div class="card muted">${escapeHtml(t("payUnconfigured"))}</div>`;
   const bot = state.me && state.me.bot_username
-    ? `<button type="button" class="ghost wide" id="pay-bot">💬 ${escapeHtml(t("payBot"))}</button>`
+    ? `<button type="button" class="ghost wide" id="pay-bot">${escapeHtml(t("payBot"))}</button>`
     : "";
   setHtml(`${ui.subHead(t("rowPlan"))}${headCard()}${body}${bot}`);
   ui.bindRows();
@@ -93,7 +93,7 @@ function pickerCard(data) {
     .join("");
   const old = period.regular_total > period.amount ? `<span class="pay-old">${escapeHtml(som(period.regular_total))}</span>` : "";
   const save = period.savings ? `<p class="ok small-text">${escapeHtml(t("paySave", { p: period.percent, x: formatNumber(period.savings) }))}</p>` : "";
-  const founder = plan.founder ? `<div class="founder-badge">🎁 ${escapeHtml(t("payFounderBadge"))}</div>` : "";
+  const founder = plan.founder ? `<div class="founder-badge">${escapeHtml(t("payFounderBadge"))}</div>` : "";
   const facts = t("payPlanFacts", { c: plan.max_chats, a: formatNumber(plan.ai_limit) });
   return `<div class="card pay-pick">
     ${flow(1)}
@@ -107,7 +107,7 @@ function pickerCard(data) {
     ${period.months > 1 ? `<p class="muted small-text">${escapeHtml(t("payPerMonth", { x: formatNumber(period.per_month) }))}</p>` : ""}
     ${save}
     <label class="pay-check"><input type="checkbox" id="pay-accept"${pick.accept ? " checked" : ""} /> <span>${escapeHtml(t("payAccept"))}</span></label>
-    <button type="button" class="link-btn" data-go="profile/terms">📄 ${escapeHtml(t("payTermsLink"))}</button>
+    <button type="button" class="link-btn" data-go="profile/terms">${escapeHtml(t("payTermsLink"))}</button>
     <button type="button" class="primary" id="pay-start"${pick.accept ? "" : " disabled"}>${escapeHtml(t("payContinue"))}</button>
   </div>`;
 }
@@ -144,7 +144,7 @@ function invoiceCard(data) {
 function pendingCard(open, data) {
   const hint = open.status === "pending" ? t("payPendingHint", { h: data.review_hours || 12 }) : t("pst_disputed");
   return `<div class="card pay-wait">
-    <div class="card-title">⏳ ${escapeHtml(t("pst_pending"))}</div>
+    <div class="card-title">${escapeHtml(t("pst_pending"))}</div>
     ${copyRow(open.ref || `#${open.id}`, open.ref || `#${open.id}`, t("payRef"))}
     <p><strong>${escapeHtml(som(open.amount_uzs))}</strong> · ${escapeHtml(t("payMonths", { n: open.months }))}</p>
     <p class="muted small-text">${escapeHtml(hint)}</p>
@@ -262,7 +262,7 @@ function tashkentNow() {
 export function copyRow(value, shown, caption) {
   return `<button type="button" class="pay-card" data-copy="${escapeHtml(value)}">
     <span><div class="pay-card-num">${escapeHtml(shown)}</div><div class="pay-card-sub">${escapeHtml(caption)}</div></span>
-    <span class="pay-copy">📋 ${escapeHtml(t("payCopy"))}</span>
+    <span class="pay-copy">${escapeHtml(t("payCopy"))}</span>
   </button>`;
 }
 

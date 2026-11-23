@@ -76,6 +76,7 @@ class LessonRepository:
             TutorLesson.status == "scheduled",
             TutorLesson.starts_at == TutorLesson.planned_at,
             TutorLesson.starts_at > now,
+            TutorLesson.meeting_url.is_(None),
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())

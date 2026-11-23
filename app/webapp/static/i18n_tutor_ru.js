@@ -295,4 +295,8 @@ export default {
   lesStudentBad: "Этот ученик вам не принадлежит.",
   lesMissing: "Урок не найден.",
   lesDeleteAsk: "Удалить этот урок?",
+  lesLink: "Ссылка на онлайн-урок",
+  lesLinkHint: "Zoom, Google Meet или другая ссылка. Ученик увидит её в напоминании и в «Моей учёбе».",
+  lesLinkBad: "Ссылка должна начинаться с https:// (до 500 символов).",
+  learnJoin: "Войти на урок",
 };

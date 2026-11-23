@@ -10,6 +10,7 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from app.bot.widgets.dispatch import send_notice
+from app.bot.widgets.markup import with_join
 from app.db.models.jobs import Job
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.tutor_notices import TutorNoticeRepository
@@ -90,7 +91,13 @@ class TutorNotifyHandler:
                 except Exception:
                     logger.exception("notice widget failed id=%s", row.id)
             if not sent:
-                await self._bot.send_message(chat_id, text)
+                params = job.payload.get("params")
+                link = params.get("meeting_url") if isinstance(params, dict) else None
+                markup = with_join(None, link, str(job.payload.get("lang") or "uz"))
+                if markup is None:
+                    await self._bot.send_message(chat_id, text)
+                else:
+                    await self._bot.send_message(chat_id, text, reply_markup=markup)
         except TelegramForbiddenError as exc:
             await self._skip(row, "blocked")
             raise JobCancel("blocked") from exc
@@ -162,6 +169,7 @@ def _render(template: str, lang: object, params: object) -> str:
     data = dict(params) if isinstance(params, dict) else {}
     gap_min = data.pop("gap_min", None)
     data.pop("starts_at", None)
+    data.pop("meeting_url", None)
     safe = {key: escape(value) if isinstance(value, str) else value for key, value in data.items()}
     if gap_min is not None:
         safe["gap"] = t(f"notify_gap_{gap_min}", str(lang or "uz"))

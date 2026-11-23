@@ -1,51 +1,118 @@
+/*
+ * Ritm shell tokens (Hallmark "Dusk", restyled for a Telegram Mini App).
+ * One accent hue (274, periwinkle) in both schemes; apricot (62) only for
+ * "waiting / owed". Hex first for old WebViews, OKLCH where supported.
+ * api.js may replace --bg, --fg, --muted, --card and --nav-border with
+ * Telegram themeParams; every other colour derives from these.
+ */
 :root {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --fg: #ffffff;
-  --muted: #94a3b8;
-  --success: #22c55e;
-  --danger: #f87171;
-  --nav: #111827;
-  --nav-border: #334155;
-  --nav-fg: #cbd5e1;
-  --nav-active: #00d4ff;
-  --accent: #00d4ff;
-  --header-1: #7c4dff;
-  --header-2: #00d4ff;
-  --shadow: 0 10px 30px rgba(0, 212, 255, 0.15);
-  --radius: 22px;
-  --radius-sm: 20px;
-  --radius-lg: 24px;
-  --pad: 18px;
-  --font: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --bar-h: 88px;
+  --bg: #0e1017;
+  --card: #161921;
+  --card-2: #1e212a;
+  --fg: #f4f1ed;
+  --muted: #9fa5af;
+  --success: #6cd092;
+  --danger: #f47b74;
+  --warning: #f4ba87;
+  --accent: #a0b0f4;
+  --accent-ink: #0f1223;
+  --on-danger: #0e1017;
+  --knob: #f4f1ed;
+  --nav-border: #2c3039;
+  --shadow: 0 8px 24px rgba(5, 7, 14, 0.4);
+  --shadow-sm: 0 1px 3px rgba(5, 7, 14, 0.35);
+  --radius: 18px;
+  --radius-sm: 14px;
+  --radius-lg: 20px;
+  --radius-inner: 10px;
+  --pad: 16px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bar-h: 80px;
   --safe-top: 0px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+  --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-md: 16px;
   --fs-lg: 20px;
   --fs-xl: 24px;
-  --border: var(--nav-border);
-  --warning: #f59e0b;
+}
+
+@supports (color: oklch(0% 0 0)) {
+  :root {
+    --bg: oklch(17.5% 0.014 268);
+    --card: oklch(21.5% 0.016 268);
+    --card-2: oklch(25% 0.017 268);
+    --fg: oklch(96% 0.006 75);
+    --muted: oklch(72% 0.016 262);
+    --success: oklch(78% 0.13 155);
+    --danger: oklch(72% 0.15 25);
+    --warning: oklch(83% 0.095 62);
+    --accent: oklch(77% 0.1 274);
+    --accent-ink: oklch(19% 0.035 274);
+    --on-danger: oklch(17.5% 0.014 268);
+    --knob: oklch(96% 0.006 75);
+    --nav-border: oklch(31% 0.016 266);
+    --shadow: 0 8px 24px oklch(10% 0.022 268 / 0.4);
+    --shadow-sm: 0 1px 3px oklch(10% 0.022 268 / 0.35);
+  }
 }
 
 html[data-theme="light"] {
-  --bg: #f1f5f9;
-  --card: #ffffff;
-  --fg: #0f172a;
-  --muted: #64748b;
-  --danger: #dc2626;
-  --nav: #ffffff;
-  --nav-border: #e2e8f0;
-  --nav-fg: #475569;
-  --nav-active: #7c4dff;
-  --accent: #7c4dff;
-  --shadow: 0 10px 30px rgba(124, 77, 255, 0.14);
+  --bg: #f6f3ef;
+  --card: #fffdfb;
+  --card-2: #ebe7e2;
+  --fg: #161a25;
+  --muted: #535862;
+  --success: #0b7643;
+  --danger: #b63132;
+  --warning: #9f5c0c;
+  --accent: #4450a8;
+  --accent-ink: #f9fafd;
+  --on-danger: #fffdfb;
+  --knob: #fffdfb;
+  --nav-border: #dbd7d1;
+  --shadow: 0 6px 20px rgba(22, 26, 37, 0.08);
+  --shadow-sm: 0 1px 3px rgba(22, 26, 37, 0.2);
   color-scheme: light;
+}
+
+@supports (color: oklch(0% 0 0)) {
+  html[data-theme="light"] {
+    --bg: oklch(96.5% 0.006 75);
+    --card: oklch(99.5% 0.003 75);
+    --card-2: oklch(93% 0.008 75);
+    --fg: oklch(22% 0.022 268);
+    --muted: oklch(46% 0.018 266);
+    --success: oklch(50% 0.12 155);
+    --danger: oklch(52% 0.17 25);
+    --warning: oklch(54% 0.12 62);
+    --accent: oklch(47% 0.14 274);
+    --accent-ink: oklch(98.5% 0.004 274);
+    --on-danger: oklch(99.5% 0.003 75);
+    --knob: oklch(99.5% 0.003 75);
+    --nav-border: oklch(88% 0.009 75);
+    --shadow: 0 6px 20px oklch(22% 0.022 268 / 0.08);
+    --shadow-sm: 0 1px 3px oklch(22% 0.022 268 / 0.2);
+  }
+}
+
+/* Derived tokens: follow the base (and Telegram themeParams) automatically. */
+:root,
+html[data-theme="light"] {
+  --nav: var(--card);
+  --nav-fg: var(--muted);
+  --nav-active: var(--accent);
+  --border: var(--nav-border);
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--card));
+  --warning-soft: color-mix(in srgb, var(--warning) 16%, transparent);
+  --field-border: color-mix(in srgb, var(--muted) 70%, var(--card));
 }
 
 html[data-theme="dark"] {
@@ -61,6 +128,7 @@ html[data-theme="dark"] {
 
 html,
 body {
+  overflow-x: clip;
   background: var(--bg);
   color: var(--fg);
   min-height: 100%;

@@ -68,6 +68,8 @@ class NoticePlanner:
                 "time": clock,
                 "starts_at": lesson.starts_at.isoformat(),
             }
+            if lesson.meeting_url:
+                params["meeting_url"] = lesson.meeting_url
             for dest in await audience(self._groups, self._chats, self._users, group):
                 if await deliver(
                     self._notes,

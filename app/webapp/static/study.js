@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { icon } from "./icons.js";
 import { bindJoin, joinCard } from "./join_card.js";
 import { money } from "./money.js";
 import { current, escapeHtml, setHtml, showError, skeleton, t } from "./ui.js";
@@ -56,6 +57,7 @@ function card(item) {
     <div class="card-title">${escapeHtml(group.name || "")}${escapeHtml(level)}</div>
     <div class="stu-meta">${escapeHtml(group.teacher_name || "")} · ${escapeHtml(whenDays(group))}</div>
     <div class="stu-meta">${escapeHtml(nextLine(item.next_session))}</div>
+    ${joinButton(item.next_session)}
     ${attRow(item.attendance)}
     ${feeRow(item.fee)}
     <div class="stu-meta">${escapeHtml(rankLine(item.ranking))}</div>
@@ -137,6 +139,13 @@ function markRows(attendance) {
       return `<div class="stu-row"><div class="chat-name">${escapeHtml(stamp(item.starts_at))}</div><span>${escapeHtml(label)}</span></div>`;
     })
     .join("");
+}
+
+/** The online lesson link of the next lesson, when the teacher set one. */
+function joinButton(session) {
+  const url = session && session.status !== "cancelled" ? session.meeting_url : "";
+  if (!url) return "";
+  return `<button type="button" class="primary join-btn" data-open-url="${escapeHtml(url)}">${icon("video")}<span>${escapeHtml(t("learnJoin"))}</span></button>`;
 }
 
 function nextLine(session) {

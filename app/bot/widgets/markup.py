@@ -25,3 +25,14 @@ def cabinet_markup(lang: str) -> InlineKeyboardMarkup | None:
 def _one(text: str, url: str) -> InlineKeyboardMarkup:
     button = InlineKeyboardButton(text=text, web_app=WebAppInfo(url=url))
     return InlineKeyboardMarkup(inline_keyboard=[[button]])
+
+
+def with_join(
+    markup: InlineKeyboardMarkup | None, url: object, lang: str
+) -> InlineKeyboardMarkup | None:
+    """Put a plain URL button for the online lesson above any other buttons."""
+    if not isinstance(url, str) or not url.startswith(("http://", "https://")):
+        return markup
+    join = [InlineKeyboardButton(text=t("lesson_join", lang), url=url)]
+    rows = list(markup.inline_keyboard) if markup is not None else []
+    return InlineKeyboardMarkup(inline_keyboard=[join, *rows])

@@ -10,7 +10,7 @@ from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.widgets.markup import cabinet_markup, study_markup
+from app.bot.widgets.markup import cabinet_markup, study_markup, with_join
 from app.bot.widgets.send import send_card
 from app.db.models.invoices import TutorInvoice
 from app.db.models.lessons import TutorLesson
@@ -50,10 +50,13 @@ async def send_notice(
     kind = _kind_for(notice)
     if kind is None:
         return False
+    params = dict(params) if params else None
+    link = params.pop("meeting_url", None) if params else None
     data = await _state(session, notice, lang, kind, params)
     if data is None:
         return False
     markup = cabinet_markup(lang) if notice.target == "owner" else study_markup(lang)
+    markup = with_join(markup, link, lang)
     queries = kind in {"lesson", "fee", "attendance"}
     message = await send_card(
         bot,

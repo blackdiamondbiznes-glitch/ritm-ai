@@ -12,6 +12,7 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
 from app.services.clock import TASHKENT
+from app.services.meeting_link import clean_meeting_url
 from app.services.workspaces import WorkspaceService
 
 STATUSES = frozenset({"scheduled", "done", "cancelled"})
@@ -40,6 +41,7 @@ class LessonInput:
     amount_uzs: int
     starts_at: datetime | None
     note: str | None
+    meeting_url: str | None = None
 
 
 class LessonService:
@@ -84,6 +86,7 @@ class LessonService:
                 amount_uzs=parsed.amount_uzs,
                 starts_at=parsed.starts_at,
                 note=parsed.note,
+                meeting_url=parsed.meeting_url,
                 created_at=now,
                 updated_at=now,
             )
@@ -103,6 +106,7 @@ class LessonService:
         row.amount_uzs = parsed.amount_uzs
         row.starts_at = parsed.starts_at
         row.note = parsed.note
+        row.meeting_url = parsed.meeting_url
         row.updated_at = datetime.now(UTC)
         await self._lessons.save(row)
         return await self.list(owner_id)
@@ -150,6 +154,10 @@ def parse_lesson(body: dict, current: TutorLesson | None = None) -> LessonInput:
         note = _note(body.get("note"))
     else:
         note = current.note
+    if "meeting_url" in body:
+        meeting_url = _link(body.get("meeting_url"))
+    else:
+        meeting_url = None if current is None else current.meeting_url
     return LessonInput(
         title=title,
         student_id=student_id,
@@ -157,6 +165,7 @@ def parse_lesson(body: dict, current: TutorLesson | None = None) -> LessonInput:
         amount_uzs=amount,
         starts_at=starts_at,
         note=note,
+        meeting_url=meeting_url,
     )
 
 
@@ -180,6 +189,7 @@ def _payload(
                 "amount_uzs": row.amount_uzs,
                 "starts_at": row.starts_at.isoformat() if row.starts_at else None,
                 "note": row.note,
+                "meeting_url": row.meeting_url,
             }
         )
     brief = [{"id": row.id, "name": row.name} for row in students]
@@ -248,3 +258,10 @@ def _note(value: object) -> str | None:
     if len(text) > NOTE_MAX:
         raise LessonError("note")
     return text
+
+
+def _link(value: object) -> str | None:
+    try:
+        return clean_meeting_url(value)
+    except ValueError as exc:
+        raise LessonError("link") from exc
