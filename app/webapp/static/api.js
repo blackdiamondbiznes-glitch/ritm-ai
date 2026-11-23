@@ -23,7 +23,16 @@ export function applyTheme() {
   tg.expand();
   const scheme = tg.colorScheme === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = scheme;
-  const bg = scheme === "light" ? "#f1f5f9" : BRAND;
+  const params = tg.themeParams || {};
+  const root = document.documentElement.style;
+  if (params.bg_color) root.setProperty("--bg", params.bg_color);
+  if (params.text_color) root.setProperty("--fg", params.text_color);
+  if (params.hint_color) root.setProperty("--muted", params.hint_color);
+  if (params.secondary_bg_color) root.setProperty("--card", params.secondary_bg_color);
+  if (params.section_separator_color) root.setProperty("--nav-border", params.section_separator_color);
+  const inset = tg.contentSafeAreaInset || tg.safeAreaInset;
+  if (inset && inset.top) root.setProperty("--safe-top", `${inset.top}px`);
+  const bg = params.bg_color || (scheme === "light" ? "#f1f5f9" : BRAND);
   try {
     tg.setHeaderColor(bg);
     tg.setBackgroundColor(bg);
@@ -33,6 +42,7 @@ export function applyTheme() {
   if (tg.onEvent && !applyTheme.bound) {
     applyTheme.bound = true;
     tg.onEvent("themeChanged", () => applyTheme());
+    if (tg.onEvent) tg.onEvent("contentSafeAreaChanged", () => applyTheme());
   }
 }
 
@@ -93,12 +103,12 @@ export function restoreSession() {
   return Boolean(state.dash);
 }
 
-function applyLanguage(me) {
+async function applyLanguage(me) {
   const code =
     (me && me.user && me.user.language) ||
     (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) ||
     "uz";
-  setLang(code);
+  await setLang(code);
 }
 
 async function rawFetch(path, options = {}) {
@@ -181,7 +191,7 @@ export function bootstrap() {
       state.dash = dash;
       cache.set("/api/stats", { at: Date.now(), data: dash });
     }
-    applyLanguage(me);
+    await applyLanguage(me);
     writeStore();
     return data;
   })();

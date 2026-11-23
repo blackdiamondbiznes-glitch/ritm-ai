@@ -8,7 +8,7 @@
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 16px 16px calc(var(--bar-h) + env(safe-area-inset-bottom, 0px));
+  padding: max(16px, env(safe-area-inset-top, 0px), var(--safe-top, 0px)) 16px calc(var(--bar-h) + env(safe-area-inset-bottom, 0px));
 }
 
 .header {
@@ -402,7 +402,7 @@
 /* ---------- v3 polish: sections, loading states, touch targets ---------- */
 
 button { min-height: 44px; }
-.nav-item, .chip-btn { min-height: 40px; }
+.nav-item, .chip-btn { min-height: 44px; }
 button:disabled { opacity: 0.6; cursor: default; }
 
 .page-title { font-size: 20px; font-weight: 700; margin: 4px 4px 12px; }
@@ -579,6 +579,7 @@ button.busy::after {
 .boot {
   position: fixed;
   inset: 0;
+  padding-top: max(env(safe-area-inset-top, 0px), var(--safe-top, 0px));
   z-index: 80;
   display: flex;
   flex-direction: column;
@@ -606,7 +607,7 @@ button.busy::after {
 .badge-dot { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--danger, #ef4444); color: #fff; font-weight: 700; font-size: 12px; }
 .req-badge { border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 45%, transparent); }
 .join-result { white-space: pre-line; margin-top: 8px; }
-.cell-btn { min-width: 32px; min-height: 32px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.cell-btn { min-width: 44px; min-height: 44px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .pay-old { text-decoration: line-through; margin-right: 6px; opacity: 0.7; }
 .field-check { display: flex; gap: 10px; align-items: flex-start; }
 .field-check input { margin-top: 4px; flex: 0 0 auto; }
@@ -713,8 +714,8 @@ button.busy::after {
 .adm-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 .adm-actions button { flex: 1 1 30%; margin-top: 0; }
 .danger { background: color-mix(in srgb, var(--danger) 16%, var(--card)); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); border-radius: 14px; padding: 12px 16px; font-weight: 600; }
-.link-btn { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-align: left; min-height: 0; }
-.adm-back { margin: 0 4px 8px; min-height: 32px; }
+.link-btn { background: none; border: 0; padding: 8px 0; color: var(--accent); cursor: pointer; text-align: left; min-height: 44px; }
+.adm-back { margin: 0 4px 8px; min-height: 44px; }
 .adm-search, .card textarea, .adm-form-row select, .adm-form-row input { width: 100%; border-radius: 12px; border: 1px solid var(--nav-border); background: var(--card); color: var(--fg); padding: 11px 12px; font: inherit; margin-bottom: 12px; }
 .card textarea { resize: vertical; margin: 10px 0; display: block; }
 .adm-form-row { display: flex; gap: 8px; margin-top: 8px; }

@@ -18,14 +18,22 @@ export function setHtml(html) {
   root.innerHTML = html;
 }
 
-export function showError(err) {
+export function showError(err, retry) {
   const key =
     err && err.code === "not_owner"
       ? "denied"
       : err && (err.code === "tampered" || err.code === "expired" || err.code === "unauthorized" || err.status === 401)
         ? "auth"
         : "error";
-  setHtml(`<div class="card err">${escapeHtml(t(key))}</div>`);
+  setHtml(`<div class="card err" role="alert"><p>${escapeHtml(t(key))}</p>
+    <button type="button" class="primary" id="err-retry">${escapeHtml(t("retry"))}</button></div>`);
+  const button = document.getElementById("err-retry");
+  if (button) {
+    button.addEventListener("click", () => {
+      if (typeof retry === "function") retry();
+      else location.reload();
+    });
+  }
 }
 
 let renderSeq = 0;

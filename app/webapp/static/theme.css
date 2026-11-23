@@ -17,8 +17,9 @@
   --radius-sm: 20px;
   --radius-lg: 24px;
   --pad: 18px;
-  --font: Inter, "Segoe UI", system-ui, sans-serif;
+  --font: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --bar-h: 88px;
+  --safe-top: 0px;
 }
 
 html[data-theme="light"] {

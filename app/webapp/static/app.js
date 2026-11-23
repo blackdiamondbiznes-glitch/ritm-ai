@@ -1,32 +1,36 @@
 import { applyTheme, bootstrap, go, hasRole, isManager, isStudent, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
 import { applyRoleHint, chosenRole, mountRoles } from "./roles.js";
-import { adminWarmPaths, renderAdmin } from "./admin.js";
-import { renderBoard } from "./board.js";
-import { openChat, renderChats } from "./chats.js";
-import { MY_CHARTS, renderHistory } from "./history.js";
-import { renderHome } from "./home.js";
-import { renderChatProfile } from "./chatprofile.js";
-import { renderStudy, renderStudyDetail } from "./study.js";
-import { renderFeeForm } from "./fee_form.js";
-import { renderNotice } from "./notice.js";
-import { renderFees } from "./fees.js";
-import { renderGroups } from "./groups.js";
-import { renderLessons } from "./lessons.js";
-import { renderReminders } from "./reminders.js";
-import { renderMonth } from "./roll_month.js";
-import { renderRoll } from "./roll.js";
-import { renderSchedule } from "./schedule.js";
-import { renderStudents } from "./students.js";
-import { renderReports } from "./reports.js";
-import { renderCabinet } from "./summary.js";
 import { initScrollers } from "./scroller.js";
-import { isProfileSub, profileWarmPaths, renderProfile, renderProfileSub } from "./profile.js";
-import { chartPath, renderReport } from "./report.js";
 import { bindNav, labelNav, navTabs, syncChrome } from "./nav.js";
 import { current, setBusy, setHtml, showError, skeleton, ticket } from "./ui.js";
 
 const DASH_TTL = 20000;
 let dashAt = 0;
+
+const loaders = {
+  admin: () => import("./admin.js"),
+  board: () => import("./board.js"),
+  chats: () => import("./chats.js"),
+  history: () => import("./history.js"),
+  home: () => import("./home.js"),
+  chatprofile: () => import("./chatprofile.js"),
+  study: () => import("./study.js"),
+  fee_form: () => import("./fee_form.js"),
+  notice: () => import("./notice.js"),
+  fees: () => import("./fees.js"),
+  groups: () => import("./groups.js"),
+  lessons: () => import("./lessons.js"),
+  reminders: () => import("./reminders.js"),
+  roll_month: () => import("./roll_month.js"),
+  roll: () => import("./roll.js"),
+  schedule: () => import("./schedule.js"),
+  students: () => import("./students.js"),
+  reports: () => import("./reports.js"),
+  summary: () => import("./summary.js"),
+  profile: () => import("./profile.js"),
+  report: () => import("./report.js"),
+};
+
 
 async function boot() {
   applyTheme();
@@ -36,7 +40,7 @@ async function boot() {
   initScrollers(document.getElementById("main"));
   if (!location.hash) history.replaceState(null, "", "#/home");
   window.addEventListener("hashchange", () => {
-    route().catch(showError);
+    route().catch((err) => showError(err, () => route({ fresh: true })));
   });
   if (tg && tg.BackButton && tg.BackButton.onClick) {
     tg.BackButton.onClick(() => {
@@ -110,7 +114,7 @@ async function boot() {
     else if (!warm) await route({ fresh: true });
     warmUp();
   } catch (err) {
-    if (!warm) showError(err);
+    if (!warm) showError(err, () => boot());
   } finally {
     setBusy(false);
     const splash = document.getElementById("boot");
@@ -123,21 +127,34 @@ function skeletonFor(tab) {
   return "home";
 }
 
-function warmUp() {
+async function warmUp() {
   const chats = (state.dash && state.dash.chats) || [];
   const paths = [];
   const member = state.dash && state.dash.member;
-  if (member) {
-    paths.push("/api/me/stats", MY_CHARTS);
+  const { tab } = parseRoute();
+  if (member && (tab === "history" || tab === "board" || tab === "home")) {
+    const history = await loaders.history();
+    paths.push("/api/me/stats", history.MY_CHARTS);
     (member.chats || []).slice(0, 2).forEach((chat) => paths.push(`/api/chats/${chat.id}/leaderboard`));
   }
-  chats.slice(0, 3).forEach((chat) => {
-    paths.push(`/api/chats/${chat.id}/leaderboard`, `/api/chats/${chat.id}`);
-  });
-  if (chats[0]) paths.push(chartPath("all"));
-  paths.push(...profileWarmPaths());
-  if (hasRole("super_admin")) paths.push(...adminWarmPaths());
-  prefetch(paths);
+  if (tab === "chats" || tab === "home" || tab === "report" || tab === "board") {
+    chats.slice(0, 3).forEach((chat) => {
+      paths.push(`/api/chats/${chat.id}/leaderboard`, `/api/chats/${chat.id}`);
+    });
+    if (chats[0] && (tab === "report" || tab === "home")) {
+      const report = await loaders.report();
+      paths.push(report.chartPath("all"));
+    }
+  }
+  if (tab === "profile") {
+    const profile = await loaders.profile();
+    paths.push(...profile.profileWarmPaths());
+  }
+  if (hasRole("super_admin") && tab === "admin") {
+    const admin = await loaders.admin();
+    paths.push(...admin.adminWarmPaths());
+  }
+  if (paths.length) prefetch(paths);
 }
 
 async function route(opts = {}) {
@@ -158,68 +175,68 @@ async function route(opts = {}) {
   syncChrome();
   window.scrollTo(0, 0);
   if (tab === "chats" && sub === "edit" && id) {
-    await renderChatProfile(id, seq);
+    await (await loaders.chatprofile()).renderChatProfile(id, seq);
     return;
   }
   if (tab === "chats" && id) {
-    await openChat(id, seq);
+    await (await loaders.chats()).openChat(id, seq);
     return;
   }
   if (tab === "profile" && sub) {
-    if (!isProfileSub(sub)) {
+    if (!(await loaders.profile()).isProfileSub(sub)) {
       go("profile");
       return;
     }
-    await renderProfileSub(sub, seq);
+    await (await loaders.profile()).renderProfileSub(sub, seq);
     return;
   }
   if (tab === "board") {
-    await renderBoard(id, seq);
+    await (await loaders.board()).renderBoard(id, seq);
     return;
   }
   if (tab === "report") {
-    await renderReport(id, seq);
+    await (await loaders.report()).renderReport(id, seq);
     return;
   }
   if (tab === "history") {
-    await renderHistory(seq);
+    await (await loaders.history()).renderHistory(seq);
     return;
   }
   if (tab === "admin") {
-    await renderAdmin(sub, id, seq);
+    await (await loaders.admin()).renderAdmin(sub, id, seq);
     return;
   }
   if (tab === "boards" || tab === "study") {
-    if (tab === "study" && id) await renderStudyDetail(id, seq);
-    else await renderStudy(seq);
+    if (tab === "study" && id) await (await loaders.study()).renderStudyDetail(id, seq);
+    else await (await loaders.study()).renderStudy(seq);
     return;
   }
   if (tab === "cabinet") {
     if (!isTutor()) {
-      await renderCabinet(seq);
+      await (await loaders.summary()).renderCabinet(seq);
       return;
     }
     const fourth = hashFourth();
-    if (sub === "groups" && fourth === "attendance") await renderMonth(seq);
-    else if (sub === "groups" && fourth === "fee") await renderFeeForm(seq);
-    else if (sub === "groups" && fourth === "notice") await renderNotice(seq);
-    else if (sub === "groups") await renderGroups(seq);
-    else if (sub === "fees") await renderFees(seq);
-    else if (sub === "schedule" && fourth === "attendance") await renderRoll(seq);
-    else if (sub === "schedule") await renderSchedule(seq);
-    else if (sub === "lessons") await renderLessons(seq);
-    else if (sub === "reminders") await renderReminders(seq);
-    else if (sub === "reports") await renderReports(seq);
-    else if (sub === "students" || sub === "new" || id) await renderStudents(sub, id, seq);
-    else await renderCabinet(seq);
+    if (sub === "groups" && fourth === "attendance") await (await loaders.roll_month()).renderMonth(seq);
+    else if (sub === "groups" && fourth === "fee") await (await loaders.fee_form()).renderFeeForm(seq);
+    else if (sub === "groups" && fourth === "notice") await (await loaders.notice()).renderNotice(seq);
+    else if (sub === "groups") await (await loaders.groups()).renderGroups(seq);
+    else if (sub === "fees") await (await loaders.fees()).renderFees(seq);
+    else if (sub === "schedule" && fourth === "attendance") await (await loaders.roll()).renderRoll(seq);
+    else if (sub === "schedule") await (await loaders.schedule()).renderSchedule(seq);
+    else if (sub === "lessons") await (await loaders.lessons()).renderLessons(seq);
+    else if (sub === "reminders") await (await loaders.reminders()).renderReminders(seq);
+    else if (sub === "reports") await (await loaders.reports()).renderReports(seq);
+    else if (sub === "students" || sub === "new" || id) await (await loaders.students()).renderStudents(sub, id, seq);
+    else await (await loaders.summary()).renderCabinet(seq);
     return;
   }
-  const paint = () => {
-    if (tab === "chats") renderChats();
-    else if (tab === "profile") renderProfile();
-    else renderHome();
+  const paint = async () => {
+    if (tab === "chats") (await loaders.chats()).renderChats();
+    else if (tab === "profile") (await loaders.profile()).renderProfile();
+    else (await loaders.home()).renderHome();
   };
-  if (state.dash) paint();
+  if (state.dash) await paint();
   else setHtml(skeleton("home"));
   if (opts.fresh || !state.me) return;
   if (Date.now() - dashAt < DASH_TTL && state.dash) return;
@@ -227,9 +244,9 @@ async function route(opts = {}) {
   try {
     await loadDash();
     dashAt = Date.now();
-    if (current(seq)) paint();
+    if (current(seq)) await paint();
   } catch (err) {
-    if (current(seq) && !state.dash) showError(err);
+    if (current(seq) && !state.dash) showError(err, () => route({ fresh: true }));
   } finally {
     if (current(seq)) setBusy(false);
   }

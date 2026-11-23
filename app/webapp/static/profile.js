@@ -304,7 +304,7 @@ function renderLang() {
       haptic("light");
       await patchSettings({ language: code });
       if (state.me && state.me.user) state.me.user.language = code;
-      setLang(code);
+      await setLang(code);
       document.documentElement.lang = code;
       persist();
       labelNav();
