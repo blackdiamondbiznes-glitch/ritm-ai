@@ -27,6 +27,7 @@ from app.config import Settings
 from app.db.models.groups import TutorGroup
 from app.db.models.students import TutorStudent
 from app.db.models.users import User
+from app.db.models.widget_messages import WidgetMessage
 from app.db.models.workspaces import Workspace
 from app.i18n import t
 from app.services.pending import PendingChatStore
@@ -44,6 +45,7 @@ pytestmark = pytest.mark.skipif(not _URL.startswith("postgresql"), reason="Postg
 
 async def _purge(s) -> None:
     owners = select(User.id).where(User.telegram_id.in_(_IDS))
+    await s.execute(delete(WidgetMessage).where(WidgetMessage.telegram_id.in_(_IDS)))
     await s.execute(delete(TutorStudent).where(TutorStudent.owner_id.in_(owners)))
     await s.execute(delete(TutorGroup).where(TutorGroup.owner_id.in_(owners)))
     await s.execute(delete(Workspace).where(Workspace.owner_id.in_(owners)))

@@ -112,7 +112,7 @@ async def test_request_stays_hidden_until_the_teacher_approves(client) -> None:
         service = _svc(session)
         notes: list[tuple[str, str]] = []
 
-        async def notify(owner, name, group_name):
+        async def notify(owner, name, group_name, *_args):
             notes.append((name, group_name))
             await teacher_notifier(bot)(owner, name, group_name)
 

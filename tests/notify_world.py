@@ -14,6 +14,7 @@ from app.db.models.subscriptions import Subscription, SubscriptionSource, Subscr
 from app.db.models.tutor_notices import TutorNotice
 from app.db.models.usage import UsageCounter, UsageDaily
 from app.db.models.users import User
+from app.db.models.widget_messages import WidgetMessage
 from app.db.models.workspaces import Workspace
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.plans import PlanRepository
@@ -46,6 +47,7 @@ async def purge(session) -> None:
     ids = select(User.id).where(User.telegram_id.in_(_IDS))
     user_ids = list((await session.execute(ids)).scalars())
     targets = list(_IDS) + user_ids + [CHAT_TG]
+    await session.execute(delete(WidgetMessage).where(WidgetMessage.telegram_id.in_(_IDS)))
     await session.execute(delete(TutorNotice).where(TutorNotice.target_id.in_(targets)))
     await session.execute(delete(Job).where(Job.type == "tutor_notify"))
     if user_ids:
@@ -175,6 +177,7 @@ def handler(session, bot, now: datetime) -> TutorNotifyHandler:
         ),
         JobRepository(session),
         now=lambda: now,
+        session=session,
     )
 
 
