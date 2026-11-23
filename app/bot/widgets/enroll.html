@@ -1,0 +1,34 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:10px 12px 14px;font-family:system-ui,sans-serif;font-size:var(--tg-text-font-size,15px);line-height:var(--tg-text-line-height,1.35);color:var(--tg-theme-text-color)}
+h1{font-size:1.05em;margin:0 0 4px;font-weight:650}
+.m,.h{color:var(--tg-theme-hint-color);font-size:.9em;margin:2px 0}
+.v{margin:2px 0}
+.bad{color:var(--tg-theme-destructive-text-color)}
+.ok{color:var(--tg-theme-accent-text-color,#31b545)}
+.row{display:flex;gap:6px;margin-top:8px}
+.row button{flex:1}
+#msg{min-height:1.2em;margin-top:6px}</style></head><body>
+<h1 id="t"></h1><div class="v" id="who"></div><div class="m" id="st"></div>
+<div class="row" id="acts"><button type="button" id="yes"></button><button type="button" id="no"></button></div>
+<div class="h" id="msg"></div>
+<script>
+const W=window.TelegramWidget;
+function data(){try{return JSON.parse(W&&W.chatData||"{}")}catch(e){return {}}}
+function $(id){return document.getElementById(id)}
+function ask(d,fn){if(!W)return;const m=$("msg");if(m)m.textContent="…";W.request(d).then(a=>{if(fn)fn(a&&a.result);},e=>{if(m)m.textContent=(e&&e.code)||"err";});}
+const I={uz:{ask:"Yangi so‘rov",yes:"Tasdiqlash",no:"Rad etish",ok:"Tasdiqlandi",rej:"Rad etildi"},ru:{ask:"Новая заявка",yes:"Принять",no:"Отклонить",ok:"Принято",rej:"Отклонено"},en:{ask:"New request",yes:"Approve",no:"Reject",ok:"Approved",rej:"Rejected"}};
+function draw(){
+  const d=data(),x=I[d.l]||I.uz;
+  $("t").textContent=x.ask;
+  $("who").textContent=(d.name||"")+" → "+(d.g||"");
+  const done=d.st==="yes"||d.st==="no";
+  $("acts").hidden=done;
+  $("st").textContent=d.st==="yes"?x.ok:(d.st==="no"?x.rej:"");
+  $("st").className="m "+(d.st==="yes"?"ok":(d.st==="no"?"bad":""));
+  $("yes").textContent=x.yes;$("no").textContent=x.no;
+  if(W&&W.ready)W.ready();
+}
+$("yes").onclick=()=>ask("y");
+$("no").onclick=()=>ask("n");
+if(W&&W.onEvent)W.onEvent("chatDataChanged",draw);
+draw();
+</script></body></html>

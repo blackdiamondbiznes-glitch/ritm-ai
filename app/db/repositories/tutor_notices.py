@@ -61,6 +61,25 @@ class TutorNoticeRepository:
         result = await self._session.execute(stmt)
         return [(lesson, group) for lesson, group in result.all()]
 
+    async def lessons_started(
+        self, start: datetime, end: datetime
+    ) -> list[tuple[TutorLesson, TutorGroup]]:
+        """Group sessions that began in [start, end], for the teacher's roll card."""
+        stmt = (
+            select(TutorLesson, TutorGroup)
+            .join(TutorGroup, TutorGroup.id == TutorLesson.group_id)
+            .where(
+                TutorLesson.group_id.is_not(None),
+                TutorLesson.starts_at.is_not(None),
+                TutorLesson.starts_at >= start,
+                TutorLesson.starts_at <= end,
+                TutorLesson.status.in_(("scheduled", "done")),
+            )
+            .order_by(TutorLesson.starts_at.asc(), TutorLesson.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return [(lesson, group) for lesson, group in result.all()]
+
     async def fee_groups(self) -> list[TutorGroup]:
         """Groups that still want a fee reminder."""
         stmt = select(TutorGroup).where(TutorGroup.remind_fee_days.is_not(None))

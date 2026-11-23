@@ -1,0 +1,41 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:10px 12px 14px;font-family:system-ui,sans-serif;font-size:var(--tg-text-font-size,15px);line-height:var(--tg-text-line-height,1.35);color:var(--tg-theme-text-color)}
+h1{font-size:1.05em;margin:0 0 4px;font-weight:650}
+.m,.h{color:var(--tg-theme-hint-color);font-size:.9em;margin:2px 0}
+.v{margin:2px 0}
+.bad{color:var(--tg-theme-destructive-text-color)}
+.ok{color:var(--tg-theme-accent-text-color,#31b545)}
+.row{display:flex;gap:6px;margin-top:8px}
+.row button{flex:1}
+#msg{min-height:1.2em;margin-top:6px}
+.name{font-weight:650;margin:8px 0 4px}</style></head><body>
+<h1 id="t"></h1><div class="m" id="meta"></div>
+<div class="name" id="who"></div>
+<div class="row"><button type="button" data-a="p"></button><button type="button" data-a="l"></button></div>
+<div class="row"><button type="button" data-a="a"></button><button type="button" data-a="e"></button></div>
+<div class="row"><button type="button" id="back"></button></div>
+<div class="h" id="msg"></div>
+<script>
+const W=window.TelegramWidget;
+function data(){try{return JSON.parse(W&&W.chatData||"{}")}catch(e){return {}}}
+function $(id){return document.getElementById(id)}
+function ask(d,fn){if(!W)return;const m=$("msg");if(m)m.textContent="…";W.request(d).then(a=>{if(fn)fn(a&&a.result);},e=>{if(m)m.textContent=(e&&e.code)||"err";});}
+const I={uz:{p:"Keldi",l:"Kechikdi",a:"Kelmadi",e:"Sababli",b:"Oldingi",done:"Davomat tugadi",prog:"belgilandi"},ru:{p:"Был",l:"Опоздал",a:"Не был",e:"По причине",b:"Назад",done:"Готово",prog:"отмечено"},en:{p:"Present",l:"Late",a:"Absent",e:"Excused",b:"Back",done:"Done",prog:"marked"}};
+function draw(){
+  const d=data(),x=I[d.l]||I.uz;
+  $("t").textContent=d.g||"";
+  $("meta").textContent=(d.when||"")+" · "+(d.done||0)+"/"+(d.n||0)+" "+x.prog;
+  document.querySelectorAll("[data-a]").forEach(b=>{b.textContent=x[b.getAttribute("data-a")];});
+  $("back").textContent=x.b;
+  if(d.done>=d.n&&d.n>0&&!d.name){$("who").textContent=x.done;$("msg").textContent="";return}
+  $("who").textContent=d.name||"";
+  if(W&&W.ready)W.ready();
+}
+function go(code){
+  const d=data();
+  ask(code+(d.sid?(":"+d.sid):""), raw=>{if(!raw)return;try{W&&(W.chatData=raw)}catch(e){}draw();});
+}
+document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>go(b.getAttribute("data-a")));
+$("back").onclick=()=>go("b");
+if(W&&W.onEvent)W.onEvent("chatDataChanged",draw);
+draw();
+</script></body></html>

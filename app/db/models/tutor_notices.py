@@ -7,7 +7,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
-KINDS = ("lesson", "fee_due", "fee_overdue", "cancel", "move", "announce", "manual", "homework")
+KINDS = (
+    "lesson",
+    "fee_due",
+    "fee_overdue",
+    "cancel",
+    "move",
+    "announce",
+    "manual",
+    "homework",
+    "attendance",
+)
 TARGETS = ("student", "group", "owner")
 STATUSES = ("sent", "skipped", "failed")
 
@@ -22,7 +32,7 @@ class TutorNotice(Base):
         ),
         CheckConstraint(
             "kind IN ('lesson', 'fee_due', 'fee_overdue', 'cancel', 'move', "
-            "'announce', 'manual', 'homework')",
+            "'announce', 'manual', 'homework', 'attendance')",
             name="ck_tutor_notifications_kind",
         ),
         CheckConstraint(

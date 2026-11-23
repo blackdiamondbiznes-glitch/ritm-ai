@@ -339,6 +339,7 @@
   "notify_gap_120": "120 minutes",
   "notify_cancel": "Lesson cancelled: {title}, {time}",
   "notify_move": "Lesson moved: {title}, {time}",
+  "notify_attendance": "Attendance: {title}, {time}",
   "notify_fee_student": "Fee: {title}, {amount} som, due {date}",
   "notify_fee_group": "A fee is coming due. Please contact your teacher.",
   "notify_fee_digest": "Today {soon} fees are coming due and {late} are overdue.",

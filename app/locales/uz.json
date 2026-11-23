@@ -339,6 +339,7 @@
   "notify_gap_120": "120 daqiqadan",
   "notify_cancel": "Dars bekor qilindi: {title}, {time}",
   "notify_move": "Dars ko'chirildi: {title}, {time}",
+  "notify_attendance": "Davomat: {title}, {time}",
   "notify_fee_student": "To'lov: {title}, {amount} so'm, muddat {date}",
   "notify_fee_group": "To'lov muddati yaqinlashdi, iltimos o'qituvchingiz bilan bog'laning",
   "notify_fee_digest": "Bugun {soon} ta to'lov yaqinlashdi, {late} tasi kechikdi.",

@@ -339,6 +339,7 @@
   "notify_gap_120": "120 минут",
   "notify_cancel": "Занятие отменено: {title}, {time}",
   "notify_move": "Занятие перенесено: {title}, {time}",
+  "notify_attendance": "Посещаемость: {title}, {time}",
   "notify_fee_student": "Оплата: {title}, {amount} сум, срок {date}",
   "notify_fee_group": "Срок оплаты приближается, пожалуйста, свяжитесь с преподавателем",
   "notify_fee_digest": "Сегодня {soon} оплат скоро, {late} уже просрочены.",

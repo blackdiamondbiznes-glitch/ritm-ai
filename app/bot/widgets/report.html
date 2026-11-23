@@ -1,0 +1,33 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:10px 12px 14px;font-family:system-ui,sans-serif;font-size:var(--tg-text-font-size,15px);line-height:var(--tg-text-line-height,1.35);color:var(--tg-theme-text-color)}
+h1{font-size:1.05em;margin:0 0 4px;font-weight:650}
+.m,.h{color:var(--tg-theme-hint-color);font-size:.9em;margin:2px 0}
+.v{margin:2px 0}
+.bad{color:var(--tg-theme-destructive-text-color)}
+.ok{color:var(--tg-theme-accent-text-color,#31b545)}
+.row{display:flex;gap:6px;margin-top:8px}
+.row button{flex:1}
+#msg{min-height:1.2em;margin-top:6px}
+.g{margin:8px 0;padding:6px 0;border-top:1px solid var(--tg-theme-secondary-bg-color,#ddd)}</style></head><body>
+<h1 id="t"></h1><div id="list"></div><div class="m" id="people"></div>
+<script>
+const W=window.TelegramWidget;
+function data(){try{return JSON.parse(W&&W.chatData||"{}")}catch(e){return {}}}
+function $(id){return document.getElementById(id)}
+function ask(d,fn){if(!W)return;const m=$("msg");if(m)m.textContent="…";W.request(d).then(a=>{if(fn)fn(a&&a.result);},e=>{if(m)m.textContent=(e&&e.code)||"err";});}
+const I={uz:{title:"Oylik hisobot",rate:"Davomat",got:"To‘plandi",debt:"Qarz",new:"Yangi",left:"Ketgan",som:"so‘m"},ru:{title:"Отчёт за месяц",rate:"Посещаемость",got:"Собрано",debt:"Долг",new:"Новые",left:"Ушли",som:"сум"},en:{title:"Monthly report",rate:"Attendance",got:"Collected",debt:"Outstanding",new:"Joined",left:"Left",som:"UZS"}};
+function money(n){return String(n||0).replace(/\B(?=(\d{3})+(?!\d))/g," ")+" "}
+function draw(){
+  const d=data(),x=I[d.l]||I.uz;
+  $("t").textContent=x.title+(d.m?(" · "+d.m):"");
+  const box=$("list");box.replaceChildren();
+  (d.groups||[]).forEach(g=>{
+    const el=document.createElement("div");el.className="g";
+    el.textContent=(g.n||"")+" · "+x.rate+" "+(g.r||"—")+" · "+x.got+" "+money(g.c)+x.som+" · "+x.debt+" "+money(g.o)+x.som;
+    box.appendChild(el);
+  });
+  $("people").textContent=x.new+": "+(d.new||0)+" · "+x.left+": "+(d.left||0);
+  if(W&&W.ready)W.ready();
+}
+if(W&&W.onEvent)W.onEvent("chatDataChanged",draw);
+draw();
+</script></body></html>

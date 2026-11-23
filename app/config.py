@@ -80,6 +80,8 @@ class Settings(BaseSettings):
     telegram_mode: str = "polling"
     webhook_base_url: str = ""
     webhook_secret: str = ""
+    # Private-chat HTML widgets (Bot API 10.4). Off sends the caption only.
+    widgets_enabled: bool = True
     # Render injects PORT (the one public port) and RENDER_EXTERNAL_URL.
     port: int = 0
     render_external_url: str = ""
