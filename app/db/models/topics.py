@@ -10,6 +10,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -22,7 +23,13 @@ class TutorTopic(Base):
     """A lesson topic on one day for one group."""
 
     __tablename__ = "tutor_topics"
-    __table_args__ = (Index("ix_tutor_topics_group_id", "group_id"),)
+    __table_args__ = (
+        Index("ix_tutor_topics_group_id", "group_id"),
+        CheckConstraint(
+            "homework IS NULL OR char_length(homework) <= 1000",
+            name="ck_tutor_topics_homework",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     group_id: Mapped[int] = mapped_column(
@@ -30,6 +37,8 @@ class TutorTopic(Base):
     )
     title: Mapped[str] = mapped_column(String(120), nullable=False)
     held_on: Mapped[date] = mapped_column(Date, nullable=False)
+    homework: Mapped[str | None] = mapped_column(Text)
+    homework_due: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

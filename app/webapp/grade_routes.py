@@ -10,6 +10,7 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.topics import TopicRepository
 from app.services.grades import GradeError, GradeService
+from app.services.homework import HomeworkError, HomeworkService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -20,6 +21,7 @@ _STATUS = {
     "date": 400,
     "score": 400,
     "student": 400,
+    "homework": 400,
 }
 
 
@@ -29,6 +31,7 @@ def setup_grade_routes(app: web.Application) -> None:
     app.router.add_post("/api/tutor/groups/{group_id}/topics", topic_create)
     app.router.add_get("/api/tutor/groups/{group_id}/topics/{topic_id}", topic_sheet)
     app.router.add_put("/api/tutor/groups/{group_id}/topics/{topic_id}", topic_save)
+    app.router.add_put("/api/tutor/groups/{group_id}/topics/{topic_id}/homework", topic_homework)
     app.router.add_get("/api/me/boards", my_boards)
 
 
@@ -54,7 +57,16 @@ async def topic_create(request: web.Request) -> web.Response:
     body = await _body(request)
     if isinstance(body, web.Response):
         return body
-    return await _call(ctx, lambda svc: svc.add_topic(ctx.user.id, group_id, body))
+    try:
+        data = await _service(ctx).add_topic(ctx.user.id, group_id, body)
+        if "homework" in body or "homework_due" in body:
+            await _homework(ctx).save(ctx.user.id, group_id, data["topic"]["id"], body)
+            data = await _service(ctx).sheet(ctx.user.id, group_id, data["topic"]["id"])
+    except GradeError as exc:
+        return _error(_STATUS.get(exc.code, 400), exc.code)
+    except HomeworkError as exc:
+        return _error(_STATUS.get(exc.code, 400), exc.code)
+    return web.json_response(data)
 
 
 async def topic_sheet(request: web.Request) -> web.Response:
@@ -84,6 +96,23 @@ async def topic_save(request: web.Request) -> web.Response:
     return await _call(ctx, lambda svc: svc.save_marks(ctx.user.id, group_id, topic_id, body))
 
 
+async def topic_homework(request: web.Request) -> web.Response:
+    """Set or clear the homework on one topic."""
+    ctx = await _context(request)
+    if isinstance(ctx, web.Response):
+        return ctx
+    group_id = _int(request, "group_id")
+    topic_id = _int(request, "topic_id")
+    body = await _body(request)
+    if group_id is None or topic_id is None or isinstance(body, web.Response):
+        return body if isinstance(body, web.Response) else _error(400, "bad_request")
+    try:
+        data = await _homework(ctx).save(ctx.user.id, group_id, topic_id, body)
+    except HomeworkError as exc:
+        return _error(_STATUS.get(exc.code, 400), exc.code)
+    return web.json_response(data)
+
+
 async def my_boards(request: web.Request) -> web.Response:
     """Rankings for the groups this Telegram account studies in."""
     ctx = await _context(request)
@@ -91,6 +120,10 @@ async def my_boards(request: web.Request) -> web.Response:
         return ctx
     boards = await _service(ctx).boards_for(ctx.user.telegram_id)
     return web.json_response({"boards": boards})
+
+
+def _homework(ctx: WebContext) -> HomeworkService:
+    return HomeworkService(TopicRepository(ctx.session), GroupRepository(ctx.session))
 
 
 def _service(ctx: WebContext) -> GradeService:

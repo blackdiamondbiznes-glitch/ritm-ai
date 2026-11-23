@@ -72,7 +72,13 @@ class GradeService:
         scores = await self._topics.scores_for([topic.id])
         by_student = {item.student_id: item.score for item in scores}
         return {
-            "topic": {"id": topic.id, "title": topic.title, "held_on": topic.held_on.isoformat()},
+            "topic": {
+                "id": topic.id,
+                "title": topic.title,
+                "held_on": topic.held_on.isoformat(),
+                "homework": topic.homework,
+                "homework_due": topic.homework_due.isoformat() if topic.homework_due else None,
+            },
             "marks": [
                 {"student_id": item.id, "name": item.name, "score": by_student.get(item.id)}
                 for item in members

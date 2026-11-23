@@ -13,6 +13,7 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.topics import TopicRepository
 from app.db.repositories.tutor_notices import TutorNoticeRepository
 from app.db.repositories.users import UserRepository
 from app.services.clock import TASHKENT, utcnow
@@ -45,6 +46,7 @@ class NotifyService:
         students: StudentRepository,
         reminders: ReminderRepository,
         now=utcnow,
+        topics=None,
     ) -> None:
         self._notes = notes
         self._groups = groups
@@ -54,7 +56,9 @@ class NotifyService:
         self._students = students
         self._reminders = reminders
         self._now = now
-        self._planner = NoticePlanner(notes, groups, chats, jobs, users, students, reminders)
+        self._planner = NoticePlanner(
+            notes, groups, chats, jobs, users, students, reminders, topics
+        )
 
     async def enqueue_due(self, now: datetime | None = None) -> int:
         """Queue lesson, fee, and scheduled student or group reminders."""
@@ -199,6 +203,7 @@ def notify_for(session: AsyncSession, now=utcnow) -> NotifyService:
         StudentRepository(session),
         ReminderRepository(session),
         now=now,
+        topics=TopicRepository(session),
     )
 
 

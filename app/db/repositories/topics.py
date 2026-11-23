@@ -1,8 +1,11 @@
 """Topic and score queries."""
 
+from datetime import date
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.groups import TutorGroup
 from app.db.models.topics import TutorScore, TutorTopic
 
 
@@ -54,6 +57,22 @@ class TopicRepository:
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def save_topic(self, row: TutorTopic) -> TutorTopic:
+        """Flush homework or other edits on a topic already loaded."""
+        self._session.add(row)
+        await self._session.flush()
+        return row
+
+    async def homework_due(self, due: date) -> list[tuple[TutorTopic, TutorGroup]]:
+        """Topics whose homework is due on this date, with their group."""
+        stmt = (
+            select(TutorTopic, TutorGroup)
+            .join(TutorGroup, TutorGroup.id == TutorTopic.group_id)
+            .where(TutorTopic.homework_due == due, TutorTopic.homework.is_not(None))
+        )
+        result = await self._session.execute(stmt)
+        return list(result.all())
 
     async def add_topic(self, row: TutorTopic) -> TutorTopic:
         """Insert a topic and assign its id."""

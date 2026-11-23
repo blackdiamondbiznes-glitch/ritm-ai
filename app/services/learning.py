@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from app.db.models.invoices import TutorInvoice
 from app.db.models.users import User
 from app.db.repositories.groups import GroupRepository
@@ -73,6 +75,7 @@ def _card(seat, nxt, by_marks, by_bills, by_members, by_topics, by_scores) -> di
         "fee": _fee(group, by_bills.get((group.id, student.id), [])),
         "ranking": _ranking(by_members.get(group.id, []), scores, student.id),
         "scores": _my_scores(topics, by_scores, student.id),
+        "homework": _homework(topics),
     }
 
 
@@ -157,6 +160,19 @@ def _my_scores(topics, by_scores, student_id: int) -> list[dict]:
     return [
         {"topic": title, "held_on": held.isoformat(), "score": score}
         for held, _topic_id, title, score in found[:LAST]
+    ]
+
+
+def _homework(topics) -> list[dict]:
+    rows = [topic for topic in topics if topic.homework]
+    rows.sort(key=lambda topic: (topic.homework_due or date.min, topic.id), reverse=True)
+    return [
+        {
+            "topic": topic.title,
+            "text": topic.homework,
+            "due_on": topic.homework_due.isoformat() if topic.homework_due else None,
+        }
+        for topic in rows
     ]
 
 

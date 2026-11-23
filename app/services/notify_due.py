@@ -10,9 +10,11 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.topics import TopicRepository
 from app.db.repositories.tutor_notices import TutorNoticeRepository
 from app.db.repositories.users import UserRepository
 from app.services.clock import TASHKENT
+from app.services.notify_homework import enqueue_homework
 from app.services.notify_queue import deliver
 from app.services.notify_rules import day_ref, language, lesson_label, run_at
 from app.services.notify_targets import audience, group_dest, student_dest
@@ -30,6 +32,7 @@ class NoticePlanner:
         users: UserRepository,
         students: StudentRepository,
         reminders: ReminderRepository,
+        topics: TopicRepository | None = None,
     ) -> None:
         self._notes = notes
         self._groups = groups
@@ -38,13 +41,15 @@ class NoticePlanner:
         self._users = users
         self._students = students
         self._reminders = reminders
+        self._topics = topics
 
     async def enqueue(self, now: datetime) -> int:
         """Queue everything that became due. A second call adds nothing."""
         lessons = await self._lessons(now)
         fees = await self._fees(now)
         manuals = await self._manual(now)
-        return lessons + fees + manuals
+        home = await enqueue_homework(self, self._topics, now) if self._topics else 0
+        return lessons + fees + manuals + home
 
     async def _lessons(self, now: datetime) -> int:
         made = 0
