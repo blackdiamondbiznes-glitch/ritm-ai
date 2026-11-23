@@ -5,6 +5,7 @@ import { paintGroupForm, showFormError } from "./group_form.js";
 import { gradebookTable, groupButton, rankRows, topicRows } from "./group_rows.js";
 import { paintMarks, paintTopicForm } from "./topic_form.js";
 import { mountRequests } from "./requests.js";
+import { bindLinkCard, linkCard } from "./group_link.js";
 import {
   bindCabinetSwitch,
   cabinetSwitch,
@@ -138,6 +139,7 @@ function paintOpen() {
         <input class="input" id="grp-new-name" maxlength="80"></label>
       <button type="button" class="primary" id="grp-in">${escapeHtml(t("grpAddStudent"))}</button>
     </div>
+    ${linkCard(group)}
     ${announceBlock()}
     <button type="button" class="primary" id="grp-edit">${escapeHtml(t("grpEdit"))}</button>
     <button type="button" class="ghost danger" id="grp-delete">${escapeHtml(t("stuDelete"))}</button>
@@ -150,6 +152,7 @@ function paintOpen() {
       withBusy(event.currentTarget, () => drop(group.id, Number(node.getAttribute("data-out")))).catch(showFormError);
     });
   });
+  bindLinkCard();
   document.getElementById("grp-pick").addEventListener("change", (event) => {
     const fresh = event.currentTarget.value === "new";
     document.getElementById("grp-new-row").hidden = !fresh;

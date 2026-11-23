@@ -22,14 +22,15 @@ export async function renderCabinet(seq) {
   }
   setHtml(skeleton("home"));
   try {
-    const [data, groups, limits, lessons] = await Promise.all([
+    const [data, groups, limits, lessons, asks] = await Promise.all([
       api("/api/tutor/summary"),
       api("/api/tutor/groups"),
       api("/api/tutor/limits"),
       api("/api/tutor/lessons"),
+      api("/api/tutor/requests").catch(() => ({ requests: [] })),
     ]);
     if (!current(seq)) return;
-    paint(data, groups.groups || [], limits, lessons.lessons || []);
+    paint(data, groups.groups || [], limits, lessons.lessons || [], (asks.requests || []).length);
   } catch (err) {
     if (current(seq)) showError(err);
   }
@@ -57,12 +58,13 @@ async function turnOn() {
   paint(data, groups.groups || [], limits);
 }
 
-function paint(data, groups = [], limits = null, lessonRows = []) {
+function paint(data, groups = [], limits = null, lessonRows = [], asking = 0) {
   const students = data.students || {};
   const lessons = data.lessons || {};
   setHtml(`
     ${cabinetSwitch("")}
     <div class="header"><h1>${escapeHtml(t("navCabinet"))}</h1><p>${escapeHtml(t("cabLead"))}</p></div>
+    ${requestsCard(asking)}
     ${planCard(limits)}
     <div class="card-title">${escapeHtml(t("todayTitle"))}</div>
     ${todayRows(groups)}
@@ -92,6 +94,14 @@ function paint(data, groups = [], limits = null, lessonRows = []) {
       go(node.getAttribute("data-go"));
     });
   });
+}
+
+function requestsCard(count) {
+  if (!count) return "";
+  return `<button type="button" class="card list-btn req-badge" data-go="cabinet/groups">
+    <div class="stu-row"><div class="card-title">${escapeHtml(t("reqBadge", { n: count }))}</div><span class="badge-dot">${count}</span></div>
+    <div class="stu-meta">${escapeHtml(t("reqBadgeLead"))}</div>
+  </button>`;
 }
 
 function todayRoll(lessons) {

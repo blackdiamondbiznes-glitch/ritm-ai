@@ -218,6 +218,7 @@ def _brief(row: TutorGroup, count: int) -> dict:
         "package_lessons": row.package_lessons,
         "billing_day": row.billing_day,
         "due_days": 5 if row.due_days is None else row.due_days,
+        "enroll_code": row.enroll_code,
     }
 
 
