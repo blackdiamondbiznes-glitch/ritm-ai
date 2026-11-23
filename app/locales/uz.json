@@ -264,6 +264,8 @@
   "health_ai_no": "kalit yo'q",
   "button_stale": "Bu tugma eskirgan, /menu ni bosing",
   "menu_webapp": "📱 Mini ilova",
+  "menu_teach": "Kabinetim",
+  "menu_learn": "O‘qishim",
   "menu_webapp_short": "Mini ilova",
   "pay_admin_alert": "Yangi to'lov so'rovi #{id}\n{name}{username}\nTelegram ID: {telegram_id}\nTarif: {plan}\nMuddat: {months} oy\nSumma: {amount} so'm\nNarx: {rate}\nVaqt: {when}",
   "pay_terms": "📄 <b>To'lov shartlari</b> (oferta {version})\n\n1. To'lov kartaga qo'lda o'tkaziladi va odatda {hours} soat ichida qo'lda tekshiriladi.\n2. Aynan ko'rsatilgan summani o'tkazing va o'tkazma izohiga to'lov kodini yozing.\n3. Chek (skrinshot yoki PDF), karta oxirgi 4 raqami va o'tkazma vaqti majburiy.\n4. Pul tushgani tasdiqlansa, tarif darhol yoqiladi va sizga kvitansiya yuboriladi.\n5. Rad etilsa, sababi yoziladi va siz bir marta e'tiroz bildirishingiz mumkin.\n6. Pulni qaytarish: tarif yoqilmagan bo'lsa to'liq qaytariladi. Yoqilgandan keyin faqat ikki marta to'lov yoki ortiqcha summa qaytariladi.\n7. Soxta yoki birovning chekini yuborish taqiqlanadi: hisobga belgi qo'yiladi, takrorlansa to'lov qilish bloklanadi.\n\nDavom etish uchun shartlarni qabul qiling.",

@@ -11,7 +11,10 @@ from app.db.models.users import User
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.topics import TopicRepository
+from app.db.repositories.users import UserRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.grades import GradeService
+from app.services.workspaces import WorkspaceService
 from sqlalchemy import delete, event, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -47,8 +50,12 @@ async def test_three_groups_take_at_most_five_statements() -> None:
             owner = User(telegram_id=OWNER, full_name="Teacher", language_code="uz")
             session.add(owner)
             await session.flush()
+            space = await WorkspaceService(
+                WorkspaceRepository(session), UserRepository(session)
+            ).ensure(owner)
             student = TutorStudent(
                 owner_id=owner.id,
+                workspace_id=space.id,
                 name="Ali Valiyev",
                 status="paid",
                 amount_uzs=0,
@@ -61,6 +68,7 @@ async def test_three_groups_take_at_most_five_statements() -> None:
             for index, name in enumerate(("Ingliz", "Matematika", "Fizika"), start=1):
                 group = TutorGroup(
                     owner_id=owner.id,
+                    workspace_id=space.id,
                     name=name,
                     weekdays=str(index),
                     start_min=8 * 60 + index,

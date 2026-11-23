@@ -5,6 +5,9 @@ from __future__ import annotations
 from aiohttp import web
 
 from app.db.models.chats import Chat
+from app.db.repositories.groups import GroupRepository
+from app.db.repositories.workspaces import WorkspaceRepository
+from app.services.roles import RoleService
 from app.webapp.member_view import member_summary, resolve_roles
 from app.webapp.members import MemberCountCache
 from app.webapp.panel import EDIT, PanelError, permits
@@ -57,6 +60,9 @@ async def build_dash(ctx, members: object) -> dict:
         "stats": overview,
         "chats": chats,
         "member": await member_summary(ctx),
+        "modes": await RoleService(
+            WorkspaceRepository(ctx.session), GroupRepository(ctx.session)
+        ).for_user(ctx.user),
     }
 
 

@@ -25,6 +25,7 @@ class TutorStudent(Base):
     __tablename__ = "tutor_students"
     __table_args__ = (
         Index("ix_tutor_students_owner_id", "owner_id"),
+        Index("ix_tutor_students_workspace_id", "workspace_id"),
         Index("ix_tutor_students_telegram_id", "telegram_id"),
         Index("ix_tutor_students_join_code", "join_code", unique=True),
         CheckConstraint(
@@ -40,6 +41,9 @@ class TutorStudent(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    workspace_id: Mapped[int] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(20))

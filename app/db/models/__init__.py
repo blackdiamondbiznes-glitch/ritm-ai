@@ -20,6 +20,7 @@ from app.db.models.system_state import SystemState
 from app.db.models.topics import TutorScore, TutorTopic
 from app.db.models.usage import UsageCounter, UsageDaily
 from app.db.models.users import User
+from app.db.models.workspaces import Workspace
 
 __all__ = [
     "AiCache",
@@ -54,4 +55,5 @@ __all__ = [
     "UsageCounter",
     "UsageDaily",
     "User",
+    "Workspace",
 ]

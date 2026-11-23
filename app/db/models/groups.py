@@ -14,6 +14,7 @@ class TutorGroup(Base):
     __tablename__ = "tutor_groups"
     __table_args__ = (
         Index("ix_tutor_groups_owner_id", "owner_id"),
+        Index("ix_tutor_groups_workspace_id", "workspace_id"),
         Index("ix_tutor_groups_enroll_code", "enroll_code", unique=True),
         CheckConstraint(
             "start_min >= 0 AND start_min < end_min AND end_min <= 1440",
@@ -25,6 +26,9 @@ class TutorGroup(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    workspace_id: Mapped[int] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     level: Mapped[str | None] = mapped_column(String(40))

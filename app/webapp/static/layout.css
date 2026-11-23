@@ -769,6 +769,10 @@ button.busy::after {
 .founder-meter { height: 12px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 14%, transparent); overflow: hidden; }
 .founder-meter i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #f59e0b, var(--header-1)); }
 
+.rolebar { max-width: var(--app-w); margin: 12px auto 0; padding: 0 16px; }
+.rolebar .chips { display: flex; gap: 8px; }
+.rolebar .chip-btn { flex: 1; }
+
 /* M5: one centered column on wide screens; the bottom bar follows the column. */
 :root { --app-w: 600px; }
 .main { max-width: var(--app-w); }

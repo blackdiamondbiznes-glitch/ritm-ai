@@ -264,6 +264,8 @@
   "health_ai_no": "missing key",
   "button_stale": "This button is out of date. Tap /menu",
   "menu_webapp": "📱 Mini App",
+  "menu_teach": "My cabinet",
+  "menu_learn": "My studies",
   "menu_webapp_short": "Mini App",
   "pay_admin_alert": "New payment request #{id}\n{name}{username}\nTelegram ID: {telegram_id}\nPlan: {plan}\nPeriod: {months} mo.\nAmount: {amount} UZS\nRate: {rate}\nTime: {when}",
   "pay_terms": "📄 <b>Payment terms</b> (offer {version})\n\n1. You pay by manual card transfer; it is checked by hand, usually within {hours} h.\n2. Transfer the exact amount and put the payment code in the transfer comment.\n3. A receipt (screenshot or PDF), the card's last 4 digits and the transfer time are required.\n4. Once confirmed, the plan starts at once and you get a receipt message.\n5. If declined, the reason is given and you may dispute once.\n6. Refunds: full if the plan was not activated. After activation only double payments or overpayments are refunded.\n7. Fake or someone else's receipts are forbidden: the account is flagged, and repeats block payments.\n\nAccept the terms to continue.",

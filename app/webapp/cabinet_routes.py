@@ -6,7 +6,9 @@ from aiohttp import web
 
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.cabinet import CabinetService
+from app.services.workspaces import WorkspaceService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context
 
@@ -22,10 +24,11 @@ async def cabinet_enable(request: web.Request) -> web.Response:
     ctx = await _context(request)
     if isinstance(ctx, web.Response):
         return ctx
-    ctx.user.cabinet_niche = "tutor"
+    space = await WorkspaceService(WorkspaceRepository(ctx.session), ctx.users).ensure(ctx.user)
     await ctx.session.flush()
     data = await _service(ctx).summary(ctx.user.id)
     data["cabinet_niche"] = "tutor"
+    data["workspace_id"] = space.id
     return web.json_response(data)
 
 

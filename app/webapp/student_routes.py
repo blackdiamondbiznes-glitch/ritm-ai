@@ -10,8 +10,10 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.reminders import ReminderRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.students import StudentError, StudentService
 from app.services.tutor_limits import TutorLimitError, limit_body
+from app.services.workspaces import WorkspaceService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -99,6 +101,7 @@ def _service(ctx: WebContext) -> StudentService:
         GroupRepository(ctx.session),
         ctx.access,
         ctx.users,
+        WorkspaceService(WorkspaceRepository(ctx.session), ctx.users),
     )
 
 

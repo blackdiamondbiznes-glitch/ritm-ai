@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.groups import TutorGroup, TutorGroupMember
 from app.db.models.students import TutorStudent
+from app.db.models.users import User
 
 
 class GroupRepository:
@@ -193,6 +194,30 @@ class GroupRepository:
         )
         result = await self._session.execute(stmt)
         return [(group, int(student_id)) for group, student_id in result.all()]
+
+    async def study_for(self, telegram_id: int, skip_owner_id: int) -> list[tuple]:
+        """Classes this account studies in, except the ones they teach."""
+        stmt = (
+            select(
+                TutorGroup.id,
+                TutorGroup.name,
+                TutorGroup.level,
+                User.full_name,
+                TutorGroup.workspace_id,
+                TutorGroupMember.status,
+            )
+            .join(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
+            .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
+            .join(User, User.id == TutorGroup.owner_id)
+            .where(
+                TutorStudent.telegram_id == telegram_id,
+                TutorGroup.owner_id != skip_owner_id,
+                TutorGroupMember.status.in_(("active", "pending")),
+            )
+            .order_by(TutorGroup.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return list(result.all())
 
     async def active_members(self, group_ids: list[int]) -> list[tuple[int, TutorStudent]]:
         """Active students in these groups, as (group id, student)."""

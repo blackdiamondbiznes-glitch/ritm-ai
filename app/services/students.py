@@ -17,6 +17,7 @@ from app.db.repositories.users import UserRepository
 from app.services.access import AccessService
 from app.services.student_view import lesson_brief, reminder_brief
 from app.services.tutor_limits import ensure_student_room
+from app.services.workspaces import WorkspaceService
 
 STATUSES = frozenset({"paid", "debtor", "inactive"})
 NAME_MAX = 80
@@ -57,6 +58,7 @@ class StudentService:
         groups: GroupRepository | None = None,
         access: AccessService | None = None,
         users: UserRepository | None = None,
+        spaces: WorkspaceService | None = None,
     ) -> None:
         self._students = students
         self._lessons = lessons
@@ -64,6 +66,7 @@ class StudentService:
         self._groups = groups
         self._access = access
         self._users = users
+        self._spaces = spaces
 
     async def list(self, owner_id: int) -> dict:
         """Every visible student of this owner, plus counts by status."""
@@ -76,9 +79,11 @@ class StudentService:
         if self._access is not None and self._users is not None:
             await ensure_student_room(self._access, self._users, self._students, owner_id)
         now = datetime.now(UTC)
+        workspace_id = await self._spaces.id_for(owner_id) if self._spaces else 0
         row = await self._students.add(
             TutorStudent(
                 owner_id=owner_id,
+                workspace_id=workspace_id,
                 name=parsed.name,
                 phone=parsed.phone,
                 status=parsed.status,

@@ -18,9 +18,21 @@ from app.bot.view import show_screen
 from app.db.models.users import User
 from app.i18n import t
 from app.services.enrollment import EnrollmentService
+from app.services.roles import RoleService
 from app.services.user_prefs import PrefsError, needs_language, set_language
 
 router = Router(name="start")
+
+
+async def _menu(lang: str, is_admin: bool, user: User, modes: RoleService | None):
+    """Main menu, with cabinet buttons when this account teaches or studies."""
+    teaching = False
+    learning = False
+    if modes is not None:
+        found = await modes.for_user(user)
+        teaching = bool(found["teaching"])
+        learning = bool(found["learning"])
+    return main_menu(lang, is_admin, teaching=teaching, learning=learning)
 
 
 @router.message(CommandStart())
@@ -33,6 +45,7 @@ async def open_menu(
     current_user: User,
     enrollment: EnrollmentService,
     command: CommandObject | None = None,
+    modes: RoleService | None = None,
 ) -> None:
     """Show the main menu. A ranking link is claimed before the menu."""
     text = message.text or ""
@@ -47,7 +60,8 @@ async def open_menu(
             notify=teacher_notifier(message.bot),
         )
         await message.answer(
-            t(f"enroll_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
+            t(f"enroll_{result}", lang),
+            reply_markup=await _menu(lang, is_super_admin, current_user, modes),
         )
         return
     code = join_from_args(args) or code_from_text(text)
@@ -55,14 +69,17 @@ async def open_menu(
         await state.clear()
         result = await enrollment.claim(code, current_user.telegram_id)
         await message.answer(
-            t(f"join_{result}", lang), reply_markup=main_menu(lang, is_super_admin)
+            t(f"join_{result}", lang),
+            reply_markup=await _menu(lang, is_super_admin, current_user, modes),
         )
         return
     await state.clear()
     if needs_language(current_user):
         await message.answer(t("lang_pick", lang), reply_markup=language_picker(first=True))
         return
-    await message.answer(t("menu_title", lang), reply_markup=main_menu(lang, is_super_admin))
+    await message.answer(
+        t("menu_title", lang), reply_markup=await _menu(lang, is_super_admin, current_user, modes)
+    )
 
 
 @router.message(Command("language"))

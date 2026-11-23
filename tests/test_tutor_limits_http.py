@@ -14,8 +14,10 @@ from app.db.models.users import User
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.users import UserRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.enrollment import EnrollmentService
 from app.services.tutor_limits import TutorLimitError
+from app.services.workspaces import WorkspaceService
 from app.webapp.auth import issue_session, session_secret
 from app.webapp.context import build_context
 from app.webapp.rate_limit import RateLimiter
@@ -129,6 +131,7 @@ async def test_free_stops_at_two_groups_and_forty_students(client) -> None:
             StudentRepository(session),
             UserRepository(session),
             access,
+            WorkspaceService(WorkspaceRepository(session), UserRepository(session)),
         )
         assert await service.enroll(group.enroll_code, 9870000099, "Yangi") == "pending"
         await session.commit()

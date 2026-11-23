@@ -11,9 +11,11 @@ from app.bot.keyboards.enroll import enroll_keyboard
 from app.db.repositories.chats import ChatRepository
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.i18n import t
 from app.services.groups import GroupError, GroupService
 from app.services.tutor_limits import TutorLimitError, limit_body
+from app.services.workspaces import WorkspaceService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -165,6 +167,7 @@ def _service(ctx: WebContext) -> GroupService:
         StudentRepository(ctx.session),
         ctx.access,
         ctx.users,
+        WorkspaceService(WorkspaceRepository(ctx.session), ctx.users),
     )
 
 

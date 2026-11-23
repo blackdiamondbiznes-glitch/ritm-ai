@@ -12,6 +12,7 @@ from app.db.repositories.students import StudentRepository
 from app.db.repositories.users import UserRepository
 from app.services.access import AccessService
 from app.services.tutor_limits import ensure_group_room
+from app.services.workspaces import WorkspaceService
 
 NAME_MAX = 80
 LEVEL_MAX = 40
@@ -47,11 +48,13 @@ class GroupService:
         students: StudentRepository,
         access: AccessService | None = None,
         users: UserRepository | None = None,
+        spaces: WorkspaceService | None = None,
     ) -> None:
         self._groups = groups
         self._students = students
         self._access = access
         self._users = users
+        self._spaces = spaces
 
     async def list(self, owner_id: int) -> dict:
         """Every group of this owner, with how many students sit in each."""
@@ -63,9 +66,11 @@ class GroupService:
         parsed = parse_group(body)
         if self._access is not None and self._users is not None:
             await ensure_group_room(self._access, self._users, self._groups, owner_id)
+        workspace_id = await self._spaces.id_for(owner_id) if self._spaces else 0
         row = await self._groups.add(
             TutorGroup(
                 owner_id=owner_id,
+                workspace_id=workspace_id,
                 name=parsed.name,
                 level=parsed.level,
                 weekdays=parsed.weekdays,

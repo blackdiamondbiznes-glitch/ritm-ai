@@ -7,7 +7,14 @@ from app.i18n import t
 from app.services.pending import PendingChat
 
 
-def main_menu(lang: str, is_admin: bool, webapp_url: str | None = None) -> InlineKeyboardMarkup:
+def main_menu(
+    lang: str,
+    is_admin: bool,
+    webapp_url: str | None = None,
+    *,
+    teaching: bool = False,
+    learning: bool = False,
+) -> InlineKeyboardMarkup:
     """Root menu. Admin row is added only for super admins."""
     rows = []
     url = webapp_url if webapp_url is not None else _menu_webapp_url()
@@ -15,6 +22,10 @@ def main_menu(lang: str, is_admin: bool, webapp_url: str | None = None) -> Inlin
         rows.append(
             [InlineKeyboardButton(text=t("menu_webapp", lang), web_app=WebAppInfo(url=url))]
         )
+        if teaching:
+            rows.append([_web(t("menu_teach", lang), _role_url(url, "teacher"))])
+        if learning:
+            rows.append([_web(t("menu_learn", lang), _role_url(url, "student"))])
     rows.extend(
         [
             [_btn(t("menu_connect", lang), MenuCB(a="connect").pack())],
@@ -93,6 +104,14 @@ def cancel_row(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[_btn(t("cancel", lang), MenuCB(a="home").pack())]]
     )
+
+
+def _role_url(base: str, role: str) -> str:
+    return f"{base.split('#', 1)[0]}#role={role}"
+
+
+def _web(text: str, url: str) -> InlineKeyboardButton:
+    return InlineKeyboardButton(text=text, web_app=WebAppInfo(url=url))
 
 
 def _menu_webapp_url() -> str | None:

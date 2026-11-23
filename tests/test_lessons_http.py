@@ -121,7 +121,7 @@ async def test_summary_counts_debt_and_hides_the_other_owner(client) -> None:
     assert other["students"]["debt_uzs"] == 0
     assert other["lessons"]["scheduled"] == 0
     me = await (await http.get("/api/me", headers=heads["owner"])).json()
-    assert me["user"]["cabinet_niche"] is None
+    assert me["user"]["cabinet_niche"] == "tutor"
     enabled = await http.post("/api/tutor/enable", headers=heads["owner"], json={})
     assert enabled.status == 200
     assert (await enabled.json())["cabinet_niche"] == "tutor"

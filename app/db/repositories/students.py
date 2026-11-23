@@ -75,6 +75,7 @@ class StudentRepository:
             pg_insert(TutorStudent)
             .values(
                 owner_id=row.owner_id,
+                workspace_id=row.workspace_id,
                 name=row.name,
                 status=row.status,
                 amount_uzs=row.amount_uzs,

@@ -1,4 +1,5 @@
 import { applyTheme, bootstrap, go, hasRole, isManager, isStudent, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
+import { applyRoleHint, mountRoles } from "./roles.js";
 import { adminWarmPaths, renderAdmin } from "./admin.js";
 import { renderBoard } from "./board.js";
 import { openChat, renderChats } from "./chats.js";
@@ -21,6 +22,7 @@ let dashAt = 0;
 
 async function boot() {
   applyTheme();
+  const hinted = applyRoleHint();
   const warm = restoreSession();
   bindNav();
   initScrollers(document.getElementById("main"));
@@ -80,8 +82,13 @@ async function boot() {
     dashAt = Date.now();
     labelNav();
     syncChrome();
+    mountRoles();
     const { tab } = parseRoute();
-    if (isStudent() && !isTutor() && !isManager() && (tab === "home" || tab === "profile" || tab === "chats")) {
+    if (hinted === "student") {
+      go("study");
+    } else if (hinted === "teacher") {
+      go("cabinet");
+    } else if (isStudent() && !isTutor() && !isManager() && (tab === "home" || tab === "profile" || tab === "chats")) {
       go("study");
     } else if (tab === "home" || tab === "chats" || tab === "profile") await route({ fresh: true });
     else if (!warm) await route({ fresh: true });

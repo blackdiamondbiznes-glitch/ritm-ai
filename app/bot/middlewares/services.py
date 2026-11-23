@@ -23,6 +23,7 @@ from app.db.repositories.subscriptions import SubscriptionRepository
 from app.db.repositories.topics import TopicRepository
 from app.db.repositories.usage import UsageRepository
 from app.db.repositories.users import UserRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.access import AccessService
 from app.services.admin import AdminService
 from app.services.admin_posts import AdminPostService
@@ -34,9 +35,11 @@ from app.services.lifecycle import ChatLifecycleService
 from app.services.payments import PaymentService
 from app.services.profiles import ProfileService
 from app.services.quiz_launch import QuizLaunch
+from app.services.roles import RoleService
 from app.services.schedule import ScheduleService
 from app.services.trial import TrialService
 from app.services.trial_reports import TrialReportService
+from app.services.workspaces import WorkspaceService
 
 
 class ServicesMiddleware(BaseMiddleware):
@@ -92,12 +95,15 @@ class ServicesMiddleware(BaseMiddleware):
             StudentRepository(session),
             TopicRepository(session),
         )
+        spaces = WorkspaceService(WorkspaceRepository(session), users)
         data["enrollment"] = EnrollmentService(
             GroupRepository(session),
             StudentRepository(session),
             users,
             access,
+            spaces,
         )
+        data["modes"] = RoleService(WorkspaceRepository(session), GroupRepository(session))
         data["audit"] = audit
         data["payments"] = PaymentService(
             PaymentRepository(session),

@@ -13,6 +13,7 @@ from app.db.repositories.students import StudentRepository
 from app.db.repositories.users import UserRepository
 from app.services.access import AccessService
 from app.services.tutor_limits import ensure_student_room
+from app.services.workspaces import WorkspaceService
 
 PENDING_CAP = 50
 _SPACE = re.compile(r"\s+")
@@ -36,11 +37,13 @@ class EnrollmentService:
         students: StudentRepository,
         users: UserRepository,
         access: AccessService | None = None,
+        spaces: WorkspaceService | None = None,
     ) -> None:
         self._groups = groups
         self._students = students
         self._users = users
         self._access = access
+        self._spaces = spaces
 
     async def claim(self, code: str, telegram_id: int) -> str:
         """Link a personal invite. Returns ok, missing, taken, own, or already."""
@@ -81,9 +84,11 @@ class EnrollmentService:
         if await self._groups.count_pending_for_owner(group.owner_id) >= PENDING_CAP:
             return "busy"
         if student is None:
+            workspace_id = await self._spaces.id_for(group.owner_id) if self._spaces else 0
             student = await self._students.insert_or_get(
                 TutorStudent(
                     owner_id=group.owner_id,
+                    workspace_id=workspace_id,
                     name=_name(full_name),
                     status="pending",
                     amount_uzs=0,

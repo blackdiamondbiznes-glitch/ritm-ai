@@ -12,7 +12,9 @@ from app.db.models.users import User
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.users import UserRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.enrollment import PENDING_CAP, EnrollmentService
+from app.services.workspaces import WorkspaceService
 from app.webapp.auth import issue_session, session_secret
 from app.webapp.rate_limit import RateLimiter
 from app.webapp.server import create_app
@@ -81,8 +83,13 @@ async def client():
 
 
 def _svc(session) -> EnrollmentService:
+    users = UserRepository(session)
     return EnrollmentService(
-        GroupRepository(session), StudentRepository(session), UserRepository(session)
+        GroupRepository(session),
+        StudentRepository(session),
+        users,
+        None,
+        WorkspaceService(WorkspaceRepository(session), users),
     )
 
 
@@ -179,9 +186,13 @@ async def test_fifty_pending_requests_block_the_next_one(client) -> None:
     _http, _heads, sessions, _bot = client
     async with sessions() as session:
         owner = (await session.execute(select(User).where(User.telegram_id == OWNER))).scalar_one()
+        space = await WorkspaceService(
+            WorkspaceRepository(session), UserRepository(session)
+        ).ensure(owner)
         group = TutorGroup(
             owner_id=owner.id,
-            name="To'la",
+            workspace_id=space.id,
+            name="Tola",
             weekdays="1",
             start_min=480,
             end_min=540,
