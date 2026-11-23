@@ -576,12 +576,45 @@ button.busy::after {
   .sk, .topbar.on, button.busy::after { animation-duration: 3s; }
 }
 
-/* Toast */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--bg, #0f1220);
+  color: var(--text, #fff);
+}
+.boot[hidden] { display: none; }
+.boot-mark {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--header-1, #5b6cff), var(--header-2, #8b5cff));
+}
+.boot p { margin: 0; font-weight: 700; letter-spacing: 0.04em; }
+.bar { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--muted) 25%, transparent); margin: 4px 0 10px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--header-1), var(--header-2)); }
+.input.bad { border-color: var(--danger); }
+.cell-btn { min-width: 32px; min-height: 32px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.pay-old { text-decoration: line-through; margin-right: 6px; opacity: 0.7; }
+.field-check { display: flex; gap: 10px; align-items: flex-start; }
+.field-check input { margin-top: 4px; flex: 0 0 auto; }
+.study-card .primary { display: block; margin-top: 10px; text-align: center; }
+
+/* Toast sits above the screen so it does not cover Save. */
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--bar-h) + 16px + env(safe-area-inset-bottom, 0px));
-  transform: translate(-50%, 20px);
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  transform: translate(-50%, -12px);
   max-width: min(92vw, 520px);
   padding: 12px 18px;
   border-radius: 14px;
@@ -698,16 +731,17 @@ button.busy::after {
 .chips-scroll::-webkit-scrollbar { display: none; }
 .chips-scroll .chip-btn { flex: 0 0 auto; max-width: 70vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seg {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  display: flex;
   gap: 4px;
   padding: 4px;
   margin: 8px 0 12px;
   border-radius: 14px;
   background: color-mix(in srgb, var(--muted) 14%, var(--card));
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.seg-btn { padding: 8px 4px; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg::-webkit-scrollbar { display: none; }
+.seg-btn { flex: 0 0 auto; padding: 8px 10px; border-radius: 10px; background: transparent; color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
 .seg-btn.on { background: linear-gradient(135deg, var(--header-1), var(--header-2)); color: #fff; }
 .seg + .kpis { margin-top: 0; }
 .delta { display: inline-block; margin-top: 6px; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; }

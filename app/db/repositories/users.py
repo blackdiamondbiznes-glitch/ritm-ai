@@ -51,6 +51,9 @@ class UserRepository:
             user.username = username
             user.full_name = full_name
             user.last_seen_at = now
+            # A returning account already has a language. /start must not ask again.
+            if user.language_code in _UI_LANGS and not user.ui_language_set:
+                user.ui_language_set = True
         await self._session.flush()
         return user
 

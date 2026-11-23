@@ -6,6 +6,7 @@ from typing import Any
 
 from aiohttp import web
 
+from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.workspaces import WorkspaceRepository
@@ -83,6 +84,7 @@ def _service(ctx: WebContext) -> LessonService:
         LessonRepository(ctx.session),
         StudentRepository(ctx.session),
         WorkspaceService(WorkspaceRepository(ctx.session), ctx.users),
+        GroupRepository(ctx.session),
     )
 
 

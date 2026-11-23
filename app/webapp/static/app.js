@@ -1,5 +1,5 @@
 import { applyTheme, bootstrap, go, hasRole, isManager, isStudent, isTutor, loadDash, parseRoute, prefetch, restoreSession, state, tg } from "./api.js";
-import { applyRoleHint, mountRoles } from "./roles.js";
+import { applyRoleHint, chosenRole, mountRoles } from "./roles.js";
 import { adminWarmPaths, renderAdmin } from "./admin.js";
 import { renderBoard } from "./board.js";
 import { openChat, renderChats } from "./chats.js";
@@ -95,9 +95,10 @@ async function boot() {
     syncChrome();
     mountRoles();
     const { tab } = parseRoute();
+    const teacherHome = hinted === "teacher" || (chosenRole() === "teacher" && (tab === "home" || !location.hash || location.hash === "#/home" || location.hash === "#/cabinet"));
     if (hinted === "student") {
       go("study");
-    } else if (hinted === "teacher") {
+    } else if (teacherHome) {
       go("cabinet");
     } else if (isStudent() && !isTutor() && !isManager() && (tab === "home" || tab === "profile" || tab === "chats")) {
       go("study");
@@ -108,6 +109,8 @@ async function boot() {
     if (!warm) showError(err);
   } finally {
     setBusy(false);
+    const splash = document.getElementById("boot");
+    if (splash) splash.hidden = true;
   }
 }
 

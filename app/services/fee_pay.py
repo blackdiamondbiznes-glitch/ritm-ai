@@ -31,6 +31,7 @@ class FeePay:
         self._fees = fees
         self._access = access
         self._now = now or utcnow
+        self._students = None
 
     async def invoices(self, owner_id: int, status: str | None, group_id: int | None) -> list[dict]:
         """The owner's invoices, optionally one status and one group."""
@@ -50,11 +51,30 @@ class FeePay:
         )
         collected = await self._invoices.collected(owner_id, start, end)
         outstanding, overdue = await self._invoices.open_balances(owner_id)
+        opening = await self._opening(owner_id)
         return {
             "collected_uzs": collected,
-            "outstanding_uzs": outstanding,
+            "outstanding_uzs": outstanding + opening,
+            "opening_uzs": opening,
             "overdue_count": overdue,
         }
+
+    def use_students(self, students) -> None:
+        """Opening balances on student cards join the fee total."""
+        self._students = students
+
+    async def _opening(self, owner_id: int) -> int:
+        if self._students is None:
+            return 0
+        rows = await self._invoices.list_for_owner(owner_id, None, None)
+        covered = {
+            row.student_id for row, _group, _name in rows if row.status in ("due", "overdue")
+        }
+        total = 0
+        for student in await self._students.list_for_owner(owner_id):
+            if student.status == "debtor" and student.id not in covered:
+                total += int(student.amount_uzs or 0)
+        return total
 
     async def pay(self, owner_id: int, invoice_id: int, body: dict) -> dict:
         """Add a partial or final payment. The plan must allow recording fees."""

@@ -50,7 +50,7 @@ function paintHome(data) {
 function card(item) {
   const group = item.group;
   const level = group.level ? ` · ${group.level}` : "";
-  return `<div class="card">
+  return `<div class="card study-card">
     <div class="card-title">${escapeHtml(group.name || "")}${escapeHtml(level)}</div>
     <div class="stu-meta">${escapeHtml(group.teacher_name || "")} · ${escapeHtml(whenDays(group))}</div>
     <div class="stu-meta">${escapeHtml(nextLine(item.next_session))}</div>

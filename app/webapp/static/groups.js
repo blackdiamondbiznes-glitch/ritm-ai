@@ -111,7 +111,7 @@ function paintOpen() {
         )
         .join("")
     : `<div class="stu-meta">${escapeHtml(t("grpNone"))}</div>`;
-  const options = [`<option value="">${escapeHtml(t("grpPick"))}</option>`]
+  const options = [`<option value="">${escapeHtml(t("grpPick"))}</option>`, `<option value="new">${escapeHtml(t("grpNewStudent"))}</option>`]
     .concat(available.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
     .join("");
   setHtml(`
@@ -134,6 +134,8 @@ function paintOpen() {
       ${people}
       <label class="field"><span class="field-label">${escapeHtml(t("grpAddStudent"))}</span>
         <select class="input" id="grp-pick">${options}</select></label>
+      <label class="field" id="grp-new-row" hidden><span class="field-label">${escapeHtml(t("stuName"))}</span>
+        <input class="input" id="grp-new-name" maxlength="80"></label>
       <button type="button" class="primary" id="grp-in">${escapeHtml(t("grpAddStudent"))}</button>
     </div>
     ${announceBlock()}
@@ -147,6 +149,11 @@ function paintOpen() {
     node.addEventListener("click", (event) => {
       withBusy(event.currentTarget, () => drop(group.id, Number(node.getAttribute("data-out")))).catch(showFormError);
     });
+  });
+  document.getElementById("grp-pick").addEventListener("change", (event) => {
+    const fresh = event.currentTarget.value === "new";
+    document.getElementById("grp-new-row").hidden = !fresh;
+    if (fresh) document.getElementById("grp-new-name").focus();
   });
   document.getElementById("grp-in").addEventListener("click", (event) => {
     withBusy(event.currentTarget, () => admit(group.id)).catch(showFormError);
@@ -170,7 +177,25 @@ function paintOpen() {
 }
 
 async function admit(groupId) {
-  const studentId = Number(document.getElementById("grp-pick").value);
+  const raw = document.getElementById("grp-pick").value;
+  if (raw === "new") {
+    const input = document.getElementById("grp-new-name");
+    const name = input.value.trim();
+    if (!name) {
+      input.classList.add("bad");
+      toast(t("stuNameNeed"), "err");
+      return;
+    }
+    await api("/api/tutor/students", {
+      method: "POST",
+      body: JSON.stringify({ name, status: "paid", amount_uzs: 0, group_ids: [groupId] }),
+    });
+    cache = await api(`/api/tutor/groups/${groupId}`);
+    haptic("success");
+    paintOpen();
+    return;
+  }
+  const studentId = Number(raw);
   if (!studentId) {
     toast(t("grpPick"), "err");
     return;

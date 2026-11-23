@@ -159,9 +159,9 @@ async def test_monthly_is_idempotent_and_payments_restore_status(db) -> None:
         clock = _Clock(date(2026, 11, 10))
         ids = await _world(session, "monthly", None, 16)
         fees = _fees(session, clock)
+        assert await fees.sync_group(ids["group"]) == 1
         assert await fees.sync_group(ids["group"]) == 0
         clock.day = date(2026, 11, 16)
-        assert await fees.sync_group(ids["group"]) == 1
         assert await fees.sync_group(ids["group"]) == 0
         rows = await InvoiceRepository(session).for_member(ids["group"].id, ids["student"].id)
         assert rows[0].amount_uzs == 100_000 and rows[0].due_on == date(2026, 11, 21)

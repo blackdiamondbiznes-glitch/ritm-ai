@@ -97,6 +97,7 @@ function invoiceButton(row) {
   return `<button type="button" class="card list-btn" data-invoice="${row.id}">
     <div class="chat-name">${escapeHtml(who)}</div>
     <div class="stu-meta">${escapeHtml(money(row.amount_uzs - row.paid_uzs))} · ${escapeHtml(row.due_on)}</div>
+    <div class="stu-meta">${escapeHtml(t("feeAdd"))}</div>
   </button>`;
 }
 

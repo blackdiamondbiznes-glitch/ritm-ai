@@ -20,6 +20,7 @@ export async function renderMonth(seq) {
 
 function paint(data, groupId, month) {
   const sessions = data.sessions || [];
+  paint.sessions = sessions;
   const students = data.students || [];
   const head = sessions
     .map((row) => `<th>${escapeHtml(short(row.starts_at))}</th>`)
@@ -41,11 +42,22 @@ function paint(data, groupId, month) {
     const next = document.getElementById("att-month").value;
     if (next) location.hash = `#/cabinet/groups/${groupId}/attendance?month=${next}`;
   });
+  document.querySelectorAll("[data-session]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const id = node.getAttribute("data-session");
+      if (id) location.hash = `#/cabinet/schedule/${id}/attendance`;
+    });
+  });
 }
 
 function studentLine(row) {
+  const sessions = paint.sessions || [];
   const cells = (row.marks || [])
-    .map((status) => `<td>${escapeHtml(GLYPH[status] || "")}</td>`)
+    .map((status, index) => {
+      const id = sessions[index] ? sessions[index].id : "";
+      const mark = GLYPH[status] || "·";
+      return `<td><button type="button" class="cell-btn" data-session="${id}">${escapeHtml(mark)}</button></td>`;
+    })
     .join("");
   return `<tr><th>${escapeHtml(row.name)}</th>${cells}<td>${escapeHtml(percent(row.rate))}</td></tr>`;
 }

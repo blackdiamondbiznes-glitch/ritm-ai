@@ -22,13 +22,14 @@ export async function renderCabinet(seq) {
   }
   setHtml(skeleton("home"));
   try {
-    const [data, groups, limits] = await Promise.all([
+    const [data, groups, limits, lessons] = await Promise.all([
       api("/api/tutor/summary"),
       api("/api/tutor/groups"),
       api("/api/tutor/limits"),
+      api("/api/tutor/lessons"),
     ]);
     if (!current(seq)) return;
-    paint(data, groups.groups || [], limits);
+    paint(data, groups.groups || [], limits, lessons.lessons || []);
   } catch (err) {
     if (current(seq)) showError(err);
   }
@@ -56,15 +57,16 @@ async function turnOn() {
   paint(data, groups.groups || [], limits);
 }
 
-function paint(data, groups = [], limits = null) {
+function paint(data, groups = [], limits = null, lessonRows = []) {
   const students = data.students || {};
   const lessons = data.lessons || {};
   setHtml(`
     ${cabinetSwitch("")}
-    <div class="header"><h1>${escapeHtml(t("navCabinet"))}</h1><p>${escapeHtml(t("cabLead"))}</p>
-      ${usageLine(limits)}</div>
+    <div class="header"><h1>${escapeHtml(t("navCabinet"))}</h1><p>${escapeHtml(t("cabLead"))}</p></div>
+    ${planCard(limits)}
     <div class="card-title">${escapeHtml(t("todayTitle"))}</div>
     ${todayRows(groups)}
+    ${todayRoll(lessonRows)}
     <div class="kpis">
       ${card("cabinet/students/paid", students.paid, "stuPaid")}
       ${card("cabinet/students/debtor", students.debtor, "stuDebtor")}
@@ -92,6 +94,18 @@ function paint(data, groups = [], limits = null) {
   });
 }
 
+function todayRoll(lessons) {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent" }).format(new Date());
+  const row = (lessons || []).find(
+    (item) => item.group_id && item.starts_at && item.starts_at.slice(0, 10) === today && item.status !== "cancelled",
+  );
+  if (!row) return "";
+  return `<button type="button" class="card list-btn" data-go="cabinet/schedule/${row.id}/attendance">
+    <div class="card-title">${escapeHtml(t("attToday"))}</div>
+    <div class="stu-meta">${escapeHtml(row.group_name || row.title || "")}</div>
+  </button>`;
+}
+
 function todayRows(groups) {
   const day = tashkentWeekday();
   const rows = (groups || [])
@@ -117,14 +131,24 @@ function tashkentWeekday() {
   return { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[name] || 1;
 }
 
-function usageLine(limits) {
+function planCard(limits) {
   if (!limits) return "";
-  const text = t("cabUsage", {
-    groups: pair(limits.groups),
-    students: pair(limits.students),
-    notes: pair(limits.notifications),
-  });
-  return `<p class="stu-meta" id="cab-usage">${escapeHtml(text)}</p>`;
+  const names = { free: "Free", start: "Start", pro: "Pro", agency: "Ultra" };
+  const extra = limits.kind === "trial" ? ` (${t("trial")})` : "";
+  return `<div class="card" id="cab-usage">
+    <div class="card-title">${escapeHtml(t("cabPlan", { name: names[limits.plan] || limits.plan, extra }))}</div>
+    ${bar("grpNav", limits.groups)}
+    ${bar("stuTitle", limits.students)}
+    ${bar("remTitle", limits.notifications)}
+  </div>`;
+}
+
+function bar(key, row) {
+  const used = row ? row.used : 0;
+  const limit = row ? row.limit : 0;
+  const width = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const cap = limit < 0 ? "∞" : String(limit);
+  return `<div class="stu-meta">${escapeHtml(t(key))} ${used}/${cap}</div><div class="bar"><span style="width:${width}%"></span></div>`;
 }
 
 function pair(row) {

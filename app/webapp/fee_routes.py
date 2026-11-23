@@ -8,6 +8,7 @@ from aiohttp import web
 
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.invoices import InvoiceRepository
+from app.db.repositories.students import StudentRepository
 from app.services.fee_pay import FeePay
 from app.services.fees import FeeError, FeeService
 from app.services.tutor_limits import TutorLimitError, limit_body
@@ -141,7 +142,9 @@ def _fees(ctx: WebContext) -> FeeService:
 
 
 def _pay(ctx: WebContext) -> FeePay:
-    return FeePay(InvoiceRepository(ctx.session), _fees(ctx), ctx.access)
+    service = FeePay(InvoiceRepository(ctx.session), _fees(ctx), ctx.access)
+    service.use_students(StudentRepository(ctx.session))
+    return service
 
 
 async def _call(ctx: WebContext, work, *, pay: bool) -> web.Response:

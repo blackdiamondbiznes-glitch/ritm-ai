@@ -49,7 +49,7 @@ function paint(group, notice, groupId) {
         <select class="input" id="notice-lesson">${choices(MINUTES, notice.remind_lesson_min)}</select></label>
       <label class="field"><span class="field-label">${escapeHtml(t("noticeFee"))}</span>
         <select class="input" id="notice-fee">${choices(DAYS, notice.remind_fee_days)}</select></label>
-      <label class="field"><input type="checkbox" id="notice-public"${checked}> ${escapeHtml(t("noticeFeeGroup"))}</label>
+      <label class="field field-check"><input type="checkbox" id="notice-public"${checked}><span>${escapeHtml(t("noticeFeeGroup"))}<br><span class="stu-meta">${escapeHtml(t("noticeFeeHelp"))}</span></span></label>
       <label class="field"><span class="field-label">${escapeHtml(t("noticeChat"))}</span>
         <select class="input" id="notice-chat">${options}</select></label>
       <button type="button" class="primary" id="notice-save">${escapeHtml(t("save"))}</button>

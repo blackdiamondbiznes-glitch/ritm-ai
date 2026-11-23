@@ -7,15 +7,21 @@ const ROLE_KEY = "ritm.role";
 export function applyRoleHint() {
   const hash = location.hash || "";
   const hinted = hash.match(/^#role=(teacher|student)$/);
-  const query = new URLSearchParams(location.search).get("role");
+  const query = new URLSearchParams(location.search);
+  const roleQuery = query.get("role");
+  const startapp = query.get("startapp");
   const start = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
   let role = null;
-  if (hinted) role = hinted[1];
-  else if (query === "teacher" || query === "student") role = query;
+  if (hash === "#/cabinet" || startapp === "cabinet" || start === "cabinet") role = "teacher";
+  else if (hinted) role = hinted[1];
+  else if (roleQuery === "teacher" || roleQuery === "student") role = roleQuery;
   else if (start === "teacher" || start === "student") role = start;
   if (!role) return null;
   localStorage.setItem(ROLE_KEY, role);
   if (hinted) history.replaceState(null, "", "#/home");
+  if (role === "teacher" && (hash === "#/cabinet" || startapp === "cabinet" || start === "cabinet")) {
+    if (!hash.startsWith("#/cabinet")) history.replaceState(null, "", "#/cabinet");
+  }
   return role;
 }
 

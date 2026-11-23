@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from app.db.models.lessons import TutorLesson
 from app.db.models.students import TutorStudent
+from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
 from app.services.clock import TASHKENT
@@ -49,16 +50,22 @@ class LessonService:
         lessons: LessonRepository,
         students: StudentRepository,
         spaces: WorkspaceService | None = None,
+        groups: GroupRepository | None = None,
     ) -> None:
         self._lessons = lessons
         self._students = students
         self._spaces = spaces
+        self._groups = groups
 
     async def list(self, owner_id: int) -> dict:
         """Every lesson of this owner, plus the students that can be attached."""
         lessons = await self._lessons.list_for_owner(owner_id)
         students = await self._students.list_for_owner(owner_id)
-        return _payload(lessons, students)
+        names = {}
+        if self._groups is not None:
+            owned = await self._groups.list_for_owner(owner_id)
+            names = {group.id: group.name for group, _count in owned}
+        return _payload(lessons, students, names)
 
     async def create(self, owner_id: int, body: dict) -> dict:
         """Store a new lesson. A missing status starts as scheduled."""
@@ -153,7 +160,9 @@ def parse_lesson(body: dict, current: TutorLesson | None = None) -> LessonInput:
     )
 
 
-def _payload(lessons: list[TutorLesson], students: list[TutorStudent]) -> dict:
+def _payload(
+    lessons: list[TutorLesson], students: list[TutorStudent], groups: dict[int, str] | None = None
+) -> dict:
     names = {row.id: row.name for row in students}
     counts = {"scheduled": 0, "done": 0, "cancelled": 0}
     items = []
@@ -165,6 +174,8 @@ def _payload(lessons: list[TutorLesson], students: list[TutorStudent]) -> dict:
                 "title": row.title,
                 "student_id": row.student_id,
                 "student_name": names.get(row.student_id) if row.student_id else None,
+                "group_id": row.group_id,
+                "group_name": (groups or {}).get(row.group_id) if row.group_id else None,
                 "status": row.status,
                 "amount_uzs": row.amount_uzs,
                 "starts_at": row.starts_at.isoformat() if row.starts_at else None,

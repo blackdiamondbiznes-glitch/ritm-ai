@@ -23,7 +23,7 @@ def main_menu(
             [InlineKeyboardButton(text=t("menu_webapp", lang), web_app=WebAppInfo(url=url))]
         )
         if teaching:
-            rows.append([_web(t("menu_teach", lang), _role_url(url, "teacher"))])
+            rows.append([_web(t("menu_teach", lang), _cabinet_url(url))])
         if learning:
             rows.append([_btn(t("menu_learn", lang), MenuCB(a="learn").pack())])
     rows.extend(
@@ -116,7 +116,13 @@ def cancel_row(lang: str) -> InlineKeyboardMarkup:
 
 
 def _role_url(base: str, role: str) -> str:
-    return f"{base.split('#', 1)[0]}#role={role}"
+    return f"{base.split('#', 1)[0].split('?', 1)[0]}#role={role}"
+
+
+def _cabinet_url(base: str) -> str:
+    """Mini App deep link. startapp=cabinet is read on open; the hash is the route."""
+    root = base.split("#", 1)[0].split("?", 1)[0]
+    return f"{root}?startapp=cabinet#/cabinet"
 
 
 def _web(text: str, url: str) -> InlineKeyboardButton:

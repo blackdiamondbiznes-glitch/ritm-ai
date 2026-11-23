@@ -35,7 +35,8 @@ function paint(group, groupId) {
       <label class="field" id="fee-day-row"><span class="field-label">${escapeHtml(t("feeDay"))}</span>
         <input class="input" id="fee-day" inputmode="numeric" value="${group.billing_day || 1}"></label>
       <label class="field" id="fee-size-row"><span class="field-label">${escapeHtml(t("feeSize"))}</span>
-        <input class="input" id="fee-size" inputmode="numeric" value="${group.package_lessons || 12}"></label>
+        <input class="input" id="fee-size" inputmode="numeric" value="${group.package_lessons || 12}">
+        <span class="stu-meta">${escapeHtml(t("feeSizeHelp"))}</span></label>
       <label class="field"><span class="field-label">${escapeHtml(t("feeDue"))}</span>
         <input class="input" id="fee-due" inputmode="numeric" value="${group.due_days ?? 5}"></label>
       <button type="button" class="primary" id="fee-save">${escapeHtml(t("save"))}</button>

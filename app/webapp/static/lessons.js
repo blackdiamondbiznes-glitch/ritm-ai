@@ -106,7 +106,9 @@ function paintList() {
   document.querySelectorAll("[data-lesson]").forEach((node) => {
     node.addEventListener("click", () => {
       haptic("light");
-      go(`cabinet/lessons/${node.getAttribute("data-lesson")}`);
+      const group = node.getAttribute("data-group");
+      const id = node.getAttribute("data-lesson");
+      go(group ? `cabinet/schedule/${id}/attendance` : `cabinet/lessons/${id}`);
     });
   });
   document.getElementById("les-add").addEventListener("click", () => {
@@ -207,17 +209,31 @@ function ask(text) {
 }
 
 function rowButton(row) {
-  const who = row.student_name ? escapeHtml(row.student_name) : escapeHtml(t("lesNoStudent"));
+  const who = row.group_name
+    ? escapeHtml(row.group_name)
+    : row.student_name
+      ? escapeHtml(row.student_name)
+      : escapeHtml(t("lesNoStudent"));
   const when = row.starts_at ? ` · ${escapeHtml(formatWhen(row.starts_at))}` : "";
+  const money = row.group_id ? "" : ` · ${escapeHtml(t("stuSum", { n: formatNumber(row.amount_uzs) }))}`;
+  const late = row.group_id && row.status === "scheduled" && isPast(row.starts_at);
+  const badge = late ? t("attUnmarked") : t(STATUS_KEY[row.status]);
   const note = row.note ? `<div class="stu-meta">${escapeHtml(row.note)}</div>` : "";
-  return `<button type="button" class="card list-btn" data-lesson="${row.id}">
+  const group = row.group_id ? ` data-group="${row.group_id}"` : "";
+  return `<button type="button" class="card list-btn" data-lesson="${row.id}"${group}>
     <div class="stu-row">
       <div class="chat-name">${escapeHtml(row.title)}</div>
-      <span class="stu-badge les-${row.status}">${escapeHtml(t(STATUS_KEY[row.status]))}</span>
+      <span class="stu-badge les-${late ? "scheduled" : row.status}">${escapeHtml(badge)}</span>
     </div>
-    <div class="stu-meta">${who}${when} · ${escapeHtml(t("stuSum", { n: formatNumber(row.amount_uzs) }))}</div>
+    <div class="stu-meta">${who}${when}${money}</div>
     ${note}
   </button>`;
+}
+
+function isPast(iso) {
+  if (!iso) return false;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tashkent" }).format(new Date());
+  return iso.slice(0, 10) < today;
 }
 
 function kpi(value, key) {

@@ -10,7 +10,13 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.invoices import InvoiceRepository
 from app.services.access import AccessService
 from app.services.clock import Clock, utcnow
-from app.services.fee_rules import invoice_status, periods_due, tashkent_today
+from app.services.fee_rules import (
+    add_month,
+    invoice_status,
+    on_or_after,
+    periods_due,
+    tashkent_today,
+)
 
 MODES = frozenset({"none", "monthly", "package"})
 AMOUNT_MAX = 1_000_000_000
@@ -88,7 +94,7 @@ class FeeService:
             link.billing_start = today
             await self._groups.save_member(link)
         if group.fee_mode == "monthly" and group.billing_day is not None:
-            return await self._monthly(group, link, today)
+            return await self._monthly(group, link, today, open_first=True)
         if group.fee_mode == "package" and group.package_lessons is not None:
             return await self._first_package(group, link, today)
         return 0
@@ -103,10 +109,16 @@ class FeeService:
         await self._invoices.mark_overdue(today)
         return added
 
-    async def _monthly(self, group: TutorGroup, link: TutorGroupMember, today: date) -> int:
+    async def _monthly(
+        self, group: TutorGroup, link: TutorGroupMember, today: date, *, open_first: bool = False
+    ) -> int:
         added = 0
         assert link.billing_start is not None and group.billing_day is not None
-        for start, end in periods_due(group.billing_day, link.billing_start, today):
+        spans = periods_due(group.billing_day, link.billing_start, today)
+        if open_first and not spans:
+            start = on_or_after(link.billing_start, group.billing_day)
+            spans = [(start, add_month(start) - timedelta(days=1))]
+        for start, end in spans:
             new_id = await self._invoices.insert_ignore(
                 _row(group, link, "monthly", start, end, None, today)
             )

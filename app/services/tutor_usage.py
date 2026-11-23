@@ -22,9 +22,11 @@ async def usage_snapshot(
     """Used and allowed counts for groups, students, and reminders."""
     clock = now or utcnow
     limits = await access.tutor_limits(owner)
+    kind = (await access.snapshot(owner)).kind
     notes = await usage.get_count(owner.id, METRIC, period_key(clock()))
     return {
         "plan": limits.plan_code,
+        "kind": kind,
         "groups": {"used": await groups.count_for_owner(owner.id), "limit": limits.max_groups},
         "students": {
             "used": await students.count_visible(owner.id),
