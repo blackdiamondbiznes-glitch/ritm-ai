@@ -129,3 +129,24 @@ async def test_summary_counts_debt_and_hides_the_other_owner(client) -> None:
     assert again["user"]["cabinet_niche"] == "tutor"
     kept = await http.get("/api/tutor/summary", headers=heads["owner"])
     assert (await kept.json())["students"]["debtor"] == 1
+
+
+async def test_teacher_name_is_saved_trimmed_and_cleared(client) -> None:
+    http, heads = client
+    assert (await http.post("/api/tutor/name", json={"name": "X"})).status == 401
+    saved = await http.post(
+        "/api/tutor/name", headers=heads["owner"], json={"name": "  Malika   opa "}
+    )
+    assert saved.status == 200
+    assert (await saved.json())["teacher_name"] == "Malika opa"
+    summary = await (await http.get("/api/tutor/summary", headers=heads["owner"])).json()
+    assert summary["teacher_name"] == "Malika opa"
+    assert summary["telegram_name"]
+    other = await (await http.get("/api/tutor/summary", headers=heads["other"])).json()
+    assert other["teacher_name"] == ""
+    long = await http.post("/api/tutor/name", headers=heads["owner"], json={"name": "a" * 81})
+    assert long.status == 400
+    bad = await http.post("/api/tutor/name", headers=heads["owner"], json={"name": 5})
+    assert bad.status == 400
+    cleared = await http.post("/api/tutor/name", headers=heads["owner"], json={"name": ""})
+    assert (await cleared.json())["teacher_name"] == ""

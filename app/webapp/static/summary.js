@@ -1,5 +1,6 @@
 import { api, go, haptic, isTutor, state } from "./api.js";
 import { mountUpgrade } from "./limits.js";
+import { bindNameCard, nameCard } from "./teacher_name.js";
 import {
   bindCabinetSwitch,
   cabinetSwitch,
@@ -85,8 +86,10 @@ function paint(data, groups = [], limits = null, lessonRows = [], asking = 0) {
     <button type="button" class="card list-btn" data-go="cabinet/reports">
       <div class="card-title">${escapeHtml(t("cabReport"))}</div>
     </button>
+    ${nameCard(data)}
   `);
   bindCabinetSwitch();
+  bindNameCard();
   if (atCap(limits)) mountUpgrade();
   document.querySelectorAll("[data-go]").forEach((node) => {
     node.addEventListener("click", () => {
