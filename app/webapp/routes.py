@@ -225,17 +225,43 @@ def _secret(settings) -> str:
     return session_secret(settings.bot_token, settings.webapp_session_secret)
 
 
-def same_origin(request: web.Request) -> bool:
-    """The Origin header names this host (or the configured public URL)."""
-    origin = request.headers.get("Origin", "")
-    if not origin or origin == "null":
-        return False
-    host = urlsplit(origin).netloc.lower()
-    allowed = {request.host.lower()}
+def _netloc(url: str) -> str:
+    """host[:port], lowercased, default ports dropped. Scheme ignored: TLS ends at the proxy."""
+    try:
+        parts = urlsplit(url.strip())
+        host, port = (parts.hostname or "").lower(), parts.port
+    except ValueError:
+        return ""
+    if not host:
+        return ""
+    return host if port in (None, 80, 443) else f"{host}:{port}"
+
+
+def _own_hosts(request: web.Request) -> set[str]:
+    hosts = {_netloc(f"//{request.host}")}
     public = request.app["settings"].public_webapp_url
     if public:
-        allowed.add(urlsplit(public).netloc.lower())
-    return host in allowed
+        hosts.add(_netloc(public))
+    hosts.discard("")
+    return hosts
+
+
+def same_origin(request: web.Request) -> bool:
+    """The request was sent by our own pages.
+
+    Origin is checked first. Browsers send ``Origin: null`` (or nothing) for form posts under
+    a strict referrer policy and from some in-app browsers; then a same-origin
+    ``Sec-Fetch-Site`` or a Referer on our host decides. A cross-site value always refuses.
+    """
+    own = _own_hosts(request)
+    origin = request.headers.get("Origin", "").strip()
+    if origin and origin != "null":
+        return _netloc(origin) in own
+    site = request.headers.get("Sec-Fetch-Site", "").lower()
+    if site:
+        return site == "same-origin"
+    referer = request.headers.get("Referer", "")
+    return bool(referer) and _netloc(referer) in own
 
 
 def _rate(request: web.Request, kind: str, limit: int) -> bool:

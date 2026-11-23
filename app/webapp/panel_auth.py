@@ -25,6 +25,9 @@ COPY = {
         "go": "Panelga kirish",
         "dead": "Havola eskirgan yoki allaqachon ishlatilgan.",
         "again": "Botga /panel yuborib, yangi havola oling.",
+        "blocked": "Kirishni tasdiqlab bo‘lmadi.",
+        "retry": "Havola hali amal qiladi. Qayta urinib ko‘ring yoki uni Chromeʼda oching.",
+        "slow": "Juda ko‘p urinish. Bir daqiqadan keyin qayta urinib ko‘ring.",
     },
     "ru": {
         "title": "Вход в панель Ritm",
@@ -32,6 +35,9 @@ COPY = {
         "go": "Войти в панель",
         "dead": "Ссылка устарела или уже использована.",
         "again": "Отправьте боту /panel, чтобы получить новую.",
+        "blocked": "Не удалось подтвердить вход.",
+        "retry": "Ссылка ещё действует. Попробуйте снова или откройте её в Chrome.",
+        "slow": "Слишком много попыток. Повторите через минуту.",
     },
     "en": {
         "title": "Sign in to the Ritm panel",
@@ -39,6 +45,9 @@ COPY = {
         "go": "Open the panel",
         "dead": "This link has expired or was already used.",
         "again": "Send /panel to the bot to get a new one.",
+        "blocked": "Could not confirm the sign-in.",
+        "retry": "The link still works. Try again or open it in Chrome.",
+        "slow": "Too many attempts. Try again in a minute.",
     },
 }
 
@@ -57,6 +66,9 @@ def _panel_headers(response: web.StreamResponse) -> web.StreamResponse:
     """Top-level page: never framed, no inline scripts. Set before the Mini App defaults."""
     response.headers["Content-Security-Policy"] = PANEL_CSP
     response.headers["Cache-Control"] = "no-store"
+    # "no-referrer" makes browsers post forms with Origin: null; same-origin keeps the
+    # one-time link inside our host and lets the Origin check work.
+    response.headers["Referrer-Policy"] = "same-origin"
     return response
 
 
@@ -78,7 +90,7 @@ def _page(request: web.Request, body: str, status: int = 200) -> web.Response:
     text = (
         f'<!DOCTYPE html><html lang="{lang}" data-theme="light"><head><meta charset="UTF-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
-        '<meta name="referrer" content="no-referrer"><title>Ritm</title>'
+        "<title>Ritm</title>"
         f'<link rel="stylesheet" href="/s/{version}/theme.css">'
         f'<link rel="stylesheet" href="/s/{version}/panel.css"></head>'
         f'<body class="pn-gate"><main class="pn-gate-card"><div class="pn-brand">'
@@ -93,33 +105,42 @@ async def login_page(request: web.Request) -> web.Response:
     raw = request.query.get("t", "")
     if not raw or len(raw) > panel_login.TOKEN_MAX:
         return _dead(request, 400)
-    return _page(
-        request,
-        f"<h1>{html.escape(copy['title'])}</h1><p>{html.escape(copy['lead'])}</p>"
+    return _page(request, f"<h1>{html.escape(copy['title'])}</h1>{_form(copy, raw, 'lead')}")
+
+
+def _form(copy: dict, raw: str, lead: str) -> str:
+    return (
+        f"<p>{html.escape(copy[lead])}</p>"
         '<form method="post" action="/panel/login">'
         f'<input type="hidden" name="t" value="{html.escape(raw, quote=True)}">'
         f'<button type="submit" class="pn-btn pn-btn-primary">{html.escape(copy["go"])}</button>'
-        "</form>",
+        "</form>"
     )
+
+
+def _notice(request: web.Request, title: str, lead: str, status: int) -> web.Response:
+    copy = COPY[_lang(request)]
+    body = f"<h1>{html.escape(copy[title])}</h1><p>{html.escape(copy[lead])}</p>"
+    return _page(request, body, status)
 
 
 def _dead(request: web.Request, status: int) -> web.Response:
-    copy = COPY[_lang(request)]
-    return _page(
-        request,
-        f"<h1>{html.escape(copy['dead'])}</h1><p>{html.escape(copy['again'])}</p>",
-        status,
-    )
+    return _notice(request, "dead", "again", status)
 
 
 async def login_submit(request: web.Request) -> web.StreamResponse:
     """Spend the token once and set the HttpOnly session cookie."""
     if not _rate(request, "panel_login", LOGIN_LIMIT):
-        return _error(429, "rate_limit")
-    if not same_origin(request):
-        return _error(403, "origin")
+        return _notice(request, "slow", "again", 429)
     form = await request.post()
     raw = str(form.get("t") or "")
+    if not raw or len(raw) > panel_login.TOKEN_MAX:
+        return _dead(request, 400)
+    if not same_origin(request):
+        # Checked before consume(): a refused post leaves the one-time token usable.
+        copy = COPY[_lang(request)]
+        body = f"<h1>{html.escape(copy['blocked'])}</h1>{_form(copy, raw, 'retry')}"
+        return _page(request, body, 403)
     async with request.app["sessions"]() as session:
         user_id = await panel_login.consume(session, raw)
         user = await UserRepository(session).get_by_id(user_id) if user_id else None
@@ -144,7 +165,7 @@ async def login_submit(request: web.Request) -> web.StreamResponse:
 async def logout(request: web.Request) -> web.StreamResponse:
     """Drop the cookie. Cross-site posts are refused so nobody can sign a teacher out."""
     if not same_origin(request):
-        return _error(403, "origin")
+        return _notice(request, "blocked", "again", 403)
     response = web.Response(status=303, headers={"Location": "/panel"})
     response.del_cookie(PANEL_COOKIE, path="/")
     return _panel_headers(response)

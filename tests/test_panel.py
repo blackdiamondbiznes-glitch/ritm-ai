@@ -4,6 +4,7 @@ import os
 from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
+from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from app.config import Settings
 from app.db.models.attendance import TutorAttendance
@@ -267,3 +268,101 @@ async def test_link_button_is_for_teachers_and_needs_the_bot(env) -> None:
     http = env["http"]
     assert (await http.post("/api/panel/link", headers=env["pupil"])).status == 403
     assert (await http.post("/api/panel/link", headers=env["bearer"])).status == 503
+
+
+async def _fresh(env) -> str:
+    async with env["sessions"]() as session:
+        raw = await panel_login.issue(session, env["teacher"].id)
+        await session.commit()
+    return raw
+
+
+async def _post_login(env, raw, headers):
+    return await env["http"].post(
+        "/panel/login", data={"t": raw}, headers=headers, allow_redirects=False
+    )
+
+
+async def test_login_page_lets_the_browser_send_its_origin(env) -> None:
+    page = await env["http"].get("/panel/login?t=abc")
+    assert page.headers["Referrer-Policy"] == "same-origin"
+    assert "no-referrer" not in await page.text()
+    assert (await env["http"].get("/panel")).headers["Referrer-Policy"] == "same-origin"
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"Referer": "{origin}/panel/login?t=x"},
+        {"Origin": "null", "Sec-Fetch-Site": "same-origin"},
+        {"Origin": "null", "Referer": "{origin}/panel/login"},
+    ],
+)
+async def test_login_accepts_null_or_missing_origin_from_our_own_page(env, headers) -> None:
+    sent = {k: v.format(origin=env["origin"]) for k, v in headers.items()}
+    res = await _post_login(env, await _fresh(env), sent)
+    assert res.status == 303 and "ritm_panel=" in res.headers["Set-Cookie"]
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {},
+        {"Origin": "null"},
+        {"Origin": "https://evil.example"},
+        {"Origin": "null", "Referer": "https://evil.example/x"},
+        {"Origin": "null", "Sec-Fetch-Site": "cross-site", "Referer": "{origin}/panel"},
+    ],
+)
+async def test_refused_login_is_friendly_and_keeps_the_token(env, headers) -> None:
+    raw = await _fresh(env)
+    sent = {k: v.format(origin=env["origin"]) for k, v in headers.items()}
+    refused = await _post_login(env, raw, sent)
+    assert refused.status == 403
+    assert refused.content_type == "text/html"
+    body = await refused.text()
+    assert 'method="post"' in body and '"error"' not in body
+    retry = await _post_login(env, raw, {"Origin": env["origin"]})
+    assert retry.status == 303
+
+
+async def test_https_origin_behind_the_proxy_matches(env) -> None:
+    """TLS ends at Render: the app sees http while the browser says https."""
+    host = env["origin"].split("://", 1)[1]
+    headers = {"Origin": f"https://{host.upper()}", "X-Forwarded-Proto": "https"}
+    assert (await _post_login(env, await _fresh(env), headers)).status == 303
+
+
+def test_public_url_compare_ignores_scheme_case_slash_and_default_port() -> None:
+    from aiohttp.test_utils import make_mocked_request
+    from app.webapp.routes import same_origin
+
+    app = web.Application()
+    app["settings"] = Settings(
+        bot_token="1:t", database_url=_URL, webapp_url="https://Ritm-AI.onrender.com/"
+    )
+
+    def check(headers: dict) -> bool:
+        req = make_mocked_request(
+            "POST", "/panel/login", headers={"Host": "10.0.0.5:10000", **headers}, app=app
+        )
+        return same_origin(req)
+
+    assert check({"Origin": "https://ritm-ai.onrender.com"})
+    assert check({"Origin": "https://ritm-ai.onrender.com:443"})
+    assert check({"Origin": "http://RITM-AI.onrender.com"})
+    assert check({"Origin": "null", "Referer": "https://ritm-ai.onrender.com/panel"})
+    assert not check({"Origin": "https://ritm-ai.onrender.com.evil.example"})
+    assert not check({"Origin": "null"})
+    assert not check({"Origin": "garbage:::"})
+
+
+async def test_cookie_writes_use_the_same_fallback(env) -> None:
+    http, cookie = env["http"], env["cookie"]
+    body = {"name": "Adham ustoz"}
+    same = {**cookie, "Origin": "null", "Sec-Fetch-Site": "same-origin"}
+    assert (await http.post("/api/tutor/name", json=body, headers=same)).status == 200
+    cross = {**cookie, "Sec-Fetch-Site": "cross-site", "Referer": env["origin"] + "/panel"}
+    assert (await http.post("/api/tutor/name", json=body, headers=cross)).status == 403
+    referer = {**cookie, "Referer": env["origin"] + "/panel"}
+    assert (await http.post("/api/tutor/name", json=body, headers=referer)).status == 200
