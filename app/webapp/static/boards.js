@@ -1,18 +1,20 @@
 import { api, studentNames } from "./api.js";
+import { nextMarkup } from "./next.js";
 import { current, escapeHtml, setHtml, showError, skeleton, t } from "./ui.js";
 
 export async function renderBoards(seq) {
   setHtml(skeleton("list"));
   try {
     const data = await api("/api/me/boards");
+    const next = await nextMarkup();
     if (!current(seq)) return;
-    paintStudy(data.boards || []);
+    paintStudy(data.boards || [], next);
   } catch (err) {
     if (current(seq)) showError(err);
   }
 }
 
-function paintStudy(boards) {
+function paintStudy(boards, next) {
   const names = studentNames();
   const who = names.length ? names.join(", ") : t("studyGuest");
   const body = boards.length
@@ -20,6 +22,7 @@ function paintStudy(boards) {
     : `<div class="card muted">${escapeHtml(t("studyWait"))}</div>`;
   setHtml(`
     <div class="header"><h1>${escapeHtml(who)}</h1><p>${escapeHtml(t("studyLead"))}</p></div>
+    ${next || ""}
     ${body}
   `);
 }

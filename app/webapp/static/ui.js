@@ -1,5 +1,5 @@
 import { TIMES, currentLang, dayLabel, t } from "./i18n.js";
-import { go, haptic, hasRole, isManager, parseRoute, roles, tg } from "./api.js";
+import { haptic, hasRole, isManager, parseRoute, roles, tg } from "./api.js";
 
 export function escapeHtml(value) {
   return String(value ?? "")
@@ -94,32 +94,6 @@ export function toast(text, kind = "ok") {
   node.textContent = text;
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => node.classList.remove("show"), 2600);
-}
-
-export function cabinetSwitch(active) {
-  const item = (id, key) => {
-    const on = id === active ? " on" : "";
-    return `<button type="button" class="seg-btn${on}" data-cab="${id}">${escapeHtml(t(key))}</button>`;
-  };
-  return `<div class="seg">${item("groups", "grpNav")}${item("students", "stuTitle")}${item("lessons", "lesTitle")}${item("reminders", "remTitle")}</div>`;
-}
-
-export function bindCabinetSwitch() {
-  document.querySelectorAll("[data-cab]").forEach((node) => {
-    node.addEventListener("click", () => {
-      haptic("light");
-      const section = node.getAttribute("data-cab");
-      const next =
-        section === "groups"
-          ? "cabinet/groups"
-          : section === "lessons"
-            ? "cabinet/lessons"
-            : section === "reminders"
-              ? "cabinet/reminders"
-              : "cabinet/students";
-      go(next);
-    });
-  });
 }
 
 export function brandHeader() {
@@ -443,4 +417,5 @@ export function fieldChecked(id) {
   return node ? node.checked : null;
 }
 
+export { bindCabinetSwitch, cabinetSwitch } from "./cabinet_nav.js";
 export { t, currentLang };

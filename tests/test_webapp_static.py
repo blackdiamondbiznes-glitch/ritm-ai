@@ -123,6 +123,12 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     boards = (STATIC / "boards.js").read_text(encoding="utf-8")
     assert not set(re.findall(r'\bt\("(\w+)"', boards)) - keys
     assert '<link rel="modulepreload" href="/s/reminders.js">' in html
+    for name in ("schedule.js", "next.js", "cabinet_nav.js"):
+        used = set(re.findall(r'\bt\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
+        assert not used - keys, (name, used - keys)
+    assert '<link rel="modulepreload" href="/s/schedule.js">' in html
+    assert "renderSchedule" in (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "nextMarkup" in boards
 
 
 def test_desktop_scroll_buttons_are_mouse_only() -> None:

@@ -10,6 +10,7 @@ import { renderBoards } from "./boards.js";
 import { renderGroups } from "./groups.js";
 import { renderLessons } from "./lessons.js";
 import { renderReminders } from "./reminders.js";
+import { renderSchedule } from "./schedule.js";
 import { renderStudents } from "./students.js";
 import { renderCabinet } from "./summary.js";
 import { initScrollers } from "./scroller.js";
@@ -177,6 +178,7 @@ async function route(opts = {}) {
       return;
     }
     if (sub === "groups") await renderGroups(seq);
+    else if (sub === "schedule") await renderSchedule(seq);
     else if (sub === "lessons") await renderLessons(seq);
     else if (sub === "reminders") await renderReminders(seq);
     else if (sub === "students" || sub === "new" || id) await renderStudents(sub, id, seq);

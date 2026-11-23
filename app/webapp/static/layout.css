@@ -991,3 +991,7 @@ input.input { margin-top: 6px; }
 .stu-debtor, .les-cancelled { color: var(--danger); }
 .stu-inactive, .les-scheduled { color: var(--muted); }
 .ghost.danger { color: var(--danger); width: 100%; margin-top: 8px; }
+.week-nav { display: flex; gap: 8px; margin-bottom: 8px; }
+.week-nav .ghost { flex: 1; }
+.week-day.today { outline: 2px solid var(--accent); }
+.sch-row { width: 100%; text-align: left; background: transparent; color: inherit; border: 0; padding: 8px 0; }
