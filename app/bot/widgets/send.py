@@ -61,7 +61,13 @@ async def send_card(
                 allow_queries=allow_queries,
                 reply_markup=markup,
             )
-        except (TelegramAPIError, OSError, ValueError):
+        except TelegramAPIError as exc:
+            text = str(exc)
+            if "INPUT_MEDIA_WIDGET_NOT_ALLOWED" in text:
+                logger.info("send_widget blocked kind=%s chat_id=%s; using caption", kind, chat_id)
+            else:
+                logger.exception("send_widget failed kind=%s chat_id=%s", kind, chat_id)
+        except (OSError, ValueError):
             logger.exception("send_widget failed kind=%s chat_id=%s", kind, chat_id)
     try:
         return await bot.send_message(chat_id, caption, reply_markup=markup)
