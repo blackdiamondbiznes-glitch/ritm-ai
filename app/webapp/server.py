@@ -17,6 +17,7 @@ from app.i18n import t
 from app.webapp.admin_routes import setup_admin_routes
 from app.webapp.admins import ChatAdminCache
 from app.webapp.assets import setup_assets
+from app.webapp.attendance_routes import setup_attendance_routes
 from app.webapp.cabinet_routes import setup_cabinet_routes
 from app.webapp.chart_routes import setup_chart_routes
 from app.webapp.dash_routes import setup_dash_routes
@@ -71,6 +72,7 @@ def create_app(
     setup_grade_routes(app)
     setup_lesson_routes(app)
     setup_session_routes(app)
+    setup_attendance_routes(app)
     setup_cabinet_routes(app)
     setup_reminder_routes(app)
     setup_role_routes(app)

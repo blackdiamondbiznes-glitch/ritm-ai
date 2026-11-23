@@ -59,9 +59,12 @@ def test_sessions_run_once_per_tashkent_day() -> None:
     assert sessions_due(edge, "2026-11-16") == "2026-11-17"
 
 
-def test_attendance_is_absent_until_phase_3() -> None:
+def test_attendance_locks_only_a_marked_session() -> None:
     row = TutorLesson(owner_id=1, workspace_id=1, title="Dars", status="scheduled", amount_uzs=0)
+    row.id = 7
     assert has_attendance(row) is False
+    assert has_attendance(row, set()) is False
+    assert has_attendance(row, {7}) is True
 
 
 async def _wipe(session) -> None:

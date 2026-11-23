@@ -8,6 +8,7 @@ from typing import Any
 from aiohttp import web
 
 from app.bot.keyboards.enroll import enroll_keyboard
+from app.db.repositories.attendance import AttendanceRepository
 from app.db.repositories.chats import ChatRepository
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
@@ -171,7 +172,11 @@ def _service(ctx: WebContext) -> GroupService:
         ctx.access,
         ctx.users,
         WorkspaceService(WorkspaceRepository(session), ctx.users),
-        SessionPlanner(LessonRepository(session), GroupRepository(session)),
+        SessionPlanner(
+            LessonRepository(session),
+            GroupRepository(session),
+            attendance=AttendanceRepository(session),
+        ),
     )
 
 

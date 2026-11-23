@@ -1,5 +1,6 @@
 """ORM models. Importing this package registers every table on the metadata."""
 
+from app.db.models.attendance import TutorAttendance
 from app.db.models.audit import AuditLog
 from app.db.models.cache import AiCache
 from app.db.models.chats import Chat, ChatProfile, ChatType
@@ -46,6 +47,7 @@ __all__ = [
     "SubscriptionSource",
     "SubscriptionStatus",
     "SystemState",
+    "TutorAttendance",
     "TutorGroup",
     "TutorGroupMember",
     "TutorLesson",

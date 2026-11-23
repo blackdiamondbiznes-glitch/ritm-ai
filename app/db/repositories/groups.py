@@ -239,3 +239,25 @@ class GroupRepository:
         )
         result = await self._session.execute(stmt)
         return [(int(group_id), student) for group_id, student in result.all()]
+
+    async def active_study(
+        self, telegram_id: int, group_id: int, skip_owner_id: int
+    ) -> tuple[TutorGroup, TutorStudent] | None:
+        """The group and card when this account is an active member and not the teacher."""
+        stmt = (
+            select(TutorGroup, TutorStudent)
+            .join(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
+            .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
+            .where(
+                TutorGroup.id == group_id,
+                TutorStudent.telegram_id == telegram_id,
+                TutorGroup.owner_id != skip_owner_id,
+                TutorGroupMember.status == "active",
+            )
+        )
+        result = await self._session.execute(stmt)
+        row = result.first()
+        if row is None:
+            return None
+        group, student = row
+        return group, student

@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from app.db.models.groups import TutorGroup
 from app.db.models.lessons import TutorLesson
+from app.db.repositories.attendance import AttendanceRepository
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.services.clock import TASHKENT, Clock, utcnow
@@ -22,9 +23,13 @@ class SessionError(Exception):
         self.code = code
 
 
-def has_attendance(_row: TutorLesson) -> bool:
-    """Phase 3 records attendance. Until that table exists, nothing is locked."""
-    return False
+def has_attendance(row: TutorLesson, marked: set[int] | None = None) -> bool:
+    """True when this session already has a saved attendance mark.
+
+    `marked` is the set of lesson ids that have at least one row. Without it
+    the check cannot see the table and the session stays replaceable.
+    """
+    return row.id is not None and marked is not None and row.id in marked
 
 
 def sessions_due(now: datetime, last_day: str | None) -> str | None:
@@ -65,10 +70,12 @@ class SessionPlanner:
         lessons: LessonRepository,
         groups: GroupRepository,
         now: Clock | None = None,
+        attendance: AttendanceRepository | None = None,
     ) -> None:
         self._lessons = lessons
         self._groups = groups
         self._now = now or utcnow
+        self._attendance = attendance
 
     async def fill(self, group: TutorGroup, horizon_days: int = HORIZON_DAYS) -> int:
         """Insert missing schedule sessions. Cancelled and moved slots stay."""
@@ -82,7 +89,8 @@ class SessionPlanner:
     async def refill(self, group: TutorGroup) -> int:
         """Drop untouched future schedule rows with no attendance, then fill."""
         rows = await self._lessons.replaceable(group.id, self._now())
-        await self._lessons.delete_many([row for row in rows if not has_attendance(row)])
+        marked = await self._marked({row.id for row in rows})
+        await self._lessons.delete_many([row for row in rows if not has_attendance(row, marked)])
         return await self.fill(group)
 
     async def fill_all(self, horizon_days: int = HORIZON_DAYS) -> int:
@@ -91,6 +99,11 @@ class SessionPlanner:
         for group in await self._groups.all_groups():
             added += await self.fill(group, horizon_days)
         return added
+
+    async def _marked(self, lesson_ids: set[int]) -> set[int]:
+        if self._attendance is None or not lesson_ids:
+            return set()
+        return await self._attendance.lesson_ids(list(lesson_ids))
 
 
 def _schedule_row(group: TutorGroup, start: datetime, end: datetime) -> dict:

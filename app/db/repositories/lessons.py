@@ -125,3 +125,20 @@ class LessonRepository:
         )
         result = await self._session.execute(stmt)
         return [(row, name, teacher) for row, name, teacher in result.all()]
+
+    async def for_group_between(
+        self, owner_id: int, group_id: int, start: datetime, end: datetime
+    ) -> list[TutorLesson]:
+        """This owner's sessions of one group that start in [start, end)."""
+        stmt = (
+            select(TutorLesson)
+            .where(
+                TutorLesson.owner_id == owner_id,
+                TutorLesson.group_id == group_id,
+                TutorLesson.starts_at >= start,
+                TutorLesson.starts_at < end,
+            )
+            .order_by(TutorLesson.starts_at.asc(), TutorLesson.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
