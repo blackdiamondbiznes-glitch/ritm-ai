@@ -30,6 +30,7 @@ from app.webapp.reminder_routes import setup_reminder_routes
 from app.webapp.request_routes import setup_request_routes
 from app.webapp.role_routes import setup_role_routes
 from app.webapp.routes import setup_routes
+from app.webapp.session_routes import setup_session_routes
 from app.webapp.settings_routes import setup_settings_routes
 from app.webapp.student_routes import setup_student_routes
 
@@ -69,6 +70,7 @@ def create_app(
     setup_request_routes(app)
     setup_grade_routes(app)
     setup_lesson_routes(app)
+    setup_session_routes(app)
     setup_cabinet_routes(app)
     setup_reminder_routes(app)
     setup_role_routes(app)
