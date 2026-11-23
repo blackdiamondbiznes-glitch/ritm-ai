@@ -65,7 +65,7 @@ function headCard() {
   </div>`;
 }
 
-const som = (n) => `${formatNumber(n)} so'm`;
+const som = (n) => `${formatNumber(n)} so\u2018m`;
 
 function pickerCard(data) {
   const plans = data.plans;

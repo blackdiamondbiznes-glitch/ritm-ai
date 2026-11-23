@@ -14,10 +14,10 @@ def test_menu_links_open_the_matching_mode() -> None:
     learn = next(
         button for row in markup.inline_keyboard for button in row if button.text == "O‘qishim"
     )
-    assert "Kabinetim" in labels
+    assert "👩‍🏫 O‘qituvchi kabineti" in labels
     assert learn.callback_data == MenuCB(a="learn").pack()
     assert learn.web_app is None
-    assert "https://app.example/app#role=teacher" in urls
+    assert "https://app.example/app?startapp=cabinet#/cabinet" in urls
     opened = study_keyboard("uz", "https://app.example/app")
     study_urls = [
         button.web_app.url for row in opened.inline_keyboard for button in row if button.web_app
@@ -64,7 +64,7 @@ def test_study_summary_names_the_next_lesson_and_fee() -> None:
         "uz",
     )
     assert "A &lt;b&gt;" in text
-    assert "300 000 so'm" in text
+    assert "300 000 so\u2018m" in text
     assert "5-dek" in text
     assert "Paket 7/12" in text
     assert "Tasdiq kutilmoqda: Fizika" in text

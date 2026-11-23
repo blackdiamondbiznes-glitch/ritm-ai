@@ -197,7 +197,7 @@ async def test_profile_read_matrix_and_options(world) -> None:
         "edu",
         "news",
     ]
-    assert owner["options"]["niches"][4]["label"] == "Ta'lim"  # the bot wizard's wording
+    assert owner["options"]["niches"][4]["label"] == "Taʼlim"  # the bot wizard's wording
     assert "Asia/Tashkent" in owner["options"]["timezones"]
     admin = await (await c.get(path, headers=h["admin"])).json()
     assert admin["can_edit"] is False

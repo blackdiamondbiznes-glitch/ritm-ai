@@ -64,4 +64,4 @@ def test_invoice_shows_both_cards_ref_and_exact_amount_copyable() -> None:
     assert "<code>4000 1111 2222 3333</code>" in text
     assert "<code>RITM-AB7K</code>" in text
     assert "<code>39 047</code>" in text
-    assert "47 so'm" in text
+    assert "47 so‘m" in text

@@ -1,6 +1,6 @@
 {
   "blocked": "Hisobingiz vaqtincha bloklangan.\nSavol bo'lsa, qo'llab-quvvatlashga yozing.",
-  "menu_title": "Assalomu alaykum.\nKanal yoki guruhni faol saqlashga yordam beraman.\nQuyidan kerakli bo'limni tanlang.",
+  "menu_title": "Assalomu alaykum.\nKanal yoki guruhni faol saqlayman va o‘qituvchi kabinetini ochaman.\nQuyidan kerakli bo‘limni tanlang.",
   "menu_connect": "➕ Kanal/guruh ulash",
   "menu_chats": "📋 Mening chatlarim",
   "menu_plan": "💳 Tarif va obuna",
@@ -264,7 +264,7 @@
   "health_ai_no": "kalit yo'q",
   "button_stale": "Bu tugma eskirgan, /menu ni bosing",
   "menu_webapp": "📱 Mini ilova",
-  "menu_teach": "Kabinetim",
+  "menu_teach": "👩‍🏫 O‘qituvchi kabineti",
   "menu_learn": "O‘qishim",
   "menu_webapp_short": "Mini ilova",
   "pay_admin_alert": "Yangi to'lov so'rovi #{id}\n{name}{username}\nTelegram ID: {telegram_id}\nTarif: {plan}\nMuddat: {months} oy\nSumma: {amount} so'm\nNarx: {rate}\nVaqt: {when}",

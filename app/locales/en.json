@@ -1,6 +1,6 @@
 {
   "blocked": "Your account is temporarily blocked.\nIf you have questions, contact support.",
-  "menu_title": "Hello!\nI help keep your channel or group active.\nChoose a section below.",
+  "menu_title": "Hello!\nI help keep your channel or group active, and I open the teacher cabinet.\nChoose a section below.",
   "menu_connect": "➕ Connect a channel/group",
   "menu_chats": "📋 My chats",
   "menu_plan": "💳 Plan and subscription",
@@ -264,7 +264,7 @@
   "health_ai_no": "missing key",
   "button_stale": "This button is out of date. Tap /menu",
   "menu_webapp": "📱 Mini App",
-  "menu_teach": "My cabinet",
+  "menu_teach": "👩‍🏫 Teacher cabinet",
   "menu_learn": "My studies",
   "menu_webapp_short": "Mini App",
   "pay_admin_alert": "New payment request #{id}\n{name}{username}\nTelegram ID: {telegram_id}\nPlan: {plan}\nPeriod: {months} mo.\nAmount: {amount} UZS\nRate: {rate}\nTime: {when}",

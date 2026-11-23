@@ -20,7 +20,7 @@ from tests.notify_world import CHAT_TG, STUDENT, handler, open_db, service, worl
 from tests.test_notify import _Bot, _jobs
 
 _NOW = datetime(2026, 11, 21, 12, 0, tzinfo=TASHKENT)
-_GROUP = "To'lov muddati yaqinlashdi, iltimos o'qituvchingiz bilan bog'laning"
+_GROUP = "To‘lov muddati yaqinlashdi, iltimos o‘qituvchingiz bilan bog‘laning"
 
 
 @pytest.fixture

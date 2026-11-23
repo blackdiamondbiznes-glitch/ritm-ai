@@ -64,9 +64,9 @@ def test_summary_text_does_not_pass_lang_twice() -> None:
         "uz",
     )
     assert "Tekshiring" in text
-    assert "O'zbek" in text
+    assert "O‘zbek" in text
     assert "Asia/Tashkent" in text
-    assert "Do'stona" in text
+    assert "Do‘stona" in text
 
 
 def _state() -> FSMContext:
