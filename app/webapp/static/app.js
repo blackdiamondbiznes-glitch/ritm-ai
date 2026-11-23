@@ -17,6 +17,7 @@ import { renderMonth } from "./roll_month.js";
 import { renderRoll } from "./roll.js";
 import { renderSchedule } from "./schedule.js";
 import { renderStudents } from "./students.js";
+import { renderReports } from "./reports.js";
 import { renderCabinet } from "./summary.js";
 import { initScrollers } from "./scroller.js";
 import { isProfileSub, profileWarmPaths, renderProfile, renderProfileSub } from "./profile.js";
@@ -197,6 +198,7 @@ async function route(opts = {}) {
     else if (sub === "schedule") await renderSchedule(seq);
     else if (sub === "lessons") await renderLessons(seq);
     else if (sub === "reminders") await renderReminders(seq);
+    else if (sub === "reports") await renderReports(seq);
     else if (sub === "students" || sub === "new" || id) await renderStudents(sub, id, seq);
     else await renderCabinet(seq);
     return;

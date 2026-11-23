@@ -1,4 +1,5 @@
 import { api, go, haptic, isTutor, state } from "./api.js";
+import { mountUpgrade } from "./limits.js";
 import {
   bindCabinetSwitch,
   cabinetSwitch,
@@ -21,12 +22,13 @@ export async function renderCabinet(seq) {
   }
   setHtml(skeleton("home"));
   try {
-    const [data, groups] = await Promise.all([
+    const [data, groups, limits] = await Promise.all([
       api("/api/tutor/summary"),
       api("/api/tutor/groups"),
+      api("/api/tutor/limits"),
     ]);
     if (!current(seq)) return;
-    paint(data, groups.groups || []);
+    paint(data, groups.groups || [], limits);
   } catch (err) {
     if (current(seq)) showError(err);
   }
@@ -47,15 +49,20 @@ async function turnOn() {
   if (state.me && state.me.user) state.me.user.cabinet_niche = data.cabinet_niche || "tutor";
   syncChrome();
   haptic("success");
-  paint(data);
+  const [groups, limits] = await Promise.all([
+    api("/api/tutor/groups"),
+    api("/api/tutor/limits"),
+  ]);
+  paint(data, groups.groups || [], limits);
 }
 
-function paint(data, groups = []) {
+function paint(data, groups = [], limits = null) {
   const students = data.students || {};
   const lessons = data.lessons || {};
   setHtml(`
     ${cabinetSwitch("")}
-    <div class="header"><h1>${escapeHtml(t("navCabinet"))}</h1><p>${escapeHtml(t("cabLead"))}</p></div>
+    <div class="header"><h1>${escapeHtml(t("navCabinet"))}</h1><p>${escapeHtml(t("cabLead"))}</p>
+      ${usageLine(limits)}</div>
     <div class="card-title">${escapeHtml(t("todayTitle"))}</div>
     ${todayRows(groups)}
     <div class="kpis">
@@ -71,8 +78,12 @@ function paint(data, groups = []) {
       <div class="card-title">${escapeHtml(t("cabScheduled"))}</div>
       <div class="big">${escapeHtml(formatNumber(lessons.scheduled || 0))}</div>
     </button>
+    <button type="button" class="card list-btn" data-go="cabinet/reports">
+      <div class="card-title">${escapeHtml(t("cabReport"))}</div>
+    </button>
   `);
   bindCabinetSwitch();
+  if (atCap(limits)) mountUpgrade();
   document.querySelectorAll("[data-go]").forEach((node) => {
     node.addEventListener("click", () => {
       haptic("light");
@@ -104,6 +115,27 @@ function tashkentWeekday() {
     weekday: "short",
   }).format(new Date());
   return { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[name] || 1;
+}
+
+function usageLine(limits) {
+  if (!limits) return "";
+  const text = t("cabUsage", {
+    groups: pair(limits.groups),
+    students: pair(limits.students),
+    notes: pair(limits.notifications),
+  });
+  return `<p class="stu-meta" id="cab-usage">${escapeHtml(text)}</p>`;
+}
+
+function pair(row) {
+  const used = row ? row.used : 0;
+  const cap = row && row.limit < 0 ? "∞" : String(row ? row.limit : 0);
+  return `${used}/${cap}`;
+}
+
+function atCap(limits) {
+  const groups = limits && limits.groups;
+  return Boolean(groups && groups.limit > 0 && groups.used >= groups.limit);
 }
 
 function card(hash, value, key) {

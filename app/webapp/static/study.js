@@ -86,7 +86,24 @@ function paintDetail(item) {
       <div class="card-title">${escapeHtml(t("learnAtt"))} · ${escapeHtml(percent(item.attendance))}</div>
       ${markRows(item.attendance)}
     </div>
+    <div class="card">
+      <div class="card-title">${escapeHtml(t("learnHomework"))}</div>
+      ${homeworkRows(item.homework)}
+    </div>
   `);
+}
+
+function homeworkRows(rows) {
+  if (!rows || !rows.length) return `<div class="stu-meta">${escapeHtml(t("learnNoHw"))}</div>`;
+  return rows
+    .map((item) => {
+      const due = item.due_on ? ` · ${t("learnHwDue", { when: dayMonth(item.due_on) })}` : "";
+      return `<div class="stu-row"><div>
+        <div class="chat-name">${escapeHtml(item.topic || "")}</div>
+        <div class="stu-meta">${escapeHtml(item.text || "")}${escapeHtml(due)}</div>
+      </div></div>`;
+    })
+    .join("");
 }
 
 function rankRows(ranking) {

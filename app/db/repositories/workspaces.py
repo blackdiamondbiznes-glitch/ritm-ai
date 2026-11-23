@@ -15,6 +15,12 @@ class WorkspaceRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def list_vertical(self, vertical: str) -> list[Workspace]:
+        """Every cabinet of this vertical, oldest first."""
+        stmt = select(Workspace).where(Workspace.vertical == vertical).order_by(Workspace.id.asc())
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
     async def by_owner_vertical(self, owner_id: int, vertical: str) -> Workspace | None:
         """The cabinet for this owner and vertical, if it exists."""
         stmt = select(Workspace).where(

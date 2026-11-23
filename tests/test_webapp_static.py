@@ -140,6 +140,9 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
         "fee_form.js",
         "my_fees.js",
         "limits.js",
+        "reports.js",
+        "topic_form.js",
+        "group_rows.js",
     ):
         used = set(re.findall(r'\bt\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
         assert not used - keys, (name, used - keys)
@@ -147,6 +150,8 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert "renderSchedule" in (STATIC / "app.js").read_text(encoding="utf-8")
     assert "nextMarkup" in boards
     assert '<link rel="modulepreload" href="/s/study.js">' in html
+    assert '<link rel="modulepreload" href="/s/reports.js">' in html
+    assert "renderReports" in app
     assert "renderStudy" in app
     study = (STATIC / "study.js").read_text(encoding="utf-8")
     assert not set(re.findall(r'\bt\("(\w+)"', study)) - keys

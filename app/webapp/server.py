@@ -21,16 +21,19 @@ from app.webapp.attendance_routes import setup_attendance_routes
 from app.webapp.cabinet_routes import setup_cabinet_routes
 from app.webapp.chart_routes import setup_chart_routes
 from app.webapp.dash_routes import setup_dash_routes
+from app.webapp.export_routes import setup_export_routes
 from app.webapp.fee_routes import setup_fee_routes
 from app.webapp.grade_routes import setup_grade_routes
 from app.webapp.group_routes import setup_group_routes
 from app.webapp.learning_routes import setup_learning_routes
 from app.webapp.lesson_routes import setup_lesson_routes
+from app.webapp.limit_routes import setup_limit_routes
 from app.webapp.members import MemberCountCache
 from app.webapp.notify_routes import setup_notify_routes
 from app.webapp.pay_routes import setup_pay_routes
 from app.webapp.rate_limit import RateLimiter
 from app.webapp.reminder_routes import setup_reminder_routes
+from app.webapp.report_routes import setup_report_routes
 from app.webapp.request_routes import setup_request_routes
 from app.webapp.role_routes import setup_role_routes
 from app.webapp.routes import setup_routes
@@ -78,6 +81,9 @@ def create_app(
     setup_session_routes(app)
     setup_attendance_routes(app)
     setup_fee_routes(app)
+    setup_limit_routes(app)
+    setup_report_routes(app)
+    setup_export_routes(app)
     setup_notify_routes(app)
     setup_cabinet_routes(app)
     setup_reminder_routes(app)
