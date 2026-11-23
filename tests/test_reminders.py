@@ -142,3 +142,32 @@ async def test_handler_sends_once() -> None:
         await handler.handle(job)
     assert bot.sent == [(555, "Dars boshlandi")]
     assert jobs.rows == []
+
+
+async def test_handler_escapes_html_in_the_reminder() -> None:
+    _service_obj, reminders, _jobs = _service()
+    row = TutorReminder(
+        id=4,
+        owner_id=1,
+        student_id=None,
+        text="<b> & 2<3",
+        send_at=NOW,
+    )
+    reminders.rows.append(row)
+    users = type("Users", (), {})()
+
+    async def get_by_id(user_id: int) -> User:
+        assert user_id == 1
+        return User(id=1, telegram_id=555, full_name="Ali")
+
+    users.get_by_id = get_by_id
+    bot = _Bot()
+    handler = ReminderHandler(bot, reminders, users, now=lambda: NOW)
+    job = Job(
+        type="tutor_reminder",
+        payload={"reminder_id": 4},
+        run_at=NOW,
+        status=JobStatus.PENDING,
+    )
+    await handler.handle(job)
+    assert bot.sent == [(555, "&lt;b&gt; &amp; 2&lt;3")]

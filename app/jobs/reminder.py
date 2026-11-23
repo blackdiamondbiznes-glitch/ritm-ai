@@ -1,6 +1,7 @@
 """Deliver one tutor reminder to the owner's private chat."""
 
 import logging
+from html import escape
 
 from aiogram import Bot
 
@@ -40,7 +41,7 @@ class ReminderHandler:
         user = await self._users.get_by_id(row.owner_id)
         if user is None:
             raise JobCancel("owner")
-        await self._bot.send_message(user.telegram_id, row.text)
+        await self._bot.send_message(user.telegram_id, escape(row.text))
         row.sent_at = self._now()
         await self._reminders.save(row)
         logger.info("reminder sent id=%s owner_id=%s", row.id, row.owner_id)
