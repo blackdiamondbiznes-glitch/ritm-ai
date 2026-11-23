@@ -1,6 +1,8 @@
 """Cabinet menu buttons open the Mini App on the matching mode."""
 
-from app.bot.keyboards.menu import main_menu
+from app.bot.callbacks import MenuCB
+from app.bot.keyboards.menu import main_menu, study_keyboard
+from app.services.study_text import summary
 
 
 def test_menu_links_open_the_matching_mode() -> None:
@@ -9,7 +11,60 @@ def test_menu_links_open_the_matching_mode() -> None:
     urls = [
         button.web_app.url for row in markup.inline_keyboard for button in row if button.web_app
     ]
+    learn = next(
+        button for row in markup.inline_keyboard for button in row if button.text == "O‘qishim"
+    )
     assert "Kabinetim" in labels
-    assert "O‘qishim" in labels
+    assert learn.callback_data == MenuCB(a="learn").pack()
+    assert learn.web_app is None
     assert "https://app.example/app#role=teacher" in urls
-    assert "https://app.example/app#role=student" in urls
+    opened = study_keyboard("uz", "https://app.example/app")
+    study_urls = [
+        button.web_app.url for row in opened.inline_keyboard for button in row if button.web_app
+    ]
+    assert study_urls == ["https://app.example/app#role=student"]
+
+
+def test_study_summary_names_the_next_lesson_and_fee() -> None:
+    text = summary(
+        {
+            "groups": [
+                {
+                    "group": {"name": "A <b>"},
+                    "next_session": {
+                        "starts_at": "2026-12-05T13:00:00+00:00",
+                        "status": "scheduled",
+                    },
+                    "fee": {
+                        "mode": "monthly",
+                        "amount": 300000,
+                        "due_on": "2026-12-05",
+                        "status": "due",
+                        "paid": 0,
+                        "lessons_used": 0,
+                        "lessons_total": None,
+                    },
+                },
+                {
+                    "group": {"name": "Paket"},
+                    "next_session": None,
+                    "fee": {
+                        "mode": "package",
+                        "amount": 100000,
+                        "due_on": "2026-12-01",
+                        "status": "due",
+                        "paid": 0,
+                        "lessons_used": 7,
+                        "lessons_total": 12,
+                    },
+                },
+            ],
+            "pending": [{"group_name": "Fizika"}],
+        },
+        "uz",
+    )
+    assert "A &lt;b&gt;" in text
+    assert "300 000 so'm" in text
+    assert "5-dek" in text
+    assert "Paket 7/12" in text
+    assert "Tasdiq kutilmoqda: Fizika" in text

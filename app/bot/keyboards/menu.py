@@ -25,7 +25,7 @@ def main_menu(
         if teaching:
             rows.append([_web(t("menu_teach", lang), _role_url(url, "teacher"))])
         if learning:
-            rows.append([_web(t("menu_learn", lang), _role_url(url, "student"))])
+            rows.append([_btn(t("menu_learn", lang), MenuCB(a="learn").pack())])
     rows.extend(
         [
             [_btn(t("menu_connect", lang), MenuCB(a="connect").pack())],
@@ -37,6 +37,15 @@ def main_menu(
     )
     if is_admin:
         rows.append([_btn(t("menu_admin", lang), MenuCB(a="admin").pack())])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def study_keyboard(lang: str, url: str | None) -> InlineKeyboardMarkup:
+    """Open the Mini App in student mode, or go back when no URL is configured."""
+    rows = []
+    if url:
+        rows.append([_web(t("learn_open", lang), _role_url(url, "student"))])
+    rows.append([_btn(t("back", lang), MenuCB(a="home").pack())])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 

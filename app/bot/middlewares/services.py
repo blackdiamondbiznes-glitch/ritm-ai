@@ -15,6 +15,7 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.invoices import InvoiceRepository
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.leaderboard import LeaderboardRepository
+from app.db.repositories.learning import LearningRepository
 from app.db.repositories.payments import PaymentEventRepository, PaymentRepository
 from app.db.repositories.plans import PlanRepository
 from app.db.repositories.quizzes import QuizAnswerRepository, QuizRepository
@@ -33,6 +34,7 @@ from app.services.enrollment import EnrollmentService
 from app.services.fees import FeeService
 from app.services.grades import GradeService
 from app.services.leaderboard import LeaderboardService
+from app.services.learning import LearningService
 from app.services.lifecycle import ChatLifecycleService
 from app.services.payments import PaymentService
 from app.services.profiles import ProfileService
@@ -107,6 +109,11 @@ class ServicesMiddleware(BaseMiddleware):
             FeeService(InvoiceRepository(session), GroupRepository(session), users, access),
         )
         data["modes"] = RoleService(WorkspaceRepository(session), GroupRepository(session))
+        data["learning"] = LearningService(
+            LearningRepository(session),
+            GroupRepository(session),
+            TopicRepository(session),
+        )
         data["audit"] = audit
         data["payments"] = PaymentService(
             PaymentRepository(session),

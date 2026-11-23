@@ -22,6 +22,7 @@ from app.bot.routers import (
     quiz_play,
     quiz_poll,
     start,
+    study,
     subscription,
 )
 
@@ -34,6 +35,7 @@ def setup_routers(dispatcher: Dispatcher) -> None:
     private.include_router(quiz_link.router)
     private.include_router(join.router)
     private.include_router(start.router)
+    private.include_router(study.router)
     private.include_router(connect.router)
     private.include_router(profile.router)
     private.include_router(chats.router)

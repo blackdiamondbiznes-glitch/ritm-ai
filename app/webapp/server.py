@@ -24,6 +24,7 @@ from app.webapp.dash_routes import setup_dash_routes
 from app.webapp.fee_routes import setup_fee_routes
 from app.webapp.grade_routes import setup_grade_routes
 from app.webapp.group_routes import setup_group_routes
+from app.webapp.learning_routes import setup_learning_routes
 from app.webapp.lesson_routes import setup_lesson_routes
 from app.webapp.members import MemberCountCache
 from app.webapp.notify_routes import setup_notify_routes
@@ -73,6 +74,7 @@ def create_app(
     setup_request_routes(app)
     setup_grade_routes(app)
     setup_lesson_routes(app)
+    setup_learning_routes(app)
     setup_session_routes(app)
     setup_attendance_routes(app)
     setup_fee_routes(app)

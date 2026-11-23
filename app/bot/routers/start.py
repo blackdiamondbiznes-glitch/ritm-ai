@@ -126,10 +126,20 @@ async def cancel_command(
 
 
 @router.callback_query(MenuCB.filter(F.a == "home"))
-async def home(callback: CallbackQuery, state: FSMContext, lang: str, is_super_admin: bool) -> None:
+async def home(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+    is_super_admin: bool,
+    current_user: User | None = None,
+    modes: RoleService | None = None,
+) -> None:
     """Back to the main menu from any screen that uses it."""
     await state.clear()
-    await show_screen(callback, t("menu_title", lang), main_menu(lang, is_super_admin))
+    markup = main_menu(lang, is_super_admin)
+    if current_user is not None:
+        markup = await _menu(lang, is_super_admin, current_user, modes)
+    await show_screen(callback, t("menu_title", lang), markup)
 
 
 @router.callback_query(MenuCB.filter(F.a == "help"))
