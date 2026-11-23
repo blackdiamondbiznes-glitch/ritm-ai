@@ -1,10 +1,19 @@
 import { firstChatId, go, haptic, isManager, isStudent, isTutor, memberData, roles, state } from "./api.js";
+import { bindJoin, joinCard } from "./join_card.js";
 import { brandHeader, chatCard, escapeHtml, formatNumber, kpiRow, setHtml, sparkChart, t } from "./ui.js";
 
 /** Owners see their plan; so do people with no role yet (they may become owners). */
 export function showsPlan() {
   const list = roles();
+  if (onlyStudent()) return false;
   return !list || list.includes("owner") || list.length === 0;
+}
+
+/** Linked as a student, with no cabinet and no chat of their own: no plan or upsell cards. */
+export function onlyStudent() {
+  const list = roles() || [];
+  const manages = list.includes("owner") || list.includes("admin") || list.includes("super_admin");
+  return isStudent() && !isTutor() && !manages;
 }
 
 export function renderHome() {
@@ -74,11 +83,12 @@ function renderMemberHome() {
         <div class="card-title">👋 ${escapeHtml(t("welcomeTitle"))}</div>
         <p>${escapeHtml(t("welcomeMember"))}</p>
       </div>
-      ${isStudent() ? boardCard() : ""}
-      ${ownCta()}
+      ${isStudent() ? boardCard() : joinCard()}
+      ${onlyStudent() ? "" : ownCta()}
       ${state.dash && showsPlan() ? planCard(dash.plan || {}) : ""}
     `);
     bindMine();
+    bindJoin();
     return;
   }
   const totals = member.totals || {};
@@ -93,7 +103,7 @@ function renderMemberHome() {
     <div class="kpi-hint">${escapeHtml(t("answersCount", { n: totals.answers || 0, c: totals.correct || 0 }))}</div>
     ${myResultsCard(member, false)}
     <button type="button" class="ghost wide" data-mine="history">📜 ${escapeHtml(t("historyOpen"))}</button>
-    ${ownCta()}
+    ${onlyStudent() ? "" : ownCta()}
   `);
   bindMine();
 }

@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { bindJoin, joinCard } from "./join_card.js";
 import { money } from "./money.js";
 import { current, escapeHtml, setHtml, showError, skeleton, t } from "./ui.js";
 
@@ -40,11 +41,12 @@ export async function renderStudyDetail(groupId, seq) {
 function paintHome(data) {
   const pending = (data.pending || []).map(pendingCard).join("");
   const groups = (data.groups || []).map(card).join("");
-  const empty = pending || groups ? "" : `<div class="card muted">${escapeHtml(t("learnEmpty"))}</div>`;
+  const empty = pending || groups ? "" : joinCard();
   setHtml(`
     <div class="header"><h1>${escapeHtml(t("studyNav"))}</h1><p>${escapeHtml(t("studyLead"))}</p></div>
     ${pending}${groups}${empty}
   `);
+  bindJoin();
 }
 
 function card(item) {
@@ -55,7 +57,7 @@ function card(item) {
     <div class="stu-meta">${escapeHtml(group.teacher_name || "")} · ${escapeHtml(whenDays(group))}</div>
     <div class="stu-meta">${escapeHtml(nextLine(item.next_session))}</div>
     <div class="stu-meta">${escapeHtml(t("learnAtt"))}: ${escapeHtml(percent(item.attendance))}</div>
-    <div class="stu-meta">${escapeHtml(feeLine(item.fee))}</div>
+    <div class="stu-meta">${escapeHtml(t("learnFee"))}: ${escapeHtml(feeLine(item.fee))}</div>
     <div class="stu-meta">${escapeHtml(rankLine(item.ranking))}</div>
     <a class="primary" href="#/study/${Number(group.id)}">${escapeHtml(t("learnMore"))}</a>
   </div>`;

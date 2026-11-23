@@ -89,7 +89,7 @@ function paintProfile(data) {
     </div>
     <div class="card">
       <div class="stu-meta">${phone}</div>
-      <div class="big">${escapeHtml(t("stuSum", { n: formatNumber(row.amount_uzs) }))}</div>
+      <div class="big">${escapeHtml(moneyLine(row))}</div>
     </div>
     ${note}
     ${groupCard}
@@ -266,9 +266,15 @@ function rowButton(row) {
       <div class="chat-name">${escapeHtml(row.name)}</div>
       <span class="stu-badge stu-${row.status}">${escapeHtml(t(STATUS_KEY[row.status]))}</span>
     </div>
-    <div class="stu-meta">${escapeHtml(t("stuSum", { n: formatNumber(row.amount_uzs) }))}${escapeHtml(phone)}</div>
+    <div class="stu-meta">${escapeHtml(moneyLine(row))}${escapeHtml(phone)}</div>
     ${note}
   </button>`;
+}
+
+/** A card with no debt and no amount says so, instead of "Paid 0 so‘m". */
+function moneyLine(row) {
+  if (!row.amount_uzs) return t("learnFeeNone");
+  return t("stuSum", { n: formatNumber(row.amount_uzs) });
 }
 
 function kpi(value, key) {
