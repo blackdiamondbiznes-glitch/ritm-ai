@@ -12,6 +12,9 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.users import UserRepository
 from app.services.access import AccessService
+from app.services.clock import utcnow
+from app.services.fee_rules import tashkent_today
+from app.services.fees import FeeService
 from app.services.tutor_limits import ensure_student_room
 from app.services.workspaces import WorkspaceService
 
@@ -38,12 +41,14 @@ class EnrollmentService:
         users: UserRepository,
         access: AccessService | None = None,
         spaces: WorkspaceService | None = None,
+        fees: FeeService | None = None,
     ) -> None:
         self._groups = groups
         self._students = students
         self._users = users
         self._access = access
         self._spaces = spaces
+        self._fees = fees
 
     async def claim(self, code: str, telegram_id: int) -> str:
         """Link a personal invite. Returns ok, missing, taken, own, or already."""
@@ -128,7 +133,11 @@ class EnrollmentService:
         if student.status == "pending" and self._access is not None:
             await ensure_student_room(self._access, self._users, self._students, owner_id)
         link.status = "active"
+        if link.billing_start is None:
+            link.billing_start = tashkent_today(utcnow())
         await self._groups.save_member(link)
+        if self._fees is not None:
+            await self._fees.sync_member(group, link)
         if student.status == "pending":
             student.status = "debtor"
             await self._students.save(student)

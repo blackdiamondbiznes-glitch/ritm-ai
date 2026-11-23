@@ -6,6 +6,7 @@ from app.db.models.cache import AiCache
 from app.db.models.chats import Chat, ChatProfile, ChatType
 from app.db.models.content import ContentItem, ContentKind
 from app.db.models.groups import TutorGroup, TutorGroupMember
+from app.db.models.invoices import TutorFeePayment, TutorInvoice
 from app.db.models.jobs import Job, JobStatus
 from app.db.models.leaderboard import LeaderboardEntry, LeaderboardPeriod
 from app.db.models.lessons import TutorLesson
@@ -48,7 +49,9 @@ __all__ = [
     "SubscriptionStatus",
     "SystemState",
     "TutorAttendance",
+    "TutorFeePayment",
     "TutorGroup",
+    "TutorInvoice",
     "TutorGroupMember",
     "TutorLesson",
     "TutorScore",

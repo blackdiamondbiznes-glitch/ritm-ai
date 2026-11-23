@@ -6,9 +6,11 @@ from aiohttp import web
 
 from app.bot.enroll_notice import decision_text, tell
 from app.db.repositories.groups import GroupRepository
+from app.db.repositories.invoices import InvoiceRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.enrollment import EnrollmentError, EnrollmentService
+from app.services.fees import FeeService
 from app.services.tutor_limits import TutorLimitError, limit_body
 from app.services.workspaces import WorkspaceService
 from app.webapp.routes import _context, _error
@@ -76,6 +78,9 @@ def _service(ctx) -> EnrollmentService:
         ctx.users,
         ctx.access,
         WorkspaceService(WorkspaceRepository(ctx.session), ctx.users),
+        FeeService(
+            InvoiceRepository(ctx.session), GroupRepository(ctx.session), ctx.users, ctx.access
+        ),
     )
 
 

@@ -8,8 +8,11 @@ from aiohttp import web
 
 from app.db.repositories.attendance import AttendanceRepository
 from app.db.repositories.groups import GroupRepository
+from app.db.repositories.invoices import InvoiceRepository
 from app.db.repositories.lessons import LessonRepository
 from app.services.attendance import AttendanceError, AttendanceService
+from app.services.fee_usage import PackageUsage
+from app.services.fees import FeeService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -84,10 +87,14 @@ async def mine(request: web.Request) -> web.Response:
 
 def _service(ctx: WebContext) -> AttendanceService:
     session = ctx.session
+    invoices = InvoiceRepository(session)
+    groups = GroupRepository(session)
+    fees = FeeService(invoices, groups, ctx.users, ctx.access)
     return AttendanceService(
         AttendanceRepository(session),
         LessonRepository(session),
-        GroupRepository(session),
+        groups,
+        fees=PackageUsage(invoices, groups, fees),
     )
 
 

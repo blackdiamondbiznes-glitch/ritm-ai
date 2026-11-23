@@ -11,6 +11,9 @@ from app.db.repositories.groups import GroupRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.users import UserRepository
 from app.services.access import AccessService
+from app.services.clock import utcnow
+from app.services.fee_rules import tashkent_today
+from app.services.fees import FeeService
 from app.services.sessions import SessionPlanner
 from app.services.tutor_limits import ensure_group_room
 from app.services.workspaces import WorkspaceService
@@ -51,6 +54,7 @@ class GroupService:
         users: UserRepository | None = None,
         spaces: WorkspaceService | None = None,
         planner: SessionPlanner | None = None,
+        fees: FeeService | None = None,
     ) -> None:
         self._groups = groups
         self._students = students
@@ -58,6 +62,7 @@ class GroupService:
         self._users = users
         self._spaces = spaces
         self._planner = planner
+        self._fees = fees
 
     async def list(self, owner_id: int) -> dict:
         """Every group of this owner, with how many students sit in each."""
@@ -136,19 +141,29 @@ class GroupService:
 
     async def add_student(self, owner_id: int, group_id: int, student_id: int) -> dict:
         """Put one of this owner's students into the group. A repeat is a no-op."""
-        if await self._groups.get_owned(owner_id, group_id) is None:
+        group = await self._groups.get_owned(owner_id, group_id)
+        if group is None:
             raise GroupError("missing")
         student = await self._students.get_owned(owner_id, student_id)
         if student is None or student.status == "pending":
             raise GroupError("student")
         link = await self._groups.membership(group_id, student_id)
         if link is None:
-            await self._groups.add_member(
-                TutorGroupMember(group_id=group_id, student_id=student_id, status="active")
+            link = await self._groups.add_member(
+                TutorGroupMember(
+                    group_id=group_id,
+                    student_id=student_id,
+                    status="active",
+                    billing_start=tashkent_today(utcnow()),
+                )
             )
         elif link.status == "pending":
             link.status = "active"
+            if link.billing_start is None:
+                link.billing_start = tashkent_today(utcnow())
             await self._groups.save_member(link)
+        if self._fees is not None and link is not None:
+            await self._fees.sync_member(group, link)
         return await self.open(owner_id, group_id)
 
     async def remove_student(self, owner_id: int, group_id: int, student_id: int) -> dict:
@@ -198,6 +213,11 @@ def _brief(row: TutorGroup, count: int) -> dict:
         "start": _hhmm(row.start_min),
         "end": _hhmm(row.end_min),
         "students": count,
+        "fee_mode": row.fee_mode or "none",
+        "fee_uzs": row.fee_uzs or 0,
+        "package_lessons": row.package_lessons,
+        "billing_day": row.billing_day,
+        "due_days": 5 if row.due_days is None else row.due_days,
     }
 
 

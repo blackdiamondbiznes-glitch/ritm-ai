@@ -40,6 +40,10 @@ class GroupRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get(self, group_id: int) -> TutorGroup | None:
+        """The group by id, for internal jobs that already know the id."""
+        return await self._session.get(TutorGroup, group_id)
+
     async def get_owned(self, owner_id: int, group_id: int) -> TutorGroup | None:
         """Return the group only when it belongs to this owner."""
         stmt = select(TutorGroup).where(TutorGroup.id == group_id, TutorGroup.owner_id == owner_id)

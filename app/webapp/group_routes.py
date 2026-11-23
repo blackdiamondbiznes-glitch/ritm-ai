@@ -11,10 +11,12 @@ from app.bot.keyboards.enroll import enroll_keyboard
 from app.db.repositories.attendance import AttendanceRepository
 from app.db.repositories.chats import ChatRepository
 from app.db.repositories.groups import GroupRepository
+from app.db.repositories.invoices import InvoiceRepository
 from app.db.repositories.lessons import LessonRepository
 from app.db.repositories.students import StudentRepository
 from app.db.repositories.workspaces import WorkspaceRepository
 from app.i18n import t
+from app.services.fees import FeeService
 from app.services.groups import GroupError, GroupService
 from app.services.sessions import SessionPlanner
 from app.services.tutor_limits import TutorLimitError, limit_body
@@ -177,6 +179,7 @@ def _service(ctx: WebContext) -> GroupService:
             GroupRepository(session),
             attendance=AttendanceRepository(session),
         ),
+        FeeService(InvoiceRepository(session), GroupRepository(session), ctx.users, ctx.access),
     )
 
 

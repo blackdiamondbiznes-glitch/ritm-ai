@@ -17,6 +17,7 @@ from app.db.repositories.attendance import AttendanceRepository
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
 from app.services.clock import TASHKENT, Clock, utcnow
+from app.services.fee_usage import usage_deltas
 
 STATUSES = frozenset({"present", "absent", "late", "excused"})
 ATTENDED = frozenset({"present", "late"})
@@ -59,11 +60,13 @@ class AttendanceService:
         lessons: LessonRepository,
         groups: GroupRepository,
         now: Clock | None = None,
+        fees: object | None = None,
     ) -> None:
         self._marks = marks
         self._lessons = lessons
         self._groups = groups
         self._now = now or utcnow
+        self._fees = fees
 
     async def sheet(self, owner_id: int, lesson_id: int) -> dict:
         """Active members of the lesson's group, with the current mark or null."""
@@ -81,6 +84,7 @@ class AttendanceService:
         if not _started(lesson, self._now()):
             raise AttendanceError("future")
         members = {row.id for row in await self._groups.members(lesson.group_id or 0)}
+        before = {row.student_id: row.status for row in await self._marks.for_lesson(lesson.id)}
         planned = _plans(body.get("marks"), members)
         stamp = datetime.now(UTC)
         marked = False
@@ -94,6 +98,8 @@ class AttendanceService:
             lesson.status = "done"
             lesson.updated_at = stamp
             await self._lessons.save(lesson)
+        if self._fees is not None and lesson.group_id is not None:
+            await self._fees.adjust(lesson.group_id, usage_deltas(before, planned))
         return await self.sheet(owner_id, lesson_id)
 
     async def group_stats(self, owner_id: int, group_id: int, month: str) -> dict:
