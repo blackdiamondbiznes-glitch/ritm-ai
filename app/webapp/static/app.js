@@ -8,6 +8,7 @@ import { renderHome } from "./home.js";
 import { renderChatProfile } from "./chatprofile.js";
 import { renderBoards } from "./boards.js";
 import { renderFeeForm } from "./fee_form.js";
+import { renderNotice } from "./notice.js";
 import { renderFees } from "./fees.js";
 import { renderGroups } from "./groups.js";
 import { renderLessons } from "./lessons.js";
@@ -58,7 +59,7 @@ async function boot() {
           /^\d+$/.test(section) ||
           (section === "students" && (third === "new" || /^\d+$/.test(third)));
         const lessonForStudent = section === "lessons" && third === "new" && /^\d+$/.test(fourth);
-        if (section === "groups" && /^\d+$/.test(third) && ["topic", "attendance", "fee"].includes(fourth)) {
+        if (section === "groups" && /^\d+$/.test(third) && ["topic", "attendance", "fee", "notice"].includes(fourth)) {
           go(`cabinet/groups/${third}`);
         } else if (section === "schedule" && fourth === "attendance") go("cabinet/schedule");
         else if (section === "fees") go("cabinet");
@@ -187,6 +188,7 @@ async function route(opts = {}) {
     const fourth = hashFourth();
     if (sub === "groups" && fourth === "attendance") await renderMonth(seq);
     else if (sub === "groups" && fourth === "fee") await renderFeeForm(seq);
+    else if (sub === "groups" && fourth === "notice") await renderNotice(seq);
     else if (sub === "groups") await renderGroups(seq);
     else if (sub === "fees") await renderFees(seq);
     else if (sub === "schedule" && fourth === "attendance") await renderRoll(seq);

@@ -34,6 +34,11 @@ def test_admin_tab_is_wired_and_preloaded() -> None:
     assert '<link rel="modulepreload" href="/s/admin.js">' in html
     assert 'data-tab="admin" hidden' in html
     assert "renderAdmin" in (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "renderNotice" in (STATIC / "app.js").read_text(encoding="utf-8")
+    assert '<link rel="modulepreload" href="/s/notice.js">' in html
+    notice = (STATIC / "notice.js").read_text(encoding="utf-8")
+    missing = set(re.findall(r't\("(\w+)"', notice)) - _locale_keys()["uz"]
+    assert not missing, missing
     ui = (STATIC / "ui.js").read_text(encoding="utf-8")
     assert 'hasRole("super_admin")' in ui
 
