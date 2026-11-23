@@ -10,7 +10,7 @@ export default {
   actionBoard: "Рейтинг",
   actionSettings: "Настройки",
   chats: "Мои чаты",
-  pickChat: "Выберите чат для отчёта",
+  pickChat: "Выберите чат для статистики",
   daily: "Ежедневный пост",
   quiz: "Викторина",
   board: "Рейтинг",

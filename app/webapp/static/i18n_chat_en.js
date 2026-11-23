@@ -10,7 +10,7 @@ export default {
   actionBoard: "Leaderboard",
   actionSettings: "Settings",
   chats: "My chats",
-  pickChat: "Choose a chat for the report",
+  pickChat: "Choose a chat for the stats",
   daily: "Daily post",
   quiz: "Quiz",
   board: "Leaderboard",

@@ -10,7 +10,7 @@ export default {
   actionBoard: "Reyting",
   actionSettings: "Sozlamalar",
   chats: "Chatlarim",
-  pickChat: "Hisobot uchun chatni tanlang",
+  pickChat: "Statistika uchun chatni tanlang",
   daily: "Kunlik post",
   quiz: "Quiz",
   board: "Reyting",

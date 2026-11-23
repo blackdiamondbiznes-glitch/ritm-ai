@@ -19,20 +19,21 @@ def main_menu(
     rows = []
     url = webapp_url if webapp_url is not None else _menu_webapp_url()
     if url:
-        rows.append(
-            [InlineKeyboardButton(text=t("menu_webapp", lang), web_app=WebAppInfo(url=url))]
-        )
         if teaching:
             rows.append([_web(t("menu_teach", lang), _cabinet_url(url))])
+        else:
+            rows.append(
+                [InlineKeyboardButton(text=t("menu_webapp", lang), web_app=WebAppInfo(url=url))]
+            )
         if learning:
             rows.append([_btn(t("menu_learn", lang), MenuCB(a="learn").pack())])
     rows.extend(
         [
-            [_btn(t("menu_connect", lang), MenuCB(a="connect").pack())],
             [_btn(t("menu_chats", lang), MenuCB(a="chats").pack())],
-            [_btn(t("menu_plan", lang), MenuCB(a="plan").pack())],
             [_btn(t("menu_help", lang), MenuCB(a="help").pack())],
             [_btn(t("menu_language", lang), MenuCB(a="lang").pack())],
+            [_btn(t("menu_connect", lang), MenuCB(a="connect").pack())],
+            [_btn(t("menu_plan", lang), MenuCB(a="plan").pack())],
         ]
     )
     if is_admin:

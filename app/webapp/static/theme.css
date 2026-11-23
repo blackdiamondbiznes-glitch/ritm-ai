@@ -20,6 +20,17 @@
   --font: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --bar-h: 88px;
   --safe-top: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --fs-sm: 13px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 24px;
+  --border: var(--nav-border);
+  --warning: #f59e0b;
 }
 
 html[data-theme="light"] {

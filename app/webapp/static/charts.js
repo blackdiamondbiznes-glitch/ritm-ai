@@ -98,8 +98,9 @@ function legendHtml(series, totals = true) {
     .join("")}</div>`;
 }
 
-function wrap(id, svg, extra = "") {
-  return `<div class="chart" data-chart="${id}">${svg}<div class="chart-tip" hidden></div></div>${extra}`;
+function wrap(id, svg, extra = "", summary = "") {
+  const cap = summary ? `<p class="chart-sum">${escapeHtml(summary)}</p>` : "";
+  return `<div class="chart" data-chart="${id}">${svg}<div class="chart-tip" hidden></div></div>${cap}${extra}`;
 }
 
 function yAxis(max, height, fmt) {
@@ -180,7 +181,7 @@ export function lineChart(opts) {
     ${yAxis(max, height, fmt)}${xAxis(labels, xs, height, tick)}${shapes}
     <line class="chart-guide" x1="0" x2="0" y1="${PAD.t}" y2="${base}" visibility="hidden"/>
   </svg>`;
-  return wrap(id, svg, opts.legend === false ? "" : legendHtml(series));
+  return wrap(id, svg, opts.legend === false ? "" : legendHtml(series), aria);
 }
 
 /* ---------- stacked bars ---------- */
@@ -231,7 +232,7 @@ export function barChart(opts) {
     ${yAxis(max, height, fmt)}${xAxis(labels, xs, height, tick)}${bars}
     <line class="chart-guide" x1="0" x2="0" y1="${PAD.t}" y2="${base}" visibility="hidden"/>
   </svg>`;
-  return wrap(id, svg, opts.legend === false ? "" : legendHtml(series));
+  return wrap(id, svg, opts.legend === false ? "" : legendHtml(series), aria);
 }
 
 /* ---------- heatmap (weekday x hour) ---------- */

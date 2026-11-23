@@ -3,6 +3,7 @@
    (the same PaymentService as the bot); this file only draws and sends. */
 import { api, apiForm, cached, forget, go, haptic, load, openTelegram, persist, remember, state } from "./api.js";
 import { current, escapeHtml, formatNumber, setHtml, skeleton, t, toast, withBusy } from "./ui.js";
+import { mirrorMainButton } from "./main_btn.js";
 
 const OPTIONS = "/api/pay/options";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -67,6 +68,17 @@ function headCard() {
 
 const som = (n) => `${formatNumber(n)} so\u2018m`;
 
+function flow(step) {
+  const keys = ["payFlow1", "payFlow2", "payFlow3", "payFlow4"];
+  return `<ol class="flow" aria-label="${escapeHtml(t("payChoosePlan"))}">${keys
+    .map((key, i) => {
+      const n = i + 1;
+      const cls = n === step ? "on" : n < step ? "done" : "";
+      return `<li class="${cls}">${n}. ${escapeHtml(t(key))}</li>`;
+    })
+    .join("")}</ol>`;
+}
+
 function pickerCard(data) {
   const plans = data.plans;
   if (!plans.some((p) => p.code === pick.plan)) pick.plan = (plans.find((p) => p.code === "pro") || plans[0]).code;
@@ -84,6 +96,7 @@ function pickerCard(data) {
   const founder = plan.founder ? `<div class="founder-badge">🎁 ${escapeHtml(t("payFounderBadge"))}</div>` : "";
   const facts = t("payPlanFacts", { c: plan.max_chats, a: formatNumber(plan.ai_limit) });
   return `<div class="card pay-pick">
+    ${flow(1)}
     <div class="card-title">${escapeHtml(t("payChoosePlan"))}</div>
     <div class="seg">${planBtns}</div>
     <p class="muted small-text">${escapeHtml(facts)}</p>
@@ -104,7 +117,7 @@ function invoiceCard(data) {
   const cards = (data.cards || [])
     .map((card) => copyRow(String(card.number).replace(/\s+/g, ""), card.number, `${card.type} · ${card.holder}`))
     .join("");
-  return `<div class="card">
+  return `${flow(3)}<div class="card">
     <div class="card-title">${escapeHtml(t("payInvoiceTitle", { plan: inv.plan_name, n: inv.months }))}</div>
     <p class="form-label">${escapeHtml(t("payStep1"))}</p>
     <div class="pay-ref">
@@ -192,6 +205,7 @@ function bind(data, ui) {
   if (submit) submit.onclick = () => withBusy(submit, () => send(data, redraw));
   const bot = document.getElementById("pay-bot");
   if (bot) bot.onclick = () => openTelegram("");
+  mirrorMainButton(start || submit);
 }
 
 async function send(data, redraw) {

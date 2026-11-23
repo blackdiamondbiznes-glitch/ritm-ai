@@ -16,7 +16,7 @@ export function groupTabs(group, active) {
     tab("fee", "feeNav", fee),
     tab("notice", "noticeNav", note),
   ].join("");
-  return `<div class="seg">${bar}</div>
+  return `<div class="seg cab-tabs">${bar}</div>
     <div class="header"><h1>${escapeHtml(group.name)}</h1>${lead}</div>`;
 }
 

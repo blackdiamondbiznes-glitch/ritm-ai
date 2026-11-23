@@ -68,3 +68,19 @@ def test_study_summary_names_the_next_lesson_and_fee() -> None:
     assert "5-dek" in text
     assert "Paket 7/12" in text
     assert "Tasdiq kutilmoqda: Fizika" in text
+
+
+def test_teacher_menu_puts_cabinet_first_and_plan_last() -> None:
+    markup = main_menu("uz", False, "https://app.example/app", teaching=True, learning=False)
+    labels = [button.text for row in markup.inline_keyboard for button in row]
+    assert labels[0] == "👩‍🏫 O‘qituvchi kabineti"
+    actions = [
+        button.callback_data
+        for row in markup.inline_keyboard
+        for button in row
+        if button.callback_data
+    ]
+    help_at = actions.index(MenuCB(a="help").pack())
+    connect_at = actions.index(MenuCB(a="connect").pack())
+    plan_at = actions.index(MenuCB(a="plan").pack())
+    assert help_at < connect_at < plan_at
