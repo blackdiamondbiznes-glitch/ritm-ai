@@ -114,6 +114,7 @@ function paintOne(row) {
       <label class="field"><span class="field-label">${escapeHtml(t("schEnd"))}</span>
         <input class="input" id="sch-end" type="datetime-local" value="${escapeHtml(wall(end))}"></label>
       <p class="stu-meta">${escapeHtml(t(STATUS_KEY[row.status] || "lesScheduled"))}</p>
+      ${row.group_id ? `<a class="ghost att-back" href="#/cabinet/schedule/${row.id}/attendance">${escapeHtml(t("attNav"))}</a>` : ""}
       <button type="button" class="primary" id="sch-save">${escapeHtml(t("save"))}</button>
       <button type="button" class="ghost" id="sch-done">${escapeHtml(t("schDone"))}</button>
       <button type="button" class="ghost danger" id="sch-cancel">${escapeHtml(t("schCancel"))}</button>

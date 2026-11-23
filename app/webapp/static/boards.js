@@ -1,4 +1,5 @@
 import { api, studentNames } from "./api.js";
+import { historyMarkup } from "./my_roll.js";
 import { nextMarkup } from "./next.js";
 import { current, escapeHtml, setHtml, showError, skeleton, t } from "./ui.js";
 
@@ -6,15 +7,17 @@ export async function renderBoards(seq) {
   setHtml(skeleton("list"));
   try {
     const data = await api("/api/me/boards");
+    const boards = data.boards || [];
     const next = await nextMarkup();
+    const history = await historyMarkup(boards);
     if (!current(seq)) return;
-    paintStudy(data.boards || [], next);
+    paintStudy(boards, next, history);
   } catch (err) {
     if (current(seq)) showError(err);
   }
 }
 
-function paintStudy(boards, next) {
+function paintStudy(boards, next, history) {
   const names = studentNames();
   const who = names.length ? names.join(", ") : t("studyGuest");
   const body = boards.length
@@ -23,6 +26,7 @@ function paintStudy(boards, next) {
   setHtml(`
     <div class="header"><h1>${escapeHtml(who)}</h1><p>${escapeHtml(t("studyLead"))}</p></div>
     ${next || ""}
+    ${history || ""}
     ${body}
   `);
 }

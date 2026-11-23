@@ -995,3 +995,6 @@ input.input { margin-top: 6px; }
 .week-nav .ghost { flex: 1; }
 .week-day.today { outline: 2px solid var(--accent); }
 .sch-row { width: 100%; text-align: left; background: transparent; color: inherit; border: 0; padding: 8px 0; }
+a.seg-btn { display: block; text-align: center; text-decoration: none; }
+.att-seg { margin-top: 8px; }
+.att-back { display: block; text-align: center; margin-top: 8px; text-decoration: none; }

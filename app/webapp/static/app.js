@@ -10,6 +10,8 @@ import { renderBoards } from "./boards.js";
 import { renderGroups } from "./groups.js";
 import { renderLessons } from "./lessons.js";
 import { renderReminders } from "./reminders.js";
+import { renderMonth } from "./roll_month.js";
+import { renderRoll } from "./roll.js";
 import { renderSchedule } from "./schedule.js";
 import { renderStudents } from "./students.js";
 import { renderCabinet } from "./summary.js";
@@ -54,7 +56,9 @@ async function boot() {
           /^\d+$/.test(section) ||
           (section === "students" && (third === "new" || /^\d+$/.test(third)));
         const lessonForStudent = section === "lessons" && third === "new" && /^\d+$/.test(fourth);
-        if (section === "groups" && /^\d+$/.test(third) && fourth === "topic") go(`cabinet/groups/${third}`);
+        if (section === "groups" && /^\d+$/.test(third) && (fourth === "topic" || fourth === "attendance")) {
+          go(`cabinet/groups/${third}`);
+        } else if (section === "schedule" && fourth === "attendance") go("cabinet/schedule");
         else if (groupForm && fourth === "edit") go(`cabinet/groups/${third}`);
         else if (groupForm) go("cabinet/groups");
         else if (reminderForm) go("cabinet/reminders");
@@ -177,7 +181,10 @@ async function route(opts = {}) {
       await renderCabinet(seq);
       return;
     }
-    if (sub === "groups") await renderGroups(seq);
+    const fourth = hashFourth();
+    if (sub === "groups" && fourth === "attendance") await renderMonth(seq);
+    else if (sub === "groups") await renderGroups(seq);
+    else if (sub === "schedule" && fourth === "attendance") await renderRoll(seq);
     else if (sub === "schedule") await renderSchedule(seq);
     else if (sub === "lessons") await renderLessons(seq);
     else if (sub === "reminders") await renderReminders(seq);
@@ -204,6 +211,11 @@ async function route(opts = {}) {
   } finally {
     if (current(seq)) setBusy(false);
   }
+}
+
+function hashFourth() {
+  const parts = (location.hash || "").split("?")[0].replace(/^#\/?/, "").split("/").filter(Boolean);
+  return parts[3] || "";
 }
 
 boot();

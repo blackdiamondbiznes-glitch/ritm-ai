@@ -1,4 +1,5 @@
 import { announce, announceBlock } from "./announce.js";
+import { groupTabs } from "./group_tabs.js";
 import { api, go, haptic, tg } from "./api.js";
 import { showLimit } from "./limits.js";
 import { mountRequests } from "./requests.js";
@@ -125,10 +126,7 @@ function paintOpen() {
     .concat(available.map((item) => `<option value="${item.id}">${escapeHtml(item.name)}</option>`))
     .join("");
   setHtml(`
-    <div class="header">
-      <h1>${escapeHtml(group.name)}</h1>
-      <p>${escapeHtml(schedule(group))}</p>
-    </div>
+    ${groupTabs(group, "home")}
     <div class="card">
       <div class="card-title">${escapeHtml(t("bookTitle"))}</div>
       ${gradebookTable(board)}
@@ -392,8 +390,4 @@ function groupButton(group) {
   </button>`;
 }
 
-function schedule(group) {
-  const days = (group.weekdays || []).map((day) => t(`day${day}`)).join(", ");
-  const level = group.level ? ` · ${group.level}` : "";
-  return `${days} · ${group.start}–${group.end}${level}`;
-}
+
