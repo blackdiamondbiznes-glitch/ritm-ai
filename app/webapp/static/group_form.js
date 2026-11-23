@@ -1,4 +1,5 @@
 import { api, go, haptic } from "./api.js";
+import { clockInput, readClock } from "./clock.js";
 import { showLimit } from "./limits.js";
 import { escapeHtml, setHtml, t, toast, withBusy } from "./ui.js";
 
@@ -32,9 +33,9 @@ export function paintGroupForm(group) {
       <div class="field"><span class="field-label">${escapeHtml(t("grpDays"))}</span>
         <div class="chips" id="grp-days">${chips}</div></div>
       <label class="field"><span class="field-label">${escapeHtml(t("grpStart"))}</span>
-        <input class="input" id="grp-start" type="time" value="${group ? group.start : "08:00"}"></label>
+        ${clockInput("grp-start", group ? group.start : "08:00")}</label>
       <label class="field"><span class="field-label">${escapeHtml(t("grpEnd"))}</span>
-        <input class="input" id="grp-end" type="time" value="${group ? group.end : "10:00"}"></label>
+        ${clockInput("grp-end", group ? group.end : "10:00")}</label>
       <button type="button" class="primary" id="grp-save">${escapeHtml(t("save"))}</button>
     </div>
   `);
@@ -48,6 +49,9 @@ export function paintGroupForm(group) {
 
 export function showFormError(err) {
   if (showLimit(err)) return;
+  const field = { empty: "grp-name", long: "grp-name", time: "grp-start" }[err.code];
+  document.querySelectorAll(".input.bad").forEach((node) => node.classList.remove("bad"));
+  if (field && document.getElementById(field)) document.getElementById(field).classList.add("bad");
   toast(t(ERROR_KEY[err.code] || "error"), "err");
 }
 
@@ -59,8 +63,8 @@ async function save(group) {
     name: document.getElementById("grp-name").value,
     level: document.getElementById("grp-level").value,
     weekdays,
-    start: document.getElementById("grp-start").value,
-    end: document.getElementById("grp-end").value,
+    start: readClock("grp-start"),
+    end: readClock("grp-end"),
   };
   const path = group ? `/api/tutor/groups/${group.id}` : "/api/tutor/groups";
   const data = await api(path, { method: group ? "PATCH" : "POST", body: JSON.stringify(body) });

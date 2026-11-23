@@ -602,6 +602,10 @@ button.busy::after {
 .bar { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--muted) 25%, transparent); margin: 4px 0 10px; overflow: hidden; }
 .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--header-1), var(--header-2)); }
 .input.bad { border-color: var(--danger); }
+.when-row { display: grid; grid-template-columns: 1fr 96px; gap: 8px; }
+.badge-dot { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--danger, #ef4444); color: #fff; font-weight: 700; font-size: 12px; }
+.req-badge { border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 45%, transparent); }
+.join-result { white-space: pre-line; margin-top: 8px; }
 .cell-btn { min-width: 32px; min-height: 32px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .pay-old { text-decoration: line-through; margin-right: 6px; opacity: 0.7; }
 .field-check { display: flex; gap: 10px; align-items: flex-start; }

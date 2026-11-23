@@ -1,3 +1,4 @@
+import { readWhen, whenInput } from "./clock.js";
 import { api, go, haptic, tg } from "./api.js";
 import {
   bindCabinetSwitch,
@@ -84,7 +85,7 @@ function paintForm() {
       <label class="field"><span class="field-label">${escapeHtml(t("lesStudent"))}</span>
         <select class="input" id="rem-student">${options}</select></label>
       <label class="field"><span class="field-label">${escapeHtml(t("lesWhen"))}</span>
-        <input class="input" id="rem-when" type="datetime-local"></label>
+        ${whenInput("rem-when", "")}</label>
       <button type="button" class="primary" id="rem-save">${escapeHtml(t("save"))}</button>
     </div>
   `);
@@ -98,7 +99,7 @@ async function save() {
   const body = {
     text: document.getElementById("rem-text").value,
     student_id: studentRaw ? Number(studentRaw) : null,
-    send_at: document.getElementById("rem-when").value,
+    send_at: readWhen("rem-when"),
   };
   cache = await api("/api/tutor/reminders", { method: "POST", body: JSON.stringify(body) });
   haptic("success");

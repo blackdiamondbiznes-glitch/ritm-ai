@@ -1,3 +1,4 @@
+import { clockInput, readClock, readWhen, whenInput } from "./clock.js";
 import { api, haptic } from "./api.js";
 import {
   bindCabinetSwitch,
@@ -110,9 +111,9 @@ function paintOne(row) {
       <label class="field"><span class="field-label">${escapeHtml(t("lesName"))}</span>
         <input class="input" id="sch-title" maxlength="120" value="${escapeHtml(row.title)}"></label>
       <label class="field"><span class="field-label">${escapeHtml(t("schWhen"))}</span>
-        <input class="input" id="sch-start" type="datetime-local" value="${escapeHtml(wall(row.starts_at))}"></label>
+        ${whenInput("sch-start", wall(row.starts_at))}</label>
       <label class="field"><span class="field-label">${escapeHtml(t("schEnd"))}</span>
-        <input class="input" id="sch-end" type="datetime-local" value="${escapeHtml(wall(end))}"></label>
+        ${clockInput("sch-end-time", wall(end).slice(11, 16))}</label>
       <p class="stu-meta">${escapeHtml(t(STATUS_KEY[row.status] || "lesScheduled"))}</p>
       ${row.group_id ? `<a class="ghost att-back" href="#/cabinet/schedule/${row.id}/attendance">${escapeHtml(t("attNav"))}</a>` : ""}
       <button type="button" class="primary" id="sch-save">${escapeHtml(t("save"))}</button>
@@ -129,8 +130,8 @@ function paintOne(row) {
   bindAction("sch-save", () =>
     send(row, {
       title: document.getElementById("sch-title").value,
-      starts_at: document.getElementById("sch-start").value,
-      ends_at: document.getElementById("sch-end").value,
+      starts_at: readWhen("sch-start"),
+      ends_at: endWall(readWhen("sch-start"), readClock("sch-end-time")),
     }),
   );
   bindAction("sch-done", () => send(row, { status: "done" }));
@@ -202,6 +203,13 @@ function wall(iso) {
   }).formatToParts(new Date(iso));
   const pick = (type) => parts.find((part) => part.type === type).value;
   return `${pick("year")}-${pick("month")}-${pick("day")}T${pick("hour")}:${pick("minute")}`;
+}
+
+/** End time on the lesson's day. An end before the start belongs to the next day. */
+function endWall(start, time) {
+  if (!start || !time) return "";
+  const day = time < start.slice(11, 16) ? addDays(start.slice(0, 10), 1) : start.slice(0, 10);
+  return `${day}T${time}`;
 }
 
 function dayKey(iso) {

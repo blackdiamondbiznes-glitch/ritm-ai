@@ -1,3 +1,4 @@
+import { readWhen, whenInput } from "./clock.js";
 import { api, go, haptic, tg } from "./api.js";
 import {
   bindCabinetSwitch,
@@ -140,7 +141,7 @@ function paintForm(row, presetStudent) {
       <label class="field"><span class="field-label">${escapeHtml(t("lesStudent"))}</span>
         <select class="input" id="les-student">${options}</select></label>
       <label class="field"><span class="field-label">${escapeHtml(t("lesWhen"))}</span>
-        <input class="input" id="les-when" type="datetime-local" value="${escapeHtml(whenValue(row && row.starts_at))}"></label>
+        ${whenInput("les-when", whenValue(row && row.starts_at))}</label>
       <label class="field"><span class="field-label">${escapeHtml(t("stuAmount"))}</span>
         <input class="input" id="les-amount" inputmode="numeric" value="${row ? row.amount_uzs : 0}"></label>
       <label class="field"><span class="field-label">${escapeHtml(t("stuNote"))}</span>
@@ -182,7 +183,7 @@ async function save(row) {
   const body = {
     title: document.getElementById("les-title").value,
     student_id: studentRaw ? Number(studentRaw) : null,
-    starts_at: document.getElementById("les-when").value,
+    starts_at: readWhen("les-when"),
     amount_uzs: amount,
     note: document.getElementById("les-note").value,
     status: document.getElementById("les-status").getAttribute("data-value"),
