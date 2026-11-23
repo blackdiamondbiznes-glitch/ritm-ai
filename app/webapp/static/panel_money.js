@@ -29,8 +29,13 @@ export async function renderFees(main, parts) {
   loading(main, title);
   let rows;
   let summary;
+  let students;
   try {
-    [rows, summary] = await Promise.all([api("/api/tutor/invoices"), api("/api/tutor/fees/summary")]);
+    [rows, summary, students] = await Promise.all([
+      api("/api/tutor/invoices"),
+      api("/api/tutor/fees/summary"),
+      api("/api/tutor/students").then((data) => data.students || []),
+    ]);
   } catch (err) {
     failed(main, title, err);
     return;
@@ -38,7 +43,10 @@ export async function renderFees(main, parts) {
   const today = todayIso();
   const open = rows.filter((row) => row.status === "due" || row.status === "overdue");
   const lateRows = open.filter((row) => late(row, today));
-  const debtors = new Set(open.map((row) => row.student_id)).size;
+  // Debt typed on a student card (no invoice yet) is part of the outstanding total, so list it too.
+  const covered = new Set(open.map((row) => row.student_id));
+  const cardDebts = students.filter((row) => row.status === "debtor" && row.amount_uzs > 0 && !covered.has(row.id));
+  const debtors = new Set([...covered, ...cardDebts.map((row) => row.id)]).size;
   const ending = open.filter((row) => {
     const left = packageLeft(row);
     return left !== null && left <= 1;
@@ -71,6 +79,24 @@ export async function renderFees(main, parts) {
         <td class="pn-act"><span class="pd-actions">${act(row)}</span></td>
       </tr>`)
       .join("");
+    const showCards = (fees.filter === "" || fees.filter === "due") && cardDebts.filter(
+      (row) => !query || row.name.toLowerCase().includes(query),
+    );
+    const cardRows = (showCards || [])
+      .map((row) => `<tr>
+        <td><a class="pd-strong" href="#/students/${row.id}">${esc(row.name)}</a></td>
+        <td class="pn-muted">—</td>
+        <td class="pn-num">${esc(money(row.amount_uzs))}</td>
+        <td class="pn-num">—</td>
+        <td>${tag("bad", t("pdCardDebt"))}</td>
+        <td class="pn-act"><a class="pn-btn pn-btn-ghost pn-btn-sm" href="#/students/${row.id}">${esc(t("pdOpenCard"))}</a></td>
+      </tr>`)
+      .join("");
+    const cardItems = (showCards || [])
+      .map((row) => `<li class="pd-member pd-fee-card"><span class="pd-pick-text"><b>${esc(row.name)}</b>
+        <small class="pn-num">${esc(money(row.amount_uzs))}</small></span>${tag("bad", t("pdCardDebt"))}
+        <span class="pd-actions"><a class="pn-btn pn-btn-ghost pn-btn-sm" href="#/students/${row.id}">${esc(t("pdOpenCard"))}</a></span></li>`)
+      .join("");
     const cards = shown
       .map((row) => `<li class="pd-member pd-fee-card"><span class="pd-pick-text"><b>${esc(row.student_name || "")}</b>
         <small>${esc(`${row.group_name || ""} · ${row.due_on ? dayMonth(row.due_on) : "—"}`)}</small><small class="pn-num">${esc(amount(row))}</small></span>
@@ -85,11 +111,12 @@ export async function renderFees(main, parts) {
       </section>
       <div class="pd-toolbar">${chips(filters, fees.filter, "data-filter")}
         <input class="pd-input pd-search" type="search" id="pd-q" value="${esc(fees.query)}" placeholder="${esc(t("pdSearchFee"))}" aria-label="${esc(t("pdSearchFee"))}"></div>
-      <section class="pn-card">${shown.length ? `
+      <section class="pn-card">${shown.length || cardRows ? `
         <div class="pn-table-wrap pn-only-wide"><table class="pn-table">
           <thead><tr><th scope="col">${esc(t("stuName"))}</th><th scope="col">${esc(t("pnlColGroup"))}</th><th scope="col">${esc(t("feeAmount"))}</th><th scope="col">${esc(t("pdDueOn"))}</th><th scope="col">${esc(t("stuStatus"))}</th><th scope="col"><span class="pn-sr">${esc(t("pnlColAction"))}</span></th></tr></thead>
-          <tbody>${table}</tbody></table></div>
-        <ul class="pd-members pn-only-phone">${cards}</ul>` : empty(t("feeEmpty"))}</section>`;
+          <tbody>${table}${cardRows}</tbody></table></div>
+        <ul class="pd-members pn-only-phone">${cards}${cardItems}</ul>` : empty(t("feeEmpty"))}
+        ${cardRows ? `<p class="pn-muted pd-small">${esc(t("pdCardDebtsHint"))}</p>` : ""}</section>`;
     const search = main.querySelector("#pd-q");
     search.addEventListener("input", () => {
       fees.query = search.value;
@@ -157,7 +184,9 @@ export async function renderReports(main) {
   loading(main, title);
   let data = null;
   let locked = false;
+  let summary = null;
   try {
+    summary = await api("/api/tutor/fees/summary").catch(() => null);
     data = await api(`/api/tutor/reports/monthly?month=${reportMonth}`);
   } catch (err) {
     if (err.code !== "export") {
@@ -180,7 +209,7 @@ export async function renderReports(main) {
       <a class="pn-btn pn-btn-primary" href="#/settings/plan">${esc(t("pdSeePlan"))}</a></section>`;
   } else {
     const groups = data.groups || [];
-    const rate = (value) => (value == null ? "—" : `${Math.round(value * 100)}%`);
+    const rate = (value) => (value == null ? t("pdNoMarks") : `${Math.round(value * 100)}%`);
     const total = (key) => groups.reduce((sum, group) => sum + (Number(group[key]) || 0), 0);
     const rows = groups
       .map((group) => `<tr><td class="pd-strong">${esc(group.name || "")}</td><td class="pn-num">${esc(rate(group.attendance_rate))}</td>
@@ -190,12 +219,12 @@ export async function renderReports(main) {
     main.innerHTML = `${head(title, t("pdReportsLead"))}${nav}
       <section class="pn-kpis">
         ${kpi("pdCollected", money(total("collected_uzs")), monthLabel(reportMonth), "ok")}
-        ${kpi("pdDebtKpi", money(total("outstanding_uzs")), t("pdOutstandingSub"), "bad")}
-        ${kpi("pdNewStudents", String(data.new_students || 0), t("pdThisMonth"), "accent")}
-        ${kpi("pdLeftStudents", String(data.left_students || 0), t("pdThisMonth"), "warn")}
+        ${kpi("pdMonthDebt", money(total("outstanding_uzs")), t("pdMonthDebtSub"), "warn")}
+        ${kpi("pdTotalDebt", summary ? money(summary.outstanding_uzs) : "—", t("pdTotalDebtSub"), "bad")}
+        ${kpi("pdNewStudents", `${data.new_students || 0} / ${data.left_students || 0}`, t("pdNewLeftSub"), "accent")}
       </section>
       <section class="pn-card pd-gap">${groups.length ? `<div class="pn-table-wrap"><table class="pn-table">
-        <thead><tr><th scope="col">${esc(t("pnlColGroup"))}</th><th scope="col">${esc(t("pnlAttendance"))}</th><th scope="col">${esc(t("pdCollected"))}</th><th scope="col">${esc(t("pdDebtKpi"))}</th><th scope="col"><span class="pn-sr">CSV</span></th></tr></thead>
+        <thead><tr><th scope="col">${esc(t("pnlColGroup"))}</th><th scope="col">${esc(t("pnlAttendance"))}</th><th scope="col">${esc(t("pdCollected"))}</th><th scope="col">${esc(t("pdMonthDebt"))}</th><th scope="col"><span class="pn-sr">CSV</span></th></tr></thead>
         <tbody>${rows}</tbody></table></div>` : empty(t("repNone"))}</section>${exports}`;
   }
   on(main, "data-month", (node) => {

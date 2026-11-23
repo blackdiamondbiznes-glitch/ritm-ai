@@ -304,7 +304,7 @@ export async function mountRoll(box, row, done) {
           <span class="pn-muted">${esc(t("pdUnmarkedN", { n: left }))}</span>
         </div>
         <ul class="pd-roll" aria-label="${esc(t("pnlAttendance"))}">${lines}</ul>
-        <div class="pd-actions">${button(t("save"), `data-roll-save${future ? " disabled" : ""}`, "primary")}</div>` : empty(t("attEmpty"))}`;
+        <div class="pd-actions">${button(t("save"), `data-roll-save${future ? " disabled" : ""}`, "primary")}</div>` : `${empty(t("attEmpty"))}<a class="pn-btn pn-btn-ghost" href="#/groups/${Number(data.group_id || row.group_id)}">${esc(t("pdAddToGroup"))}</a>`}`;
   };
   paint();
   box.onclick = (event) => {

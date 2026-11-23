@@ -1,6 +1,6 @@
 import {
   api, busy, button, chips, dayToggles, daysText, dialog, empty, esc, failed, field, groupLabel, head, input,
-  inviteLink, loading, money, on, select, send, t, tag, toast, todayIso,
+  inviteLink, joinParts, loading, money, on, select, send, t, tag, toast, todayIso,
 } from "./panel_kit.js";
 
 /** Guruhlar and O‘quvchilar pages, on the existing /api/tutor/* endpoints. */
@@ -20,9 +20,18 @@ function statusTag(status) {
 }
 
 function feeText(group) {
-  if (group.fee_mode === "monthly") return `${t("feeMonthly")} · ${money(group.fee_uzs)}`;
-  if (group.fee_mode === "package") return `${t("feePackage")} · ${group.package_lessons || 0} · ${money(group.fee_uzs)}`;
-  return t("feeNone");
+  if (group.fee_mode === "monthly") return joinParts(t("feeMonthly"), money(group.fee_uzs));
+  if (group.fee_mode === "package") return joinParts(t("pdPackageOf", { n: group.package_lessons || 0 }), money(group.fee_uzs));
+  return t("pdNoFeeRule");
+}
+
+/** Billing details under the rule: invoice day and payment window, or the package size. */
+function feeDetails(group) {
+  if (group.fee_mode === "monthly") {
+    return joinParts(t("pdBillingDay", { n: group.billing_day ?? 1 }), t("pdDueDays", { n: group.due_days ?? 5 }));
+  }
+  if (group.fee_mode === "package") return t("pdDueDays", { n: group.due_days ?? 5 });
+  return t("pdNoFeeRuleHint");
 }
 
 function timeText(group) {
@@ -101,8 +110,15 @@ async function renderGroup(main, id) {
   loading(main, title);
   let data;
   let notify;
+  let cards;
+  let asking;
   try {
-    [data, notify] = await Promise.all([api(`/api/tutor/groups/${id}`), api(`/api/tutor/groups/${id}/notify`)]);
+    [data, notify, cards, asking] = await Promise.all([
+      api(`/api/tutor/groups/${id}`),
+      api(`/api/tutor/groups/${id}/notify`),
+      api("/api/tutor/students").then((body) => body.students || []),
+      api("/api/tutor/requests").then((body) => (body.requests || []).filter((row) => row.group_id === id)),
+    ]);
   } catch (err) {
     failed(main, title, err);
     return;
@@ -115,12 +131,22 @@ async function renderGroup(main, id) {
       <button type="button" class="pn-btn pn-btn-ghost pn-btn-sm" data-remove="${row.id}" aria-label="${esc(`${t("pdRemove")}: ${row.name}`)}">${esc(t("pdRemove"))}</button></li>`)
     .join("");
   const available = data.available || [];
-  const chatOptions = [["", t("noticeChatNone")], ...(notify.chats || []).map((chat) => [chat.id, chat.title || ""])];
+  const chatList = (notify.chats || []).map((chat) => [chat.id, chat.title || ""]);
+  if (notify.chat_id && !chatList.some(([chatId]) => String(chatId) === String(notify.chat_id))) {
+    chatList.push([notify.chat_id, t("pdChatLinked")]);
+  }
+  const chatOptions = [["", t("noticeChatNone")], ...chatList];
+  const memberIds = new Set((data.members || []).map((row) => row.id));
+  const debts = cards.filter((row) => memberIds.has(row.id) && row.status === "debtor" && row.amount_uzs > 0);
+  const debtLines = debts
+    .map((row) => `<li class="pd-member"><a class="pd-strong" href="#/students/${row.id}">${esc(row.name)}</a><span class="pn-num pn-bad">${esc(money(row.amount_uzs))}</span></li>`)
+    .join("");
   const actions = `<a class="pn-btn pn-btn-ghost" href="#/groups">${esc(t("pdBack"))}</a>${button(t("pdEdit"), "data-edit-group", "primary")}`;
-  main.innerHTML = `${head(groupLabel(group), timeText(group), actions)}
+  main.innerHTML = `${head(group.name, joinParts(group.level, timeText(group)), actions)}
     <div class="pd-split">
       <section class="pn-card">
         <h2>${esc(t("pnlStudents"))} · ${esc(String((data.members || []).length))}</h2>
+        ${asking.length ? `<p class="pd-note"><a class="pn-link" href="#/students/requests">${esc(t("pdGroupAsks", { n: asking.length }))}</a></p>` : ""}
         ${members ? `<ul class="pd-members">${members}</ul>` : empty(t("attEmpty"))}
         <form class="pd-form pd-inline-form" id="pd-add-member" novalidate>
           ${available.length ? `<div class="pd-row-act">${field(t("pdAddExisting"), select("student_id", available.map((row) => [row.id, row.name]), ""))}<button type="submit" class="pn-btn pn-btn-ghost" name="mode" value="old">${esc(t("pdAdd"))}</button></div>` : ""}
@@ -136,9 +162,10 @@ async function renderGroup(main, id) {
         </section>
         <section class="pn-card">
           <h2>${esc(t("pdColFee"))}</h2>
-          <p class="pd-line">${esc(feeText(group))}</p>
-          ${group.fee_mode === "monthly" ? `<p class="pn-muted pd-small">${esc(`${t("feeDay")}: ${group.billing_day ?? "—"} · ${t("feeDue")}: ${group.due_days ?? "—"}`)}</p>` : ""}
-          ${button(t("pdEditFee"), "data-edit-fee")}
+          <p class="pd-big${group.fee_mode === "none" ? " pn-muted" : ""}">${esc(feeText(group))}</p>
+          <p class="pn-muted pd-small">${esc(feeDetails(group))}</p>
+          ${debtLines ? `<h3 class="pd-sub">${esc(t("pdCardDebts"))}</h3><ul class="pd-members">${debtLines}</ul><p class="pn-muted pd-small">${esc(t("pdCardDebtsHint"))}</p>` : ""}
+          <div class="pd-actions">${button(group.fee_mode === "none" ? t("pdSetFee") : t("pdEditFee"), "data-edit-fee", group.fee_mode === "none" ? "primary" : "ghost")}</div>
         </section>
         <section class="pn-card">
           <h2>${esc(t("pdReminders"))}</h2>
@@ -231,27 +258,38 @@ async function renderGroup(main, id) {
 }
 
 function feeDialog(main, group) {
+  const mode = group.fee_mode || "none";
   const fields = `
-    ${field(t("pdColFee"), select("fee_mode", MODES.map(([v, k]) => [v, t(k)]), group.fee_mode || "none"))}
-    ${field(t("feeAmount"), input("fee_uzs", group.fee_uzs || 0, 'type="number" min="0" step="1000" inputmode="numeric"'))}
-    <div class="pd-row2">
-      ${field(t("feeDay"), input("billing_day", group.billing_day || 1, 'type="number" min="1" max="28" inputmode="numeric"'))}
-      ${field(t("feeDue"), input("due_days", group.due_days ?? 5, 'type="number" min="0" max="60" inputmode="numeric"'))}
+    ${field(t("pdColFee"), select("fee_mode", MODES.map(([v, k]) => [v, t(k)]), mode))}
+    <div data-for="monthly package">${field(t("feeAmount"), input("fee_uzs", group.fee_uzs || 0, 'type="number" min="0" step="1000" inputmode="numeric"'))}</div>
+    <div class="pd-row2" data-for="monthly package">
+      <div data-for="monthly">${field(t("feeDay"), input("billing_day", group.billing_day || 1, 'type="number" min="1" max="28" inputmode="numeric"'))}</div>
+      ${field(t("feeDue"), input("due_days", group.due_days ?? 5, 'type="number" min="0" max="31" inputmode="numeric"'))}
     </div>
-    ${field(t("feeSize"), input("package_lessons", group.package_lessons || 8, 'type="number" min="1" max="200" inputmode="numeric"'), t("feeSizeHelp"))}`;
-  dialog(t("pdEditFee"), fields, async (form) => {
+    <div data-for="package">${field(t("feeSize"), input("package_lessons", group.package_lessons || 8, 'type="number" min="1" max="200" inputmode="numeric"'), t("feeSizeHelp"))}</div>
+    <p class="pn-muted pd-small" data-for="none">${esc(t("pdNoFeeRuleHint"))}</p>`;
+  const node = dialog(t("pdEditFee"), fields, async (form) => {
     const data = new FormData(form);
-    const mode = String(data.get("fee_mode"));
+    const picked = String(data.get("fee_mode"));
+    const number = (name) => Number.parseInt(String(data.get(name) || "0"), 10) || 0;
     await send(`/api/tutor/groups/${group.id}/fee`, "PUT", {
-      fee_mode: mode,
-      fee_uzs: Number(data.get("fee_uzs") || 0),
-      due_days: Number(data.get("due_days") || 0),
-      billing_day: mode === "monthly" ? Number(data.get("billing_day")) : null,
-      package_lessons: mode === "package" ? Number(data.get("package_lessons")) : null,
+      fee_mode: picked,
+      fee_uzs: picked === "none" ? 0 : number("fee_uzs"),
+      due_days: number("due_days"),
+      billing_day: picked === "monthly" ? number("billing_day") : null,
+      package_lessons: picked === "package" ? number("package_lessons") : null,
     });
     toast(t("saved"));
     renderGroup(main, group.id);
   });
+  const chooser = node.querySelector('[name="fee_mode"]');
+  const sync = () => {
+    node.querySelectorAll("[data-for]").forEach((part) => {
+      part.hidden = !part.getAttribute("data-for").split(" ").includes(chooser.value);
+    });
+  };
+  chooser.addEventListener("change", sync);
+  sync();
 }
 
 /* ---------- O‘quvchilar ---------- */

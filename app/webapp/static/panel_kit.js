@@ -27,6 +27,10 @@ const ERROR_KEYS = {
   unauthorized: "pdErrSession",
   pd_group_need: "stuGroupNeed",
   amount: "pdErrAmount",
+  day: "pdErrDay",
+  due: "pdErrDue",
+  package: "pdErrPackage",
+  mode: "error",
 };
 const PLAN_NAMES = { free: "Free", start: "Start", pro: "Pro", agency: "Ultra" };
 
@@ -141,25 +145,32 @@ export function initials(name) {
   return (parts.slice(0, 2).map((part) => Array.from(part)[0] || "").join("") || "?").toUpperCase();
 }
 
-/** Page header. On phones the menu button and avatar menu replace the sidebar. */
+/**
+ * Page header. Wide screens: title left, actions right. Phones: menu, title and avatar on one
+ * row, the lead wraps in full, and actions get their own row so nothing overlaps.
+ */
 export function head(title, lead, actions = "") {
   const me = state.me;
   const name = me ? me.user.name : "";
   const both = me && me.both_roles
     ? `<p class="pn-pop-note">${esc(t("pnlBothShort"))}</p><a href="/?role=student#/study">${esc(t("pnlToStudent"))}</a>`
     : "";
-  return `<header class="pn-head">
-    <button type="button" class="pn-icon-btn pn-only-phone" data-act="drawer" aria-label="${esc(t("pnlMenu"))}" aria-controls="pn-side">${icon("menu")}</button>
+  return `<header class="pn-head${actions ? " has-actions" : ""}">
+    <button type="button" class="pn-icon-btn pn-only-phone pn-head-menu" data-act="drawer" aria-label="${esc(t("pnlMenu"))}" aria-controls="pn-side">${icon("menu")}</button>
     <div class="pn-head-text"><p class="pn-eyebrow">${esc(t("pnlEyebrow"))}</p><h1>${esc(title)}</h1>${lead ? `<p class="pn-lead">${esc(lead)}</p>` : ""}</div>
-    <div class="pn-head-actions">${actions}
-      <div class="pn-head-me pn-only-phone">
-        <button type="button" class="pn-avatar pn-avatar-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-controls="pn-pop" aria-label="${esc(name)}">${esc(initials(name))}</button>
-        <div class="pn-pop" id="pn-pop" hidden>${both}
-          <form method="post" action="/panel/logout"><button type="submit" class="pn-pop-item">${esc(t("pnlLogout"))}</button></form>
-        </div>
+    <div class="pn-head-me pn-only-phone">
+      <button type="button" class="pn-avatar pn-avatar-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-controls="pn-pop" aria-label="${esc(name)}">${esc(initials(name))}</button>
+      <div class="pn-pop" id="pn-pop" hidden>${both}
+        <form method="post" action="/panel/logout"><button type="submit" class="pn-pop-item">${esc(t("pnlLogout"))}</button></form>
       </div>
     </div>
+    ${actions ? `<div class="pn-head-actions">${actions}</div>` : ""}
   </header>`;
+}
+
+/** "a · b" without empty parts, so a missing level never leaves a stray separator. */
+export function joinParts(...parts) {
+  return parts.filter((part) => part !== null && part !== undefined && String(part).trim() !== "").join(" · ");
 }
 
 export function button(label, attrs = "", tone = "ghost", iconName = "") {
@@ -316,7 +327,7 @@ export function daysText(days) {
 }
 
 export function groupLabel(group) {
-  return `${group.name || group.group_name || ""}${group.level ? ` · ${group.level}` : ""}`;
+  return joinParts(group.name || group.group_name, group.level);
 }
 
 export function inviteLink(code) {

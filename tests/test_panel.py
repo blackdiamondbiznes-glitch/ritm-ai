@@ -482,3 +482,17 @@ async def test_panel_writes_go_through_the_shared_tutor_api(env) -> None:
     week = date.today().isoformat()
     sessions = await http.get(f"/api/tutor/sessions?from={week}&to={week}", headers=headers)
     assert sessions.status == 200
+
+
+def test_panel_phone_layout_and_fee_contract():
+    """Phone header wraps instead of truncating; the fee form stays inside the API limits."""
+    static = Path(__file__).resolve().parents[1] / "app" / "webapp" / "static"
+    css = (static / "panel.css").read_text(encoding="utf-8")
+    assert "text-overflow: ellipsis" not in css.split(".pn-lead {", 2)[-1].split("}", 1)[0]
+    assert '"actions actions actions"' in css
+    people = (static / "panel_people.js").read_text(encoding="utf-8")
+    assert 'name="due_days"' not in people  # built through input(), limits below
+    assert 'max="31"' in people and 'max="60"' not in people
+    assert "pdNoFeeRule" in people and "pdCardDebts" in people
+    money = (static / "panel_money.js").read_text(encoding="utf-8")
+    assert "pdCardDebt" in money and "pdTotalDebt" in money
