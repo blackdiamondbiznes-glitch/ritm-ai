@@ -14,6 +14,7 @@ from app.db.repositories.topics import TopicRepository
 from app.db.repositories.tutor_notices import TutorNoticeRepository
 from app.db.repositories.users import UserRepository
 from app.services.clock import TASHKENT
+from app.services.notify_attendance import enqueue_attendance
 from app.services.notify_homework import enqueue_homework
 from app.services.notify_queue import deliver
 from app.services.notify_rules import day_ref, language, lesson_label, run_at
@@ -49,7 +50,8 @@ class NoticePlanner:
         fees = await self._fees(now)
         manuals = await self._manual(now)
         home = await enqueue_homework(self, self._topics, now) if self._topics else 0
-        return lessons + fees + manuals + home
+        roll = await enqueue_attendance(self, now)
+        return lessons + fees + manuals + home + roll
 
     async def _lessons(self, now: datetime) -> int:
         made = 0

@@ -144,10 +144,12 @@ export function renderProfile() {
         : ""
     }
     ${
-      group(t("secChats"), [
-        manager ? row({ icon: "💬", color: "#0ea5e9", title: t("rowChats"), value: t("valCount", { n: chats.length }), go: "chats" }) : "",
-        row({ icon: "➕", color: "#10b981", title: manager ? t("rowConnect") : t("ownCtaBtn"), sub: t("rowConnectSub"), go: "profile/connect" }),
-      ])
+      student
+        ? ""
+        : group(t("secChats"), [
+            manager ? row({ icon: "💬", color: "#0ea5e9", title: t("rowChats"), value: t("valCount", { n: chats.length }), go: "chats" }) : "",
+            row({ icon: "➕", color: "#10b981", title: manager ? t("rowConnect") : t("ownCtaBtn"), sub: t("rowConnectSub"), go: "profile/connect" }),
+          ])
     }
     ${group(t("secHelp"), [
       me.support ? row({ icon: "💬", color: "#6366f1", title: t("rowSupport"), value: `@${me.support}`, act: "support" }) : "",

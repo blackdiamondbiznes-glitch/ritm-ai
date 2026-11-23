@@ -7,6 +7,8 @@ from datetime import timedelta
 
 from aiogram import Bot
 
+from app.bot.widgets.markup import cabinet_markup
+from app.bot.widgets.send import send_card
 from app.db.models.jobs import Job, JobStatus
 from app.db.repositories.cabinet_stats import CabinetStatsRepository
 from app.db.repositories.groups import GroupRepository
@@ -18,6 +20,7 @@ from app.services.access import AccessService
 from app.services.clock import TASHKENT, utcnow
 from app.services.month_report import MonthReport
 from app.services.report_text import render_report
+from app.services.widget_cards import report_data
 
 logger = logging.getLogger(__name__)
 REPORT = "tutor_report"
@@ -49,7 +52,25 @@ class TutorReportHandler:
             GroupRepository(self._session),
             self._access,
         ).for_workspace(owner.id, month)
-        await self._bot.send_message(owner.telegram_id, render_report(data, owner.language_code))
+        lang = owner.language_code or "uz"
+        caption = render_report(data, lang)
+        enabled = True
+        try:
+            from app.config import get_settings
+
+            enabled = get_settings().widgets_enabled
+        except Exception:
+            enabled = True
+        await send_card(
+            self._bot,
+            chat_id=owner.telegram_id,
+            kind="report",
+            data=report_data(lang, data),
+            caption=caption,
+            markup=cabinet_markup(lang),
+            allow_queries=False,
+            enabled=enabled,
+        )
         logger.info("tutor report sent owner_id=%s month=%s", owner.id, month)
 
 

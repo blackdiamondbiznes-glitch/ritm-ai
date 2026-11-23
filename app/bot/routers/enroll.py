@@ -39,7 +39,7 @@ async def on_group_enroll(
         callback_data.c,
         current_user.telegram_id,
         current_user.full_name or "",
-        notify=teacher_notifier(bot),
+        notify=teacher_notifier(bot, session),
     )
     await session.commit()
     text = t(f"enroll_{result}", lang)[:200]

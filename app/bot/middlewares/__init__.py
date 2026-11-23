@@ -28,6 +28,7 @@ def install_middlewares(
         dispatcher.message,
         dispatcher.callback_query,
         dispatcher.my_chat_member,
+        dispatcher.widget_query,
     ):
         observer.middleware(correlation)
         observer.middleware(database)
@@ -39,6 +40,7 @@ def install_middlewares(
     # is never throttled, and each observer keeps its own clock.
     dispatcher.message.outer_middleware(ThrottleMiddleware(settings.throttle_seconds))
     dispatcher.callback_query.outer_middleware(ThrottleMiddleware(settings.throttle_seconds))
+    dispatcher.widget_query.outer_middleware(ThrottleMiddleware(settings.throttle_seconds))
     dispatcher.update.outer_middleware(UnhandledLogMiddleware())
     # Poll votes are not throttled: a member may answer right after opening the quiz.
     # PollAnswer carries `.user`, not `.from_user`.

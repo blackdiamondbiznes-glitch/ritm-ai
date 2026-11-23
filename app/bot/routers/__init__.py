@@ -24,6 +24,7 @@ from app.bot.routers import (
     start,
     study,
     subscription,
+    widget_queries,
 )
 
 
@@ -49,6 +50,7 @@ def setup_routers(dispatcher: Dispatcher) -> None:
     private.include_router(admin.router)
     private.include_router(admin_health.router)
     private.include_router(fallback.router)
+    dispatcher.include_router(widget_queries.router)
     dispatcher.include_router(private)
     dispatcher.include_router(enroll.router)
     dispatcher.include_router(admin_posts.router)

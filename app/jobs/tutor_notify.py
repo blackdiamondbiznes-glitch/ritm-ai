@@ -9,6 +9,7 @@ from html import escape
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
+from app.bot.widgets.dispatch import send_notice
 from app.db.models.jobs import Job
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.tutor_notices import TutorNoticeRepository
@@ -37,6 +38,8 @@ class TutorNotifyHandler:
         access: AccessService,
         jobs: JobRepository,
         now=utcnow,
+        session=None,
+        widgets_enabled: bool = True,
     ) -> None:
         self._bot = bot
         self._notes = notes
@@ -45,6 +48,8 @@ class TutorNotifyHandler:
         self._access = access
         self._jobs = jobs
         self._now = now
+        self._session = session
+        self._widgets = widgets_enabled
 
     async def handle(self, job: Job) -> None:
         """Send, skip, or ask the runner to try again later."""
@@ -63,8 +68,29 @@ class TutorNotifyHandler:
             job.payload.get("lang"),
             job.payload.get("params"),
         )
+        chat_id = int(job.payload["telegram_id"])
+        sent = False
         try:
-            await self._bot.send_message(int(job.payload["telegram_id"]), text)
+            if self._session is not None and self._widgets:
+                try:
+                    sent = await send_notice(
+                        self._bot,
+                        self._session,
+                        row,
+                        chat_id=chat_id,
+                        lang=str(job.payload.get("lang") or "uz"),
+                        caption=text,
+                        enabled=True,
+                        params=job.payload.get("params")
+                        if isinstance(job.payload.get("params"), dict)
+                        else None,
+                    )
+                except (TelegramForbiddenError, TelegramBadRequest):
+                    raise
+                except Exception:
+                    logger.exception("notice widget failed id=%s", row.id)
+            if not sent:
+                await self._bot.send_message(chat_id, text)
         except TelegramForbiddenError as exc:
             await self._skip(row, "blocked")
             raise JobCancel("blocked") from exc
@@ -142,7 +168,9 @@ def _render(template: str, lang: object, params: object) -> str:
     return t(template, str(lang or "uz"), **safe)
 
 
-async def prepare(session, bot: Bot, access: AccessService, handlers: dict) -> None:
+async def prepare(
+    session, bot: Bot, access: AccessService, handlers: dict, widgets_enabled: bool = True
+) -> None:
     """Queue due notices, then register the sender for this tick."""
     from app.services.notify import notify_for
 
@@ -154,6 +182,8 @@ async def prepare(session, bot: Bot, access: AccessService, handlers: dict) -> N
         UsageRepository(session),
         access,
         JobRepository(session),
+        session=session,
+        widgets_enabled=widgets_enabled,
     )
 
 

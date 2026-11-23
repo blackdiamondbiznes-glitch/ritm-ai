@@ -50,7 +50,7 @@ async def join(request: web.Request) -> web.Response:
     lang = user.language_code or "uz"
     service = _service(ctx)
     bot = request.app.get("bot")
-    notify = teacher_notifier(bot) if bot is not None else None
+    notify = teacher_notifier(bot, ctx.session) if bot is not None else None
     if code is None:
         kind, result = "join", "missing"
     elif kind == "join":

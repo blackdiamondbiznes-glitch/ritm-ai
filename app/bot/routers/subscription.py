@@ -7,9 +7,12 @@ from app.bot.callbacks import MenuCB
 from app.bot.keyboards.payments import plan_actions
 from app.bot.plan_copy import plan_text
 from app.bot.view import show_screen
+from app.bot.widgets.send import send_card
 from app.db.models.users import User
 from app.db.repositories.plans import PlanRepository
+from app.i18n import t
 from app.services.access import AccessService
+from app.services.widget_cards import plan_data
 
 router = Router(name="subscription")
 
@@ -27,6 +30,29 @@ async def show_plan(
     catalog = await plans.list_active()
     offer = await access.founder_offer(current_user)
     trial = snap.kind == "trial"
-    await show_screen(
-        callback, plan_text(snap, catalog, lang, offer), plan_actions(lang, trial=trial)
-    )
+    text = plan_text(snap, catalog, lang, offer)
+    markup = plan_actions(lang, trial=trial)
+    expiry = t("plan_expiry_none", lang)
+    if snap.days_left is not None:
+        expiry = t("plan_expiry_days", lang, days=snap.days_left)
+    enabled = True
+    try:
+        from app.config import get_settings
+
+        enabled = get_settings().widgets_enabled
+    except Exception:
+        enabled = True
+    if callback.message is not None and current_user.telegram_id is not None and enabled:
+        await callback.answer()
+        await send_card(
+            callback.bot,
+            chat_id=callback.message.chat.id,
+            kind="plan",
+            data=plan_data(lang, snap, expiry),
+            caption=text,
+            markup=markup,
+            allow_queries=False,
+            enabled=True,
+        )
+        return
+    await show_screen(callback, text, markup)

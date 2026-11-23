@@ -110,7 +110,7 @@ async def _once(
         StudentRepository(session),
         jobs,
     ).enqueue_due()
-    await prepare_notices(session, bot, access, handlers)
+    await prepare_notices(session, bot, access, handlers, settings.widgets_enabled)
     await prepare_reports(session, bot, access, handlers)
     handlers[REPORT] = nudge
     handlers[EXPIRY] = nudge

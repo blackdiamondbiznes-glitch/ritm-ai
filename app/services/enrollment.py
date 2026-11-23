@@ -124,7 +124,7 @@ class EnrollmentService:
         if not inserted:
             return "already"
         if notify is not None:
-            await notify(owner, student.name, group.name)
+            await notify(owner, student.name, group.name, group.id, student.id)
         return "pending"
 
     async def requests(self, owner_id: int) -> dict:

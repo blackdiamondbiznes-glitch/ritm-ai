@@ -7,6 +7,7 @@ from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.enroll_notice import teacher_notifier
 from app.bot.join_reply import join_answer
@@ -37,6 +38,7 @@ async def claim_join(
     enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
+    session: AsyncSession,
     modes: RoleService | None = None,
     chats: ChatRepository | None = None,
 ) -> None:
@@ -46,7 +48,16 @@ async def claim_join(
     enroll = enroll_from_args(args) or enroll_code_from_text(text)
     if enroll:
         await _enroll(
-            message, state, current_user, enrollment, lang, is_super_admin, enroll, modes, chats
+            message,
+            state,
+            current_user,
+            enrollment,
+            lang,
+            is_super_admin,
+            enroll,
+            session,
+            modes,
+            chats,
         )
         return
     code = join_from_args(args) or code_from_text(text)
@@ -73,6 +84,7 @@ async def claim_pasted_enroll(
     enrollment: EnrollmentService,
     lang: str,
     is_super_admin: bool,
+    session: AsyncSession,
     modes: RoleService | None = None,
     chats: ChatRepository | None = None,
 ) -> None:
@@ -81,7 +93,7 @@ async def claim_pasted_enroll(
     if code is None:
         raise SkipHandler()
     await _enroll(
-        message, state, current_user, enrollment, lang, is_super_admin, code, modes, chats
+        message, state, current_user, enrollment, lang, is_super_admin, code, session, modes, chats
     )
 
 
@@ -111,6 +123,7 @@ async def _enroll(
     lang: str,
     is_super_admin: bool,
     code: str,
+    session: AsyncSession,
     modes: RoleService | None = None,
     chats: ChatRepository | None = None,
 ) -> None:
@@ -119,7 +132,7 @@ async def _enroll(
         code,
         current_user.telegram_id,
         current_user.full_name or "",
-        notify=teacher_notifier(message.bot),
+        notify=teacher_notifier(message.bot, session),
     )
     log_link("enroll", code, result, current_user.telegram_id)
     text, markup = await join_answer(

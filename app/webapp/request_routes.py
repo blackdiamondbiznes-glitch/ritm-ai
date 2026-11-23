@@ -5,6 +5,7 @@ from __future__ import annotations
 from aiohttp import web
 
 from app.bot.enroll_notice import decision_text, tell
+from app.bot.widgets.dispatch import edit_card
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.invoices import InvoiceRepository
 from app.db.repositories.students import StudentRepository
@@ -12,6 +13,7 @@ from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.enrollment import EnrollmentError, EnrollmentService
 from app.services.fees import FeeService
 from app.services.tutor_limits import TutorLimitError, limit_body
+from app.services.widget_cards import enroll_data, enroll_ref
 from app.services.workspaces import WorkspaceService
 from app.webapp.routes import _context, _error
 
@@ -49,6 +51,8 @@ async def _decide(request: web.Request, action: str, key: str) -> web.Response:
     student_id = _int(request, "student_id")
     if group_id is None or student_id is None:
         return _error(400, "bad_request")
+    pending = await StudentRepository(ctx.session).get_owned(ctx.user.id, student_id)
+    name = pending.name if pending is not None else ""
     try:
         if action == "approve":
             result = await _service(ctx).approve(ctx.user.id, group_id, student_id)
@@ -59,6 +63,7 @@ async def _decide(request: web.Request, action: str, key: str) -> web.Response:
     except EnrollmentError as exc:
         return _error(404 if exc.code == "missing" else 400, exc.code)
     await _tell_student(request, ctx, result, key)
+    await _refresh_enroll(request, ctx, group_id, student_id, result, key, name)
     return web.json_response(await _service(ctx).requests(ctx.user.id))
 
 
@@ -89,3 +94,29 @@ def _int(request: web.Request, key: str) -> int | None:
         return int(request.match_info[key])
     except (KeyError, ValueError):
         return None
+
+
+async def _refresh_enroll(
+    request, ctx, group_id: int, student_id: int, result: dict, key: str, name: str
+) -> None:
+    bot = request.app.get("bot")
+    if bot is None:
+        return
+    status = "yes" if key == "enroll_yes" else "no"
+    try:
+        await edit_card(
+            bot,
+            ctx.session,
+            "enroll",
+            enroll_ref(group_id, student_id),
+            enroll_data(
+                ctx.user.language_code or "uz",
+                name,
+                result.get("group") or "",
+                group_id,
+                student_id,
+                status,
+            ),
+        )
+    except Exception:
+        return

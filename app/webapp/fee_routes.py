@@ -6,12 +6,14 @@ from typing import Any
 
 from aiohttp import web
 
+from app.bot.widgets.dispatch import edit_card
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.invoices import InvoiceRepository
 from app.db.repositories.students import StudentRepository
 from app.services.fee_pay import FeePay
 from app.services.fees import FeeError, FeeService
 from app.services.tutor_limits import TutorLimitError, limit_body
+from app.services.widget_cards import fee_data
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -50,7 +52,9 @@ async def group_fee(request: web.Request) -> web.Response:
     body = await _body(request)
     if group_id is None or isinstance(body, web.Response):
         return body if isinstance(body, web.Response) else _error(400, "bad_request")
-    return await _call(ctx, lambda svc: svc.set_group_fee(ctx.user.id, group_id, body), pay=False)
+    return await _call(
+        request, ctx, lambda svc: svc.set_group_fee(ctx.user.id, group_id, body), pay=False
+    )
 
 
 async def member_fee(request: web.Request) -> web.Response:
@@ -63,6 +67,7 @@ async def member_fee(request: web.Request) -> web.Response:
     if group_id is None or student_id is None or isinstance(body, web.Response):
         return body if isinstance(body, web.Response) else _error(400, "bad_request")
     return await _call(
+        request,
         ctx,
         lambda svc: svc.set_override(ctx.user.id, group_id, student_id, body),
         pay=False,
@@ -79,7 +84,9 @@ async def invoices(request: web.Request) -> web.Response:
     group_id = int(raw) if raw and raw.isdigit() else None
     if raw and group_id is None:
         return _error(400, "bad_request")
-    return await _call(ctx, lambda svc: svc.invoices(ctx.user.id, status, group_id), pay=True)
+    return await _call(
+        request, ctx, lambda svc: svc.invoices(ctx.user.id, status, group_id), pay=True
+    )
 
 
 async def pay(request: web.Request) -> web.Response:
@@ -91,7 +98,7 @@ async def pay(request: web.Request) -> web.Response:
     body = await _body(request)
     if invoice_id is None or isinstance(body, web.Response):
         return body if isinstance(body, web.Response) else _error(400, "bad_request")
-    return await _call(ctx, lambda svc: svc.pay(ctx.user.id, invoice_id, body), pay=True)
+    return await _call(request, ctx, lambda svc: svc.pay(ctx.user.id, invoice_id, body), pay=True)
 
 
 async def remove_payment(request: web.Request) -> web.Response:
@@ -102,7 +109,7 @@ async def remove_payment(request: web.Request) -> web.Response:
     payment_id = _int(request, "payment_id")
     if payment_id is None:
         return _error(400, "bad_request")
-    return await _call(ctx, lambda svc: svc.remove(ctx.user.id, payment_id), pay=True)
+    return await _call(request, ctx, lambda svc: svc.remove(ctx.user.id, payment_id), pay=True)
 
 
 async def waive(request: web.Request) -> web.Response:
@@ -113,7 +120,7 @@ async def waive(request: web.Request) -> web.Response:
     invoice_id = _int(request, "invoice_id")
     if invoice_id is None:
         return _error(400, "bad_request")
-    return await _call(ctx, lambda svc: svc.waive(ctx.user.id, invoice_id), pay=True)
+    return await _call(request, ctx, lambda svc: svc.waive(ctx.user.id, invoice_id), pay=True)
 
 
 async def summary(request: web.Request) -> web.Response:
@@ -121,7 +128,7 @@ async def summary(request: web.Request) -> web.Response:
     ctx = await _context(request)
     if isinstance(ctx, web.Response):
         return ctx
-    return await _call(ctx, lambda svc: svc.summary(ctx.user.id), pay=True)
+    return await _call(request, ctx, lambda svc: svc.summary(ctx.user.id), pay=True)
 
 
 async def mine(request: web.Request) -> web.Response:
@@ -129,7 +136,7 @@ async def mine(request: web.Request) -> web.Response:
     ctx = await _context(request)
     if isinstance(ctx, web.Response):
         return ctx
-    return await _call(ctx, lambda svc: svc.mine(ctx.user), pay=True)
+    return await _call(request, ctx, lambda svc: svc.mine(ctx.user), pay=True)
 
 
 def _fees(ctx: WebContext) -> FeeService:
@@ -147,14 +154,32 @@ def _pay(ctx: WebContext) -> FeePay:
     return service
 
 
-async def _call(ctx: WebContext, work, *, pay: bool) -> web.Response:
+async def _call(request: web.Request, ctx: WebContext, work, *, pay: bool) -> web.Response:
     try:
         data = await work(_pay(ctx) if pay else _fees(ctx))
     except TutorLimitError as exc:
         return web.json_response(limit_body(exc), status=403)
     except FeeError as exc:
         return _error(_STATUS.get(exc.code, 400), exc.code)
+    if pay and isinstance(data, dict) and data.get("id"):
+        await _push_fee(request, ctx, data)
     return web.json_response(data)
+
+
+async def _push_fee(request: web.Request, ctx: WebContext, invoice: dict) -> None:
+    bot = request.app.get("bot")
+    if bot is None:
+        return
+    try:
+        await edit_card(
+            bot,
+            ctx.session,
+            "fee",
+            int(invoice["id"]),
+            fee_data(ctx.user.language_code or "uz", invoice.get("group_name") or "", invoice),
+        )
+    except Exception:
+        return
 
 
 async def _body(request: web.Request) -> dict[str, Any] | web.Response:

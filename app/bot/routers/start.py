@@ -4,6 +4,7 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.callbacks import LangCB, MenuCB
 from app.bot.enroll_notice import teacher_notifier
@@ -48,6 +49,7 @@ async def open_menu(
     is_super_admin: bool,
     current_user: User,
     enrollment: EnrollmentService,
+    session: AsyncSession | None = None,
     command: CommandObject | None = None,
     modes: RoleService | None = None,
     chats: ChatRepository | None = None,
@@ -62,7 +64,7 @@ async def open_menu(
             enroll,
             current_user.telegram_id,
             current_user.full_name or "",
-            notify=teacher_notifier(message.bot),
+            notify=teacher_notifier(message.bot, session),
         )
         log_link("enroll", enroll, result, current_user.telegram_id)
         text, markup = await join_answer(
