@@ -38,6 +38,7 @@ from app.webapp.report_routes import setup_report_routes
 from app.webapp.request_routes import setup_request_routes
 from app.webapp.role_routes import setup_role_routes
 from app.webapp.routes import setup_routes
+from app.webapp.security import security_headers
 from app.webapp.session_routes import setup_session_routes
 from app.webapp.settings_routes import setup_settings_routes
 from app.webapp.student_routes import setup_student_routes
@@ -58,7 +59,7 @@ def create_app(
     pending: object | None = None,
 ) -> web.Application:
     """Build the Mini App application. Static files are served from the same origin."""
-    app = web.Application(middlewares=[session_cleanup])
+    app = web.Application(middlewares=[security_headers, session_cleanup])
     app["settings"] = settings
     app["sessions"] = sessions
     app["limiter"] = limiter or RateLimiter()

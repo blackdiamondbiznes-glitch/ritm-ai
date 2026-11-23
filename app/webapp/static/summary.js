@@ -1,6 +1,7 @@
 import { api, go, haptic, isTutor, state } from "./api.js";
 import { mountUpgrade } from "./limits.js";
 import { bindNameCard, nameCard } from "./teacher_name.js";
+import { syncChrome } from "./nav.js";
 import {
   bindCabinetSwitch,
   cabinetSwitch,
@@ -10,7 +11,6 @@ import {
   setHtml,
   showError,
   skeleton,
-  syncChrome,
   t,
   toast,
   withBusy,

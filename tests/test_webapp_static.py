@@ -39,8 +39,8 @@ def test_admin_tab_is_wired_and_preloaded() -> None:
     notice = (STATIC / "notice.js").read_text(encoding="utf-8")
     missing = set(re.findall(r't\("(\w+)"', notice)) - _locale_keys()["uz"]
     assert not missing, missing
-    ui = (STATIC / "ui.js").read_text(encoding="utf-8")
-    assert 'hasRole("super_admin")' in ui
+    nav = (STATIC / "nav.js").read_text(encoding="utf-8")
+    assert 'hasRole("super_admin")' in nav
 
 
 def test_no_real_card_numbers_in_static_files() -> None:
@@ -104,13 +104,19 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
     assert not used - keys, used - keys
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     assert '<link rel="modulepreload" href="/s/students.js">' in html
-    assert 'data-tab="cabinet"' not in html
-    assert 'data-tab="study"' not in html
+    assert 'data-tab="cabinet" hidden' in html
+    assert 'data-tab="study" hidden' in html
+    assert 'data-i18n="navCab"' in html
+    assert 'data-i18n="navStudy"' in html
     assert 'go: "cabinet"' in (STATIC / "profile.js").read_text(encoding="utf-8")
     assert 'data-tab="students"' not in html
     app = (STATIC / "app.js").read_text(encoding="utf-8")
     assert "renderStudents" in app
-    assert '"cabinet"' in (STATIC / "ui.js").read_text(encoding="utf-8")
+    nav = (STATIC / "nav.js").read_text(encoding="utf-8")
+    assert "export function navTabs" in nav
+    assert 'tabs = ["cabinet"]' in nav
+    assert 'tabs = ["study"]' in nav
+    assert "isTutor()" in nav
     lesson_file = (STATIC / "lessons.js").read_text(encoding="utf-8")
     lesson_keys = set(re.findall(r'\bt\("(\w+)"', lesson_file))
     assert not lesson_keys - keys, lesson_keys - keys

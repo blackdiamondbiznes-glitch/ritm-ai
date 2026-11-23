@@ -22,7 +22,8 @@ import { renderCabinet } from "./summary.js";
 import { initScrollers } from "./scroller.js";
 import { isProfileSub, profileWarmPaths, renderProfile, renderProfileSub } from "./profile.js";
 import { chartPath, renderReport } from "./report.js";
-import { bindNav, current, labelNav, navTabs, setBusy, setHtml, showError, skeleton, syncChrome, ticket } from "./ui.js";
+import { bindNav, labelNav, navTabs, syncChrome } from "./nav.js";
+import { current, setBusy, setHtml, showError, skeleton, ticket } from "./ui.js";
 
 const DASH_TTL = 20000;
 let dashAt = 0;
@@ -72,12 +73,11 @@ async function boot() {
         else if (studentEdit) go(`cabinet/students/${third}`);
         else if (studentForm) go("cabinet/students");
         else if (section) go("cabinet");
-        else go("profile");
+        // Cabinet root is home: keep the user here (BackButton is hidden).
         return;
       }
       if (tab === "study" || tab === "boards") {
         if (id) go("study");
-        else go("profile");
         return;
       }
       if (tab === "chats" && sub === "edit" && id) go(`chats/${id}`);
@@ -95,12 +95,16 @@ async function boot() {
     syncChrome();
     mountRoles();
     const { tab } = parseRoute();
-    const teacherHome = hinted === "teacher" || (chosenRole() === "teacher" && (tab === "home" || !location.hash || location.hash === "#/home" || location.hash === "#/cabinet"));
+    const teacherHome =
+      hinted === "teacher" ||
+      (isTutor() &&
+        chosenRole() !== "student" &&
+        (tab === "home" || !location.hash || location.hash === "#/home" || location.hash === "#/cabinet"));
     if (hinted === "student") {
       go("study");
     } else if (teacherHome) {
       go("cabinet");
-    } else if (isStudent() && !isTutor() && !isManager() && (tab === "home" || tab === "profile" || tab === "chats")) {
+    } else if (isStudent() && !isTutor() && !isManager() && (tab === "home" || tab === "chats")) {
       go("study");
     } else if (tab === "home" || tab === "chats" || tab === "profile") await route({ fresh: true });
     else if (!warm) await route({ fresh: true });
@@ -139,6 +143,10 @@ function warmUp() {
 async function route(opts = {}) {
   const seq = ticket();
   const { tab, sub, id } = parseRoute();
+  if (tab === "home" && isTutor() && chosenRole() !== "student") {
+    go("cabinet");
+    return;
+  }
   if (tab === "students") {
     go(sub === "new" ? "cabinet/new" : id ? `cabinet/${id}` : "cabinet");
     return;

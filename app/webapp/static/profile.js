@@ -1,10 +1,10 @@
 import { api, cached, forget, go, haptic, isManager, isStudent, isTutor, load, loadDash, openLink, persist, remember, state, tg } from "./api.js";
 import { setLang } from "./i18n.js";
+import { labelNav } from "./nav.js";
 import {
   current,
   escapeHtml,
   formatNumber,
-  labelNav,
   setBusy,
   setHtml,
   showError,

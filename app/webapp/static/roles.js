@@ -29,10 +29,16 @@ export function modes() {
   return (state.dash && state.dash.modes) || { teaching: [], learning: [], pending: [] };
 }
 
+function teaches() {
+  return (modes().teaching || []).some(
+    (row) => Number(row.groups || 0) > 0 || Number(row.students || 0) > 0,
+  );
+}
+
 /** Teacher when the account teaches, unless the saved choice is student and both exist. */
 export function chosenRole() {
   const data = modes();
-  const teaching = (data.teaching || []).length > 0;
+  const teaching = teaches();
   const learning = (data.learning || []).length > 0;
   if (teaching && learning) {
     const saved = localStorage.getItem(ROLE_KEY);
@@ -48,7 +54,7 @@ export function mountRoles() {
   const bar = document.getElementById("rolebar");
   if (!bar) return;
   const data = modes();
-  const teaching = (data.teaching || []).length > 0;
+  const teaching = teaches();
   const learning = (data.learning || []).length > 0;
   if (!teaching || !learning) {
     bar.hidden = true;

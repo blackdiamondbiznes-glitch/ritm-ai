@@ -1,5 +1,5 @@
 import { TIMES, currentLang, dayLabel, t } from "./i18n.js";
-import { haptic, hasRole, isManager, parseRoute, roles, tg } from "./api.js";
+import { haptic } from "./api.js";
 
 export function escapeHtml(value) {
   return String(value ?? "")
@@ -121,18 +121,6 @@ export function chatCard(chat, attrs = "") {
 export function roleBadge(role) {
   const key = role === "owner" ? "badgeOwner" : role === "admin" ? "badgeAdmin" : role === "super" ? "badgeSuper" : "badgeMember";
   return `<span class="role-badge role-${escapeHtml(role)}">${escapeHtml(t(key))}</span>`;
-}
-
-/** Tabs for the signed-in user's roles. The server still checks every request. */
-export function navTabs() {
-  const known = roles();
-  if (isManager()) {
-    const tabs = ["home", "chats", "board", "report", "profile"];
-    if (hasRole("super_admin")) tabs.splice(tabs.indexOf("profile"), 0, "admin");
-    return tabs;
-  }
-  if (known && hasRole("member")) return ["home", "board", "history", "profile"];
-  return ["home", "profile"];
 }
 
 export function kpiRow(stats) {
@@ -356,55 +344,6 @@ export function bindPickers(root = document) {
     box.addEventListener("change", sync);
     sync();
   });
-}
-
-export function bindNav() {
-  const nav = document.getElementById("nav");
-  if (!nav) return;
-  nav.hidden = false;
-  labelNav();
-  nav.querySelectorAll("[data-tab]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      haptic("light");
-      const tab = btn.getAttribute("data-tab");
-      const next = `#/${tab}`;
-      if (location.hash === next) window.dispatchEvent(new Event("hashchange"));
-      else location.hash = next;
-    });
-  });
-}
-
-export function labelNav() {
-  const nav = document.getElementById("nav");
-  if (!nav) return;
-  nav.querySelectorAll("[data-i18n]").forEach((node) => {
-    node.textContent = t(node.getAttribute("data-i18n"));
-  });
-}
-
-export function syncChrome() {
-  const { tab, id } = parseRoute();
-  const nav = document.getElementById("nav");
-  if (nav) {
-    nav.hidden = false;
-    const tabs = navTabs();
-    nav.querySelectorAll("[data-tab]").forEach((btn) => {
-      const name = btn.getAttribute("data-tab");
-      btn.hidden = !tabs.includes(name);
-      btn.classList.toggle("active", name === tab);
-    });
-  }
-  const back = tg && tg.BackButton;
-  if (!back) return;
-  const { sub } = parseRoute();
-  const nested =
-    (id && tab !== "board") ||
-    tab === "cabinet" ||
-    tab === "study" ||
-    tab === "boards" ||
-    (sub && (tab === "admin" || tab === "profile"));
-  if (nested || (tab === "history" && navTabs().indexOf("history") < 0)) back.show();
-  else back.hide();
 }
 
 export function fieldValue(id) {

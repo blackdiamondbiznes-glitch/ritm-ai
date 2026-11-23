@@ -307,9 +307,10 @@ export function studentNames() {
   return (student && student.names) || [];
 }
 
+/** True when this account actually teaches (a cabinet with groups or students). */
 export function isTutor() {
-  const user = state.me && state.me.user;
-  return Boolean(user && user.cabinet_niche === "tutor");
+  const teaching = (state.dash && state.dash.modes && state.dash.modes.teaching) || [];
+  return teaching.some((row) => Number(row.groups || 0) > 0 || Number(row.students || 0) > 0);
 }
 
 export function isManager() {

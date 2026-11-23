@@ -9,6 +9,16 @@ from app.i18n import t
 from app.services.roles import RoleService
 
 
+def actually_teaches(found: dict | None) -> bool:
+    """True when a cabinet has at least one group or student. An empty niche does not count."""
+    if not found:
+        return False
+    return any(
+        int(item.get("groups") or 0) > 0 or int(item.get("students") or 0) > 0
+        for item in found.get("teaching") or []
+    )
+
+
 async def only_student(
     user: User, modes: RoleService | None, chats: ChatRepository | None
 ) -> tuple[bool, dict | None]:
@@ -16,14 +26,12 @@ async def only_student(
     if modes is None:
         return False, None
     found = await modes.for_user(user)
-    if found["teaching"]:
+    if actually_teaches(found):
         return False, found
     studies = bool(found["learning"] or found["pending"]) or await modes.has_card(user)
     if not studies:
         return False, found
     if chats is not None and await chats.count_active(user.id) > 0:
-        return False, found
-    if user.cabinet_niche == "tutor":
         return False, found
     return True, found
 
@@ -39,7 +47,7 @@ async def menu_for(
     student, found = await only_student(user, modes, chats)
     if student:
         return student_menu(lang, is_admin)
-    teaching = bool(found and found["teaching"])
+    teaching = actually_teaches(found)
     learning = bool(found and found["learning"])
     return main_menu(lang, is_admin, teaching=teaching, learning=learning)
 

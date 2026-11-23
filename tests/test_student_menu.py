@@ -62,7 +62,7 @@ async def test_card_without_group_counts_as_student() -> None:
 async def test_owner_teacher_and_newcomer_keep_full_menu() -> None:
     cases = [
         _Modes(learning=[{}]),  # studies but owns a chat
-        _Modes(teaching=[{}], learning=[{}]),
+        _Modes(teaching=[{"groups": 1, "students": 0}], learning=[{}]),
         _Modes(),
     ]
     chats = [_Chats(1), _Chats(), _Chats()]
@@ -70,8 +70,26 @@ async def test_owner_teacher_and_newcomer_keep_full_menu() -> None:
         title, markup = await home_view("uz", False, _user(), modes, owned)
         assert title == t("menu_title", "uz")
         assert len(_labels(markup)) > 3
-    _, markup = await home_view("uz", False, _user("tutor"), _Modes(learning=[{}]), _Chats())
-    assert len(_labels(markup)) > 3
+
+
+async def test_niche_alone_does_not_upgrade_a_student() -> None:
+    """Opening the cabinet sets cabinet_niche; that must not steal the student menu."""
+    title, markup = await home_view("uz", False, _user("tutor"), _Modes(learning=[{}]), _Chats())
+    assert title == t("menu_title_student", "uz")
+    assert len(_labels(markup)) == 3
+    assert not any("plan" in d or "connect" in d for d in _data(markup))
+
+
+async def test_empty_workspace_is_not_teaching() -> None:
+    title, markup = await home_view(
+        "uz",
+        False,
+        _user("tutor"),
+        _Modes(teaching=[{"groups": 0, "students": 0}], learning=[{}]),
+        _Chats(),
+    )
+    assert title == t("menu_title_student", "uz")
+    assert len(_labels(markup)) == 3
 
 
 def test_admin_row_stays_for_super_admin() -> None:
