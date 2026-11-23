@@ -88,8 +88,8 @@ def _svc(session) -> EnrollmentService:
         GroupRepository(session),
         StudentRepository(session),
         users,
-        None,
         WorkspaceService(WorkspaceRepository(session), users),
+        None,
     )
 
 

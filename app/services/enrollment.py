@@ -39,8 +39,8 @@ class EnrollmentService:
         groups: GroupRepository,
         students: StudentRepository,
         users: UserRepository,
+        spaces: WorkspaceService,
         access: AccessService | None = None,
-        spaces: WorkspaceService | None = None,
         fees: FeeService | None = None,
     ) -> None:
         self._groups = groups
@@ -89,7 +89,7 @@ class EnrollmentService:
         if await self._groups.count_pending_for_owner(group.owner_id) >= PENDING_CAP:
             return "busy"
         if student is None:
-            workspace_id = await self._spaces.id_for(group.owner_id) if self._spaces else 0
+            workspace_id = await self._spaces.id_for(group.owner_id)
             student = await self._students.insert_or_get(
                 TutorStudent(
                     owner_id=group.owner_id,

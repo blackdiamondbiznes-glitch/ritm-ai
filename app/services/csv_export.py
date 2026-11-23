@@ -89,10 +89,20 @@ class CsvExport:
             raise ExportError("export")
 
 
+_FORMULA = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _cell(value: object) -> object:
+    """Stop Excel treating a text cell as a formula."""
+    if not isinstance(value, str) or not value.startswith(_FORMULA):
+        return value
+    return "'" + value
+
+
 def _csv(header: list[str], rows: list[list[object]]) -> bytes:
     buf = io.StringIO()
     writer = csv.writer(buf, lineterminator="\n")
     writer.writerow(header)
     for row in rows:
-        writer.writerow(row)
+        writer.writerow([_cell(value) for value in row])
     return ("\ufeff" + buf.getvalue()).encode("utf-8")

@@ -1,8 +1,8 @@
 import { announce, announceBlock } from "./announce.js";
 import { groupTabs } from "./group_tabs.js";
 import { api, go, haptic, tg } from "./api.js";
+import { paintGroupForm, showFormError } from "./group_form.js";
 import { gradebookTable, groupButton, rankRows, topicRows } from "./group_rows.js";
-import { showLimit } from "./limits.js";
 import { paintMarks, paintTopicForm } from "./topic_form.js";
 import { mountRequests } from "./requests.js";
 import {
@@ -17,19 +17,6 @@ import {
   toast,
   withBusy,
 } from "./ui.js";
-
-const DAYS = [1, 2, 3, 4, 5, 6, 7];
-const ERROR_KEY = {
-  empty: "grpNameNeed",
-  long: "grpNameLong",
-  days: "grpDaysNeed",
-  time: "grpTimeBad",
-  student: "lesStudentBad",
-  missing: "grpMissing",
-  send: "grpSendBad",
-  date: "lesWhenBad",
-  score: "topScoreBad",
-};
 
 let cache = null;
 let board = null;
@@ -53,8 +40,8 @@ export async function renderGroups(seq) {
       cache = await api("/api/tutor/groups");
     }
     if (!current(seq)) return;
-    if (place.mode === "new") paintForm(null);
-    else if (place.mode === "edit") paintForm(cache.group);
+    if (place.mode === "new") paintGroupForm(null);
+    else if (place.mode === "edit") paintGroupForm(cache.group);
     else if (place.mode === "topic-new") paintTopicForm(place.id);
     else if (place.mode === "topic") paintMarks(place.id, cache);
     else if (place.mode === "open") paintOpen();
@@ -182,55 +169,6 @@ function paintOpen() {
   });
 }
 
-function paintForm(group) {
-  const chosen = new Set(group ? group.weekdays : [1, 3, 5]);
-  const chips = DAYS.map((day) => {
-    const on = chosen.has(day) ? " selected" : "";
-    return `<button type="button" class="chip-btn${on}" data-day="${day}">${escapeHtml(t(`day${day}`))}</button>`;
-  }).join("");
-  setHtml(`
-    <div class="header"><h1>${escapeHtml(t(group ? "grpEdit" : "grpAdd"))}</h1></div>
-    <div class="card">
-      <label class="field"><span class="field-label">${escapeHtml(t("grpName"))}</span>
-        <input class="input" id="grp-name" maxlength="80" value="${escapeHtml(group ? group.name : "")}"></label>
-      <label class="field"><span class="field-label">${escapeHtml(t("grpLevel"))}</span>
-        <input class="input" id="grp-level" maxlength="40" value="${escapeHtml(group ? group.level || "" : "")}"></label>
-      <div class="field"><span class="field-label">${escapeHtml(t("grpDays"))}</span>
-        <div class="chips" id="grp-days">${chips}</div></div>
-      <label class="field"><span class="field-label">${escapeHtml(t("grpStart"))}</span>
-        <input class="input" id="grp-start" type="time" value="${group ? group.start : "08:00"}"></label>
-      <label class="field"><span class="field-label">${escapeHtml(t("grpEnd"))}</span>
-        <input class="input" id="grp-end" type="time" value="${group ? group.end : "10:00"}"></label>
-      <button type="button" class="primary" id="grp-save">${escapeHtml(t("save"))}</button>
-    </div>
-  `);
-  document.querySelectorAll("[data-day]").forEach((node) => {
-    node.addEventListener("click", () => node.classList.toggle("selected"));
-  });
-  document.getElementById("grp-save").addEventListener("click", (event) => {
-    withBusy(event.currentTarget, () => save(group)).catch(showFormError);
-  });
-}
-
-async function save(group) {
-  const weekdays = [...document.querySelectorAll("[data-day].selected")].map((node) =>
-    Number(node.getAttribute("data-day")),
-  );
-  const body = {
-    name: document.getElementById("grp-name").value,
-    level: document.getElementById("grp-level").value,
-    weekdays,
-    start: document.getElementById("grp-start").value,
-    end: document.getElementById("grp-end").value,
-  };
-  const path = group ? `/api/tutor/groups/${group.id}` : "/api/tutor/groups";
-  const data = await api(path, { method: group ? "PATCH" : "POST", body: JSON.stringify(body) });
-  haptic("success");
-  toast(t("saved"), "ok");
-  const next = group ? group.id : data.created_id;
-  go(next ? `cabinet/groups/${next}` : "cabinet/groups");
-}
-
 async function admit(groupId) {
   const studentId = Number(document.getElementById("grp-pick").value);
   if (!studentId) {
@@ -262,9 +200,4 @@ async function destroy(id) {
 function ask(text) {
   if (tg && tg.showConfirm) return new Promise((resolve) => tg.showConfirm(text, resolve));
   return Promise.resolve(window.confirm(text));
-}
-
-function showFormError(err) {
-  if (showLimit(err)) return;
-  toast(t(ERROR_KEY[err.code] || "error"), "err");
 }

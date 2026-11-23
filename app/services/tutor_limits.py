@@ -32,7 +32,7 @@ async def ensure_group_room(
     owner_id: int,
 ) -> None:
     """Raise when this owner cannot open another group."""
-    owner = await _owner(users, owner_id)
+    owner = await _owner(users, owner_id, "limit_groups")
     limits = await access.tutor_limits(owner)
     used = await groups.count_for_owner(owner_id)
     if used >= limits.max_groups:
@@ -46,15 +46,15 @@ async def ensure_student_room(
     owner_id: int,
 ) -> None:
     """Raise when this owner cannot add another visible student card."""
-    owner = await _owner(users, owner_id)
+    owner = await _owner(users, owner_id, "limit_students")
     limits = await access.tutor_limits(owner)
     used = await students.count_visible(owner_id)
     if used >= limits.max_students:
         raise TutorLimitError("limit_students", limits.max_students, used, limits.plan_code)
 
 
-async def _owner(users: UserRepository, owner_id: int) -> User:
+async def _owner(users: UserRepository, owner_id: int, code: str) -> User:
     owner = await users.get_by_id(owner_id)
     if owner is None:
-        raise TutorLimitError("limit_groups", 0, 0, "free")
+        raise TutorLimitError(code, 0, 0, "free")
     return owner

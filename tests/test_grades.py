@@ -47,6 +47,11 @@ class _Students:
         return None
 
 
+class _Spaces:
+    async def id_for(self, owner_id: int, vertical: str = "tutor") -> int:
+        return 1
+
+
 class _Users:
     def __init__(self, owner: User) -> None:
         self.owner = owner
@@ -60,7 +65,7 @@ async def test_tutor_cannot_claim_their_own_student() -> None:
         id=4, owner_id=1, name="Ali", status="paid", amount_uzs=0, join_code="abc123"
     )
     owner = User(id=1, telegram_id=555, full_name="Tutor")
-    service = EnrollmentService(None, _Students(student), _Users(owner))  # type: ignore[arg-type]
+    service = EnrollmentService(None, _Students(student), _Users(owner), _Spaces())  # type: ignore[arg-type]
     assert await service.claim("abc123", 555) == "own"
     assert student.telegram_id is None
     assert await service.claim("abc123", 777) == "ok"

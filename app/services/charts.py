@@ -443,7 +443,8 @@ founders AS (
     GROUP BY months.month
 ),
 ai AS (
-    SELECT period_key, sum(count) AS n FROM usage_counters GROUP BY period_key
+    SELECT period_key, sum(count) AS n FROM usage_counters
+    WHERE metric = 'ai_generation' GROUP BY period_key
 )
 SELECT months.month,
        COALESCE(revenue.uzs, 0), COALESCE(revenue.n, 0),
@@ -483,7 +484,8 @@ WITH days AS (
 ),
 ai AS (
     SELECT day, sum(count) AS n FROM usage_daily
-    WHERE day BETWEEN :start AND :end GROUP BY day
+    WHERE metric = 'ai_generation' AND day BETWEEN :start AND :end
+    GROUP BY day
 ),
 jobs_done AS (
     SELECT CAST(timezone(:tz, COALESCE(finished_at, locked_at, run_at)) AS date) AS day,

@@ -130,8 +130,8 @@ async def test_free_stops_at_two_groups_and_forty_students(client) -> None:
             GroupRepository(session),
             StudentRepository(session),
             UserRepository(session),
-            access,
             WorkspaceService(WorkspaceRepository(session), UserRepository(session)),
+            access,
         )
         assert await service.enroll(group.enroll_code, 9870000099, "Yangi") == "pending"
         await session.commit()

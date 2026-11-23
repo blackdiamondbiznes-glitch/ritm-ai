@@ -184,7 +184,7 @@ async def test_csv_quotes_text_and_stays_on_the_owners_plan(client) -> None:
     )
     table = _rows(await students.read())
     assert table[0] == ["name", "phone", "status", "groups"]
-    assert [_NAME, "+998,1", "paid", 'A, "B"'] in table
+    assert [_NAME, "'+998,1", "paid", 'A, "B"'] in table
     assert all(row[0] != "Kutilmoqda" for row in table)
     assert all(row[0] != "Begona" for row in table)
     payments = await http.get("/api/tutor/export/payments.csv?month=2026-11", headers=heads["pro"])

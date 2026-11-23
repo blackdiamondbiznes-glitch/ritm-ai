@@ -104,8 +104,8 @@ class ServicesMiddleware(BaseMiddleware):
             GroupRepository(session),
             StudentRepository(session),
             users,
-            access,
             spaces,
+            access,
             FeeService(InvoiceRepository(session), GroupRepository(session), users, access),
         )
         data["modes"] = RoleService(WorkspaceRepository(session), GroupRepository(session))

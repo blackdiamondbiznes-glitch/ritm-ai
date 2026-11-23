@@ -143,6 +143,9 @@ def test_tutor_students_screen_is_translated_and_preloaded() -> None:
         "reports.js",
         "topic_form.js",
         "group_rows.js",
+        "student_form.js",
+        "group_form.js",
+        "requests.js",
     ):
         used = set(re.findall(r'\bt\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
         assert not used - keys, (name, used - keys)

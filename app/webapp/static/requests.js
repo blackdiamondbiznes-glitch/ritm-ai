@@ -1,4 +1,5 @@
 import { api, haptic } from "./api.js";
+import { showLimit } from "./limits.js";
 import { escapeHtml, t } from "./ui.js";
 
 /** Draw the waiting requests on the groups screen and wire the buttons. */
@@ -33,8 +34,9 @@ export async function mountRequests(reload) {
           if (reload) return reload();
           return mountRequests(reload);
         })
-        .catch(() => {
+        .catch((err) => {
           node.disabled = false;
+          if (action === "approve") showLimit(err);
         });
     });
   });

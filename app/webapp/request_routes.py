@@ -76,8 +76,8 @@ def _service(ctx) -> EnrollmentService:
         GroupRepository(ctx.session),
         StudentRepository(ctx.session),
         ctx.users,
-        ctx.access,
         WorkspaceService(WorkspaceRepository(ctx.session), ctx.users),
+        ctx.access,
         FeeService(
             InvoiceRepository(ctx.session), GroupRepository(ctx.session), ctx.users, ctx.access
         ),
