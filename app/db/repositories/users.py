@@ -10,6 +10,18 @@ from app.db.models.users import User
 _UI_LANGS = {"uz", "ru", "en"}
 
 
+def teacher_label():
+    """SQL: the teacher's display name, or the Telegram name when it is not set."""
+    return func.coalesce(func.nullif(func.trim(User.teacher_name), ""), User.full_name)
+
+
+def teacher_name_of(user: User | None) -> str:
+    """Python twin of teacher_label()."""
+    if user is None:
+        return ""
+    return (user.teacher_name or "").strip() or (user.full_name or "")
+
+
 class UserRepository:
     """Read and write users. No plan rules here."""
 

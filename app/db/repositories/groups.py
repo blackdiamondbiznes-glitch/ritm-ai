@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.groups import TutorGroup, TutorGroupMember
 from app.db.models.students import TutorStudent
 from app.db.models.users import User
+from app.db.repositories.users import teacher_label
 
 
 class GroupRepository:
@@ -206,7 +207,7 @@ class GroupRepository:
                 TutorGroup.id,
                 TutorGroup.name,
                 TutorGroup.level,
-                User.full_name,
+                teacher_label(),
                 TutorGroup.workspace_id,
                 TutorGroupMember.status,
             )

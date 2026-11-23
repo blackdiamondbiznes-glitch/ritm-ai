@@ -11,6 +11,7 @@ from app.db.models.invoices import TutorInvoice
 from app.db.models.lessons import TutorLesson
 from app.db.models.students import TutorStudent
 from app.db.models.users import User
+from app.db.repositories.users import teacher_label
 
 Seat = tuple[TutorGroupMember, TutorGroup, TutorStudent, str | None]
 
@@ -24,7 +25,7 @@ class LearningRepository:
     async def seats(self, telegram_id: int, skip_owner_id: int) -> list[Seat]:
         """Active and pending memberships, except groups this account teaches."""
         stmt = (
-            select(TutorGroupMember, TutorGroup, TutorStudent, User.full_name)
+            select(TutorGroupMember, TutorGroup, TutorStudent, teacher_label())
             .join(TutorGroup, TutorGroup.id == TutorGroupMember.group_id)
             .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
             .join(User, User.id == TutorGroup.owner_id)

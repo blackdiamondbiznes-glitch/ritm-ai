@@ -10,6 +10,7 @@ from app.db.models.groups import TutorGroup, TutorGroupMember
 from app.db.models.lessons import TutorLesson
 from app.db.models.students import TutorStudent
 from app.db.models.users import User
+from app.db.repositories.users import teacher_label
 
 
 class LessonRepository:
@@ -109,7 +110,7 @@ class LessonRepository:
     ) -> list[tuple[TutorLesson, str, str | None]]:
         """Sessions in groups where this Telegram account is an active member."""
         stmt = (
-            select(TutorLesson, TutorGroup.name, User.full_name)
+            select(TutorLesson, TutorGroup.name, teacher_label())
             .join(TutorGroup, TutorGroup.id == TutorLesson.group_id)
             .join(TutorGroupMember, TutorGroupMember.group_id == TutorGroup.id)
             .join(TutorStudent, TutorStudent.id == TutorGroupMember.student_id)
