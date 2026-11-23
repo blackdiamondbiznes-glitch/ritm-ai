@@ -3,8 +3,6 @@ import { mountUpgrade } from "./limits.js";
 import { bindNameCard, nameCard } from "./teacher_name.js";
 import { syncChrome } from "./nav.js";
 import {
-  bindCabinetSwitch,
-  cabinetSwitch,
   current,
   escapeHtml,
   formatNumber,
@@ -63,7 +61,6 @@ function paint(data, groups = [], limits = null, lessonRows = [], asking = 0) {
   const students = data.students || {};
   const lessons = data.lessons || {};
   setHtml(`
-    ${cabinetSwitch("")}
     <div class="header"><h1>${escapeHtml(t("navCabinet"))}</h1><p>${escapeHtml(t("cabLead"))}</p></div>
     ${panelCard()}
     ${requestsCard(asking)}
@@ -89,7 +86,6 @@ function paint(data, groups = [], limits = null, lessonRows = [], asking = 0) {
     </button>
     ${nameCard(data)}
   `);
-  bindCabinetSwitch();
   bindNameCard();
   bindPanelCard();
   if (atCap(limits)) mountUpgrade();

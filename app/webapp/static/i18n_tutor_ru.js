@@ -508,4 +508,7 @@ export default {
   pdErrDue: "Срок оплаты: от 0 до 31 дня.",
   pdErrPackage: "Укажите число уроков в пакете.",
   pdAddToGroup: "Добавить учеников в группу",
+  cabMenuOpen: "Открыть меню разделов",
+  cabMenuTitle: "Разделы",
+  cabMenuClose: "Закрыть меню",
 };

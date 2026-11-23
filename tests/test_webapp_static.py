@@ -239,3 +239,40 @@ def test_student_app_has_three_tabs_and_no_role_buttons() -> None:
     profile = (STATIC / "profile.js").read_text(encoding="utf-8")
     assert 'act: "role"' in profile and "bothRoles()" in profile
     assert "ritm.role" in roles
+
+
+def test_cabinet_menu_replaces_the_section_grid() -> None:
+    """Teacher sections live in a hamburger drawer shown on every cabinet screen."""
+    keys = _locale_keys()
+    nav_file = (STATIC / "cabinet_nav.js").read_text(encoding="utf-8")
+    used = set(re.findall(r'\bt\("(\w+)"', nav_file)) | {
+        "grpNav",
+        "schNav",
+        "stuTitle",
+        "lesTitle",
+        "remTitle",
+        "feeNav",
+    }
+    for lang, have in keys.items():
+        assert not used - have, (lang, used - have)
+    for name in (
+        "cabinet/groups",
+        "cabinet/schedule",
+        "cabinet/students",
+        "cabinet/lessons",
+        "cabinet/reminders",
+        "cabinet/fees",
+    ):
+        assert f'"{name}"' in nav_file
+    assert (
+        "showModal" in nav_file
+        and 'aria-current="page"' in nav_file
+        and "aria-expanded" in nav_file
+    )
+    for path in STATIC.glob("*.js"):
+        assert "cabinetSwitch(" not in path.read_text(encoding="utf-8"), path.name
+    assert "cab-switch" not in (STATIC / "layout.css").read_text(encoding="utf-8")
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert '<symbol id="i-menu"' in html and '<symbol id="i-close"' in html
+    assert "if (closeCabinetMenu()) return;" in (STATIC / "app.js").read_text(encoding="utf-8")
+    assert 'syncCabinetMenu(tab === "cabinet"' in (STATIC / "nav.js").read_text(encoding="utf-8")

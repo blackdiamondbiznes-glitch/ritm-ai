@@ -1,8 +1,6 @@
 import { readWhen, whenInput } from "./clock.js";
 import { api, go, haptic, tg } from "./api.js";
 import {
-  bindCabinetSwitch,
-  cabinetSwitch,
   current,
   escapeHtml,
   setHtml,
@@ -49,12 +47,10 @@ function paintList() {
     ? rows.map(rowButton).join("")
     : `<div class="card muted">${escapeHtml(t("remEmpty"))}</div>`;
   setHtml(`
-    ${cabinetSwitch("reminders")}
     <div class="header"><h1>${escapeHtml(t("remTitle"))}</h1><p>${escapeHtml(t("remLead"))}</p></div>
     ${body}
     <button type="button" class="primary" id="rem-add">${escapeHtml(t("remAdd"))}</button>
   `);
-  bindCabinetSwitch();
   document.querySelectorAll("[data-forget]").forEach((node) => {
     node.addEventListener("click", (event) => {
       event.stopPropagation();

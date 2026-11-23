@@ -508,4 +508,7 @@ export default {
   pdErrDue: "Days to pay must be 0 to 31.",
   pdErrPackage: "Enter the number of lessons in the package.",
   pdAddToGroup: "Add students to the group",
+  cabMenuOpen: "Open sections menu",
+  cabMenuTitle: "Sections",
+  cabMenuClose: "Close menu",
 };

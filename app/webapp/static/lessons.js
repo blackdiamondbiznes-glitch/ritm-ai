@@ -1,8 +1,6 @@
 import { readWhen, whenInput } from "./clock.js";
 import { api, go, haptic, tg } from "./api.js";
 import {
-  bindCabinetSwitch,
-  cabinetSwitch,
   current,
   escapeHtml,
   formatNumber,
@@ -86,7 +84,6 @@ function paintList() {
     ? rows.map(rowButton).join("")
     : `<div class="card muted">${escapeHtml(t(emptyKey))}</div>`;
   setHtml(`
-    ${cabinetSwitch("lessons")}
     <div class="header"><h1>${escapeHtml(t("lesTitle"))}</h1><p>${escapeHtml(t("lesLead"))}</p></div>
     <div class="kpis">
       ${kpi(counts.scheduled, "lesScheduled")}
@@ -97,7 +94,6 @@ function paintList() {
     ${body}
     <button type="button" class="primary" id="les-add">${escapeHtml(t("lesAdd"))}</button>
   `);
-  bindCabinetSwitch();
   document.querySelectorAll("[data-filter]").forEach((node) => {
     node.addEventListener("click", () => {
       filter = node.getAttribute("data-filter");

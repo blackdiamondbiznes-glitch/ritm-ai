@@ -508,4 +508,7 @@ export default {
   pdErrDue: "To‘lash muddati 0 dan 31 kungacha bo‘lsin.",
   pdErrPackage: "Paketdagi darslar sonini kiriting.",
   pdAddToGroup: "Guruhga o‘quvchi qo‘shish",
+  cabMenuOpen: "Bo‘limlar menyusini ochish",
+  cabMenuTitle: "Bo‘limlar",
+  cabMenuClose: "Menyuni yopish",
 };

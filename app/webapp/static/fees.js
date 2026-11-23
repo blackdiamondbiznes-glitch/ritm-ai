@@ -2,8 +2,6 @@ import { api, haptic } from "./api.js";
 import { showLimit } from "./limits.js";
 import { money } from "./money.js";
 import {
-  bindCabinetSwitch,
-  cabinetSwitch,
   current,
   escapeHtml,
   setHtml,
@@ -64,7 +62,6 @@ function paintList() {
     ? rows.map(invoiceButton).join("")
     : `<div class="card muted">${escapeHtml(t("feeEmpty"))}</div>`;
   setHtml(`
-    ${cabinetSwitch("fees")}
     <div class="header"><h1>${escapeHtml(t("feeTitle"))}</h1><p>${escapeHtml(t("feeLead"))}</p></div>
     <div class="kpis">
       <div class="kpi"><div class="kpi-value">${escapeHtml(money(summary.outstanding_uzs))}</div>
@@ -76,7 +73,6 @@ function paintList() {
     <div class="chips">${chips}</div>
     ${body}
   `);
-  bindCabinetSwitch();
   document.querySelectorAll("[data-filter]").forEach((node) => {
     node.addEventListener("click", () => {
       filter = node.getAttribute("data-filter");
@@ -109,7 +105,6 @@ function paintPay(row) {
     return `<button type="button" class="chip-btn${on}" data-method="${id}">${escapeHtml(t(key))}</button>`;
   }).join("");
   setHtml(`
-    ${cabinetSwitch("fees")}
     <div class="header"><h1>${escapeHtml(t("feeAdd"))}</h1>
       <p>${escapeHtml(row.student_name || "")}</p></div>
     <div class="card">
@@ -123,7 +118,6 @@ function paintPay(row) {
       <button type="button" class="ghost" id="pay-back">${escapeHtml(t("schBack"))}</button>
     </div>
   `);
-  bindCabinetSwitch();
   document.querySelectorAll("[data-method]").forEach((node) => {
     node.addEventListener("click", () => {
       document.querySelectorAll("[data-method]").forEach((chip) => chip.classList.toggle("selected", chip === node));

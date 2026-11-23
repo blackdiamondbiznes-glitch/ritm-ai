@@ -1,7 +1,7 @@
 import { api, go, haptic, state, tg } from "./api.js";
 import { showLimit } from "./limits.js";
 import { paintStudentForm } from "./student_form.js";
-import { bindCabinetSwitch, cabinetSwitch, current, escapeHtml, formatNumber, setHtml, showError, skeleton, t, toast, withBusy } from "./ui.js";
+import { current, escapeHtml, formatNumber, setHtml, showError, skeleton, t, toast, withBusy } from "./ui.js";
 
 const STATUSES = ["paid", "debtor", "inactive"];
 const STATUS_KEY = { paid: "stuPaid", debtor: "stuDebtor", inactive: "stuInactive" };
@@ -213,7 +213,6 @@ function paintList() {
     ? rows.map(rowButton).join("")
     : `<div class="card muted">${escapeHtml(t((cache.students || []).length ? "stuFilterEmpty" : "stuEmpty"))}</div>`;
   setHtml(`
-    ${cabinetSwitch("students")}
     <div class="header"><h1>${escapeHtml(t("stuTitle"))}</h1><p>${escapeHtml(t("stuLead"))}</p></div>
     <div class="kpis">
       ${kpi(counts.paid, "stuPaid")}
@@ -224,7 +223,6 @@ function paintList() {
     ${body}
     <button type="button" class="primary" id="stu-add">${escapeHtml(t("stuAdd"))}</button>
   `);
-  bindCabinetSwitch();
   document.querySelectorAll("[data-filter]").forEach((node) => {
     node.addEventListener("click", () => {
       filter = node.getAttribute("data-filter");

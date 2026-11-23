@@ -2,6 +2,7 @@ import { applyTheme, bootstrap, go, hasRole, isManager, isTutor, loadDash, parse
 import { applyRoleHint, studentMode } from "./roles.js";
 import { initScrollers } from "./scroller.js";
 import { bindNav, labelNav, navTabs, syncChrome } from "./nav.js";
+import { closeCabinetMenu } from "./cabinet_nav.js";
 import { current, setBusy, setHtml, showError, skeleton, ticket } from "./ui.js";
 
 const DASH_TTL = 20000;
@@ -48,6 +49,7 @@ async function boot() {
   });
   if (tg && tg.BackButton && tg.BackButton.onClick) {
     tg.BackButton.onClick(() => {
+      if (closeCabinetMenu()) return;
       const { tab, sub, id } = parseRoute();
       if (tab === "admin") {
         if (sub === "tenant") go("admin/tenants");

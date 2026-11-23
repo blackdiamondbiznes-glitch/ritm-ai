@@ -1,8 +1,6 @@
 import { clockInput, readClock, readWhen, whenInput } from "./clock.js";
 import { api, haptic } from "./api.js";
 import {
-  bindCabinetSwitch,
-  cabinetSwitch,
   current,
   escapeHtml,
   setHtml,
@@ -63,7 +61,6 @@ function paintWeek() {
   const today = tashkentToday();
   const days = Array.from({ length: 14 }, (_, index) => addDays(anchor, index));
   setHtml(`
-    ${cabinetSwitch("schedule")}
     <div class="header"><h1>${escapeHtml(t("schTitle"))}</h1><p>${escapeHtml(t("schLead"))}</p></div>
     <div class="week-nav">
       <button type="button" class="ghost" id="sch-prev">${escapeHtml(t("schPrev"))}</button>
@@ -71,7 +68,6 @@ function paintWeek() {
     </div>
     ${days.map((iso) => dayCard(iso, iso === today)).join("")}
   `);
-  bindCabinetSwitch();
   document.getElementById("sch-prev").addEventListener("click", () => shift(-7));
   document.getElementById("sch-next").addEventListener("click", () => shift(7));
   document.querySelectorAll("[data-session]").forEach((node) => {
@@ -105,7 +101,6 @@ function sessionButton(row) {
 function paintOne(row) {
   const end = row.ends_at || plusMinutes(row.starts_at, 90);
   setHtml(`
-    ${cabinetSwitch("schedule")}
     <div class="header"><h1>${escapeHtml(row.title)}</h1>
       <p>${escapeHtml(row.group_name || t("schSolo"))}</p></div>
     <div class="card">
@@ -126,7 +121,6 @@ function paintOne(row) {
       <button type="button" class="ghost" id="sch-back">${escapeHtml(t("schBack"))}</button>
     </div>
   `);
-  bindCabinetSwitch();
   document.getElementById("sch-back").addEventListener("click", () => {
     openId = null;
     paint();

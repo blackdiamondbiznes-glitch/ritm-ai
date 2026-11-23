@@ -3,6 +3,7 @@ import { studentMode } from "./roles.js";
 import { t } from "./i18n.js";
 import { currentVertical } from "./vertical.js";
 import { clearMainButton } from "./main_btn.js";
+import { cabinetSection, syncCabinetMenu } from "./cabinet_nav.js";
 
 /** Bottom tabs for the signed-in role. The server still checks every request. */
 export function navTabs() {
@@ -61,6 +62,7 @@ export function isRoleHome(tab, sub, id) {
 export function syncChrome() {
   clearMainButton();
   const { tab, sub, id } = parseRoute();
+  syncCabinetMenu(tab === "cabinet", cabinetSection(sub, id));
   const nav = document.getElementById("nav");
   if (nav) {
     nav.hidden = false;

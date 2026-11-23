@@ -160,7 +160,6 @@ export function fieldChecked(id) {
   return node ? node.checked : null;
 }
 
-export { bindCabinetSwitch, cabinetSwitch } from "./cabinet_nav.js";
 export {
   brandHeader,
   chatCard,

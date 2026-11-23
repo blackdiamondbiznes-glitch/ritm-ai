@@ -1140,20 +1140,90 @@ textarea:focus-visible,
 }
 .nav-item.active .nav-icon { stroke-width: 2.1; }
 
-/* Cabinet switch: six sections in a 3x2 grid, never scrolled out of view. */
-.seg.cab-switch {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  overflow: visible;
+/* Cabinet menu: fixed bar with a hamburger on every teacher screen + left drawer. */
+.cab-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--app-w, 640px);
+  margin: 0 auto;
+  padding: calc(max(env(safe-area-inset-top, 0px), var(--safe-top, 0px)) + 6px) var(--space-4) 6px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
-.cab-switch .seg-btn {
-  min-height: 40px;
-  padding: var(--space-2) var(--space-1);
-  font-size: var(--fs-sm);
-  text-align: center;
-  white-space: normal;
-  line-height: 1.2;
+.cab-top[hidden] { display: none; }
+.cab-top-title { font-weight: 600; font-size: var(--fs-md, 16px); color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cab-menu, .cab-close {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid var(--nav-border);
+  background: var(--card);
+  color: var(--fg);
 }
+.cab-menu .ic, .cab-close .ic { width: 22px; height: 22px; }
+.cab-menu:active, .cab-close:active { transform: scale(0.96); }
+.cab-menu:focus-visible, .cab-close:focus-visible, .cab-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.has-cab-top .main {
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--safe-top, 0px)) + 56px + var(--space-3));
+}
+html.cab-locked { overflow: hidden; }
+.cab-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  margin: 0;
+  width: min(300px, 84vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--nav-border);
+  border-radius: 0 22px 22px 0;
+  background: var(--card);
+  color: var(--fg);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.28);
+  animation: cab-in 0.2s ease-out;
+}
+.cab-drawer::backdrop { background: rgb(10 10 20 / 0.45); }
+.cab-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 100%;
+  padding: calc(max(env(safe-area-inset-top, 0px), var(--safe-top, 0px)) + var(--space-4)) var(--space-3) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+}
+.cab-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding-left: var(--space-2); }
+.cab-drawer-head h2 { font-size: var(--fs-lg, 18px); font-weight: 600; }
+.cab-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cab-item {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--fg);
+  font-weight: 600;
+  text-align: left;
+}
+.cab-item .ic { color: var(--muted); }
+.cab-item.on { background: var(--accent-soft); color: var(--accent); }
+.cab-item.on .ic { color: var(--accent); }
+@keyframes cab-in { from { transform: translateX(-100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cab-drawer { animation: none; } }
 
 /* Online lesson link */
 .primary.join-btn {

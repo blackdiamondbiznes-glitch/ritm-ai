@@ -7,8 +7,6 @@ import { paintMarks, paintTopicForm } from "./topic_form.js";
 import { mountRequests } from "./requests.js";
 import { bindLinkCard, linkCard } from "./group_link.js";
 import {
-  bindCabinetSwitch,
-  cabinetSwitch,
   current,
   escapeHtml,
   setHtml,
@@ -75,13 +73,11 @@ function paintList() {
     ? rows.map(groupButton).join("")
     : `<div class="card muted">${escapeHtml(t("grpEmpty"))}</div>`;
   setHtml(`
-    ${cabinetSwitch("groups")}
     <div class="header"><h1>${escapeHtml(t("grpTitle"))}</h1><p>${escapeHtml(t("grpLead"))}</p></div>
     <div class="card" id="req-root"></div>
     ${body}
     <button type="button" class="primary" id="grp-add">${escapeHtml(t("grpAdd"))}</button>
   `);
-  bindCabinetSwitch();
   mountRequests(async () => {
     cache = await api("/api/tutor/groups");
     paintList();
