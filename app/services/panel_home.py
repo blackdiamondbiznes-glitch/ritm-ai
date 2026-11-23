@@ -14,8 +14,9 @@ from app.db.models.lessons import TutorLesson
 from app.db.models.students import TutorStudent
 from app.services.clock import TASHKENT, Clock, utcnow
 
-UNMARKED_DAYS = 7
-LIST_MAX = 5
+# Davomat lists every unmarked lesson in this window, so the list cap stays generous.
+UNMARKED_DAYS = 14
+LIST_MAX = 50
 OPEN = ("due", "overdue")
 
 

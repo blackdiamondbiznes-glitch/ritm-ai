@@ -204,5 +204,6 @@ async def panel_home(request: web.Request) -> web.Response:
         "language": ctx.user.language_code or "uz",
     }
     data["teacher"] = teacher
+    data["bot_username"] = request.app.get("bot_username")
     data["both_roles"] = teacher and bool(modes["learning"])
     return web.json_response(data)

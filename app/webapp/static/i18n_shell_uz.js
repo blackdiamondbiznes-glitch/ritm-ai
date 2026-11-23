@@ -302,7 +302,6 @@ export default {
   pnlRetryLead: "Ma’lumotni yuklab bo‘lmadi.",
   pnlEyebrow: "O‘qituvchi paneli",
   pnlOpenApp: "Mini ilovani ochish",
-  pnlFrameLead: "To‘liq sahifa tez orada; hozircha kabinet ekrani",
   pnlHomeLead: "faqat e’tibor talab qiladigan ishlar",
   pnlCalm: "Hammasi joyida: e’tibor talab qiladigan ish yo‘q.",
   pnlAttention: "E’tibor talab qiladi",

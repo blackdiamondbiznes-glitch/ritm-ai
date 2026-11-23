@@ -1,7 +1,9 @@
 """Teacher web panel: magic links, cookie sessions with an Origin check, and the Bosh payload."""
 
 import os
+import re
 from datetime import UTC, date, datetime, time, timedelta
+from pathlib import Path
 
 import pytest
 from aiohttp import web
@@ -121,7 +123,14 @@ async def _seed(session) -> dict:
         TutorFeePayment(invoice_id=overdue.id, amount_uzs=100_000, paid_on=today, method="cash")
     )
     await session.commit()
-    return {"teacher": teacher, "tonight": tonight.id, "missed": missed.id}
+    return {
+        "teacher": teacher,
+        "tonight": tonight.id,
+        "missed": missed.id,
+        "group": group.id,
+        "space": space.id,
+        "dilnoza": dilnoza.id,
+    }
 
 
 def _lesson(teacher, space, group, start, url) -> TutorLesson:
@@ -366,3 +375,110 @@ async def test_cookie_writes_use_the_same_fallback(env) -> None:
     assert (await http.post("/api/tutor/name", json=body, headers=cross)).status == 403
     referer = {**cookie, "Referer": env["origin"] + "/panel"}
     assert (await http.post("/api/tutor/name", json=body, headers=referer)).status == 200
+
+
+STATIC = Path(__file__).resolve().parents[1] / "app" / "webapp" / "static"
+PAGES = (
+    "panel.js",
+    "panel_kit.js",
+    "panel_schedule.js",
+    "panel_people.js",
+    "panel_money.js",
+    "panel_settings.js",
+)
+ROUTES = ("home", "schedule", "groups", "students", "attendance", "fees", "reports", "settings")
+
+
+def _pack_keys(lang: str) -> set[str]:
+    keys: set[str] = set()
+    for path in STATIC.glob(f"i18n_*_{lang}.js"):
+        keys |= set(re.findall(r"^  (\w+):", path.read_text(encoding="utf-8"), re.M))
+    return keys
+
+
+def test_every_panel_string_exists_in_all_three_languages() -> None:
+    used: set[str] = set()
+    for name in PAGES:
+        used |= set(re.findall(r'\bt\("(\w+)"', (STATIC / name).read_text(encoding="utf-8")))
+    assert len(used) > 100
+    for lang in ("uz", "ru", "en"):
+        assert not used - _pack_keys(lang), lang
+
+
+def test_every_sidebar_section_is_a_native_page() -> None:
+    shell = (STATIC / "panel.js").read_text(encoding="utf-8")
+    html = (STATIC / "panel.html").read_text(encoding="utf-8")
+    for route in ROUTES:
+        assert f'href="#/{route}"' in html
+        if route != "home":
+            assert re.search(rf"^  {route}: ", shell, re.M), route
+    joined = "".join((STATIC / name).read_text(encoding="utf-8") for name in PAGES)
+    assert "<iframe" not in joined and "embed=1" not in joined
+    assert "pnlFrameLead" not in joined
+    # The panel CSP has no 'unsafe-inline': no inline style attributes or handlers.
+    assert 'style="' not in joined and not re.search(r"\son[a-z]+=\"", joined)
+    for name in PAGES[1:]:
+        assert f'<link rel="modulepreload" href="/s/{name}">' in html
+
+
+async def test_panel_modules_are_served_versioned(env) -> None:
+    http = env["http"]
+    page = await (await http.get("/panel")).text()
+    paths = re.findall(r'href="(/s/[0-9a-f]+/panel_\w+\.js)"', page)
+    assert len(paths) == 5
+    for path in paths:
+        res = await http.get(path)
+        assert res.status == 200 and "javascript" in res.headers["Content-Type"]
+
+
+async def test_home_carries_the_bot_and_a_two_week_unmarked_window(env) -> None:
+    async with env["sessions"]() as session:
+        teacher = await session.get(User, env["teacher"].id)
+        group = await session.get(TutorGroup, env["group"])
+        space = await session.get(Workspace, env["space"])
+        old = _lesson(teacher, space, group, datetime.now(UTC) - timedelta(days=10), None)
+        ancient = _lesson(teacher, space, group, datetime.now(UTC) - timedelta(days=20), None)
+        session.add_all([old, ancient])
+        await session.commit()
+        old_id, ancient_id = old.id, ancient.id
+    data = await (await env["http"].get("/api/panel/home", headers=env["cookie"])).json()
+    assert "bot_username" in data
+    ids = {item["id"] for item in data["unmarked"]["items"]}
+    assert {env["missed"], old_id} <= ids and ancient_id not in ids
+    assert data["unmarked"]["count"] == 2
+
+
+async def test_marking_from_the_panel_clears_the_unmarked_lesson(env) -> None:
+    http, headers = env["http"], {**env["cookie"], "Origin": env["origin"]}
+    sheet = await (
+        await http.get(f"/api/tutor/sessions/{env['missed']}/attendance", headers=headers)
+    ).json()
+    marks = [{"student_id": row["student_id"], "status": "present"} for row in sheet["students"]]
+    saved = await http.put(
+        f"/api/tutor/sessions/{env['missed']}/attendance", json={"marks": marks}, headers=headers
+    )
+    assert saved.status == 200
+    data = await (await http.get("/api/panel/home", headers=env["cookie"])).json()
+    assert env["missed"] not in {item["id"] for item in data["unmarked"]["items"]}
+
+
+async def test_panel_writes_go_through_the_shared_tutor_api(env) -> None:
+    """Payments and group edits from the panel use the cookie plus a same-origin check."""
+    http, headers = env["http"], {**env["cookie"], "Origin": env["origin"]}
+    invoices = await (await http.get("/api/tutor/invoices", headers=headers)).json()
+    target = invoices[0]["id"]
+    body = {"amount_uzs": 50_000, "paid_on": date.today().isoformat(), "method": "cash"}
+    blocked = await http.post(
+        f"/api/tutor/invoices/{target}/payments", json=body, headers=env["cookie"]
+    )
+    assert blocked.status == 403
+    paid = await http.post(f"/api/tutor/invoices/{target}/payments", json=body, headers=headers)
+    assert paid.status in (200, 403)
+    if paid.status == 403:
+        assert (await paid.json())["error"] == "limit_fees"
+    notify = {"remind_lesson_min": 30, "remind_fee_days": 1, "fee_in_group": False}
+    res = await http.put(f"/api/tutor/groups/{env['group']}/notify", json=notify, headers=headers)
+    assert res.status == 200
+    week = date.today().isoformat()
+    sessions = await http.get(f"/api/tutor/sessions?from={week}&to={week}", headers=headers)
+    assert sessions.status == 200

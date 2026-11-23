@@ -302,7 +302,6 @@ export default {
   pnlRetryLead: "Could not load the data.",
   pnlEyebrow: "Teacher panel",
   pnlOpenApp: "Open the Mini App",
-  pnlFrameLead: "Full page coming soon; cabinet screen for now",
   pnlHomeLead: "only what needs attention",
   pnlCalm: "All clear: nothing needs attention.",
   pnlAttention: "Needs attention",

@@ -1,41 +1,25 @@
-import { setLang, t } from "./i18n.js";
+import { setLang } from "./i18n.js";
+import { esc, head, icon, initials, money, provider, resetHandlers, state, t } from "./panel_kit.js";
+import { renderGroups, renderStudents } from "./panel_people.js";
+import { renderFees, renderReports } from "./panel_money.js";
+import { renderAttendance, renderSchedule } from "./panel_schedule.js";
+import { renderSettings } from "./panel_settings.js";
 
-/** Teacher web panel. Bosh is native; other sections embed the cabinet screens for now. */
+/** Teacher web panel shell: sign-in gate, sidebar/drawer, hash routes. Every section is native. */
 const HOME_API = "/api/panel/home";
 const TZ = "Asia/Tashkent";
-const FRAMES = {
-  schedule: "cabinet/schedule",
-  groups: "cabinet/groups",
-  students: "cabinet/students",
-  attendance: "cabinet/schedule",
-  fees: "cabinet/fees",
-  reports: "cabinet/reports",
-  settings: "profile",
+const PAGES = {
+  schedule: renderSchedule,
+  groups: renderGroups,
+  students: renderStudents,
+  attendance: renderAttendance,
+  fees: renderFees,
+  reports: renderReports,
+  settings: (main, parts) => renderSettings(main, parts, labelChrome),
 };
-const TITLES = {
-  home: "pnlHome",
-  schedule: "pnlSchedule",
-  groups: "pnlGroups",
-  students: "pnlStudents",
-  attendance: "pnlAttendance",
-  fees: "pnlFees",
-  reports: "pnlReports",
-  settings: "pnlSettings",
-};
+const SECTIONS = new Set(["home", ...Object.keys(PAGES)]);
 const main = document.getElementById("pn-main");
 let me = null;
-
-function esc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
-}
-
-function icon(name) {
-  return `<svg class="ic" aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
-}
-
-function money(amount) {
-  return `${String(Math.round(Number(amount) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`;
-}
 
 /* ---------- boot ---------- */
 
@@ -60,6 +44,7 @@ async function getJson(path) {
 
 async function loadMe() {
   me = await getJson(HOME_API);
+  state.me = me;
   await setLang(me.user.language || "uz");
   document.documentElement.lang = me.user.language || "uz";
   labelChrome();
@@ -68,36 +53,42 @@ async function loadMe() {
 
 function parse() {
   const raw = (location.hash || "#/home").replace(/^#\/?/, "");
-  if (raw.startsWith("open/")) return { section: "open", target: raw.slice(5) };
-  return { section: TITLES[raw] ? raw : "home", target: "" };
+  const [section, ...parts] = raw.split("/").filter(Boolean);
+  return SECTIONS.has(section) ? { section, parts } : { section: "home", parts: [] };
 }
 
 async function route() {
   closeDrawer();
-  const { section, target } = parse();
+  closeMenu();
+  resetHandlers();
+  const { section, parts } = parse();
   try {
     if (!me || section === "home") await loadMe();
   } catch (err) {
     paintGate(err.status === 401);
     return;
   }
-  markNav(section === "open" ? sectionFor(target) : section);
+  markNav(section);
   if (!me.teacher) {
     paintNotTeacher();
     return;
   }
   if (section === "home") paintHome(me);
-  else paintFrame(section === "open" ? target : FRAMES[section], section === "open" ? sectionFor(target) : section);
+  else await PAGES[section](main, parts);
+  document.title = `${t(TITLES[section])} · Ritm`;
   main.focus({ preventScroll: true });
 }
 
-function sectionFor(target) {
-  if (target.includes("/attendance")) return "attendance";
-  if (target.startsWith("cabinet/fees")) return "fees";
-  if (target.startsWith("cabinet/lessons") || target.startsWith("cabinet/schedule")) return "schedule";
-  if (target.startsWith("cabinet/students")) return "students";
-  return "home";
-}
+const TITLES = {
+  home: "pnlHome",
+  schedule: "pnlSchedule",
+  groups: "pnlGroups",
+  students: "pnlStudents",
+  attendance: "pnlAttendance",
+  fees: "pnlFees",
+  reports: "pnlReports",
+  settings: "pnlSettings",
+};
 
 /* ---------- chrome ---------- */
 
@@ -170,30 +161,6 @@ function closeMenu() {
   if (button) button.setAttribute("aria-expanded", "false");
 }
 
-function initials(name) {
-  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
-  return (parts.slice(0, 2).map((part) => Array.from(part)[0] || "").join("") || "?").toUpperCase();
-}
-
-/** Page header: menu button and avatar menu show on phones; the sidebar covers desktop. */
-function head(titleKey, lead, action = "") {
-  const both = me && me.both_roles
-    ? `<p class="pn-pop-note">${esc(t("pnlBothShort"))}</p><a href="/?role=student#/study">${esc(t("pnlToStudent"))}</a>`
-    : "";
-  return `<header class="pn-head">
-    <button type="button" class="pn-icon-btn pn-only-phone" data-act="drawer" aria-label="${esc(t("pnlMenu"))}" aria-controls="pn-side">${icon("menu")}</button>
-    <div class="pn-head-text"><p class="pn-eyebrow">${esc(t("pnlEyebrow"))}</p><h1>${esc(t(titleKey))}</h1>${lead ? `<p class="pn-lead">${esc(lead)}</p>` : ""}</div>
-    <div class="pn-head-actions">${action}
-      <div class="pn-head-me pn-only-phone">
-        <button type="button" class="pn-avatar pn-avatar-btn" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-controls="pn-pop" aria-label="${esc(me ? me.user.name : "")}">${esc(initials(me ? me.user.name : ""))}</button>
-        <div class="pn-pop" id="pn-pop" hidden>${both}
-          <form method="post" action="/panel/logout"><button type="submit" class="pn-pop-item">${esc(t("pnlLogout"))}</button></form>
-        </div>
-      </div>
-    </div>
-  </header>`;
-}
-
 /* ---------- screens ---------- */
 
 function paintGate(signedOut) {
@@ -206,27 +173,21 @@ function paintGate(signedOut) {
 }
 
 function paintNotTeacher() {
-  main.innerHTML = `${head("pnlHome", "")}<section class="pn-card"><h2>${esc(t("pnlNotTeacher"))}</h2>
+  main.innerHTML = `${head(t("pnlHome"), "")}<section class="pn-card"><h2>${esc(t("pnlNotTeacher"))}</h2>
     <p class="pn-muted">${esc(t("pnlNotTeacherLead"))}</p><a class="pn-btn pn-btn-primary" href="/">${esc(t("pnlOpenApp"))}</a></section>`;
-}
-
-function paintFrame(target, section) {
-  const back = `<a class="pn-btn pn-btn-ghost" href="#/home">${icon("back")}<span>${esc(t("pnlHome"))}</span></a>`;
-  main.innerHTML = `${head(TITLES[section] || "pnlHome", t("pnlFrameLead"), back)}
-    <section class="pn-card pn-frame-card"><iframe class="pn-frame" src="/?embed=1#/${esc(target)}" title="${esc(t(TITLES[section] || "pnlHome"))}"></iframe></section>`;
 }
 
 function paintHome(data) {
   const lead = `${longDate(data.today)} · ${t("pnlHomeLead")}`;
-  const add = `<a class="pn-btn pn-btn-primary pn-only-wide" href="#/open/cabinet/lessons/new">${icon("plus")}<span>${esc(t("pnlAddLesson"))}</span></a>`;
+  const add = `<a class="pn-btn pn-btn-primary pn-only-wide" href="#/schedule/new">${icon("plus")}<span>${esc(t("pnlAddLesson"))}</span></a>`;
   const calm = !data.unmarked.count && !data.overdue.count && !data.requests.count && !(data.homework && data.homework.count);
-  main.innerHTML = `${head("pnlHome", lead, add)}
+  main.innerHTML = `${head(t("pnlHome"), lead, add)}
     ${calm ? `<p class="pn-calm" role="status">${esc(t("pnlCalm"))}</p>` : ""}
     <section class="pn-kpis" aria-label="${esc(t("pnlAttention"))}">
       ${kpi("warn", "pnlUnmarked", "pnlUnmarkedShort", data.unmarked.count, unmarkedSub(data.unmarked), "pnlUnmarkedTag", unmarkedLink(data.unmarked))}
-      ${kpi("bad", "pnlOverdue", "pnlOverdueShort", data.overdue.count, data.overdue.count ? money(data.overdue.sum_uzs) : t("pnlNone"), "pnlOverdueTag", "#/open/cabinet/fees")}
-      ${data.homework ? kpi("accent", "pnlHomework", "pnlHomeworkShort", data.homework.count, "", "pnlHomeworkTag", "#/groups") : kpi("accent", "pnlIncome", "pnlIncomeShort", money(data.income.sum_uzs), t("pnlIncomeSub", { n: data.income.payments }), "pnlIncomeTag", "#/open/cabinet/reports")}
-      ${kpi("ok", "pnlRequests", "pnlRequestsShort", data.requests.count, data.requests.first ? data.requests.first.student : t("pnlNone"), "pnlRequestsTag", "#/open/cabinet")}
+      ${kpi("bad", "pnlOverdue", "pnlOverdueShort", data.overdue.count, data.overdue.count ? money(data.overdue.sum_uzs) : t("pnlNone"), "pnlOverdueTag", "#/fees/overdue")}
+      ${data.homework ? kpi("accent", "pnlHomework", "pnlHomeworkShort", data.homework.count, "", "pnlHomeworkTag", "#/groups") : kpi("accent", "pnlIncome", "pnlIncomeShort", money(data.income.sum_uzs), t("pnlIncomeSub", { n: data.income.payments }), "pnlIncomeTag", "#/reports")}
+      ${kpi("ok", "pnlRequests", "pnlRequestsShort", data.requests.count, data.requests.first ? data.requests.first.student : t("pnlNone"), "pnlRequestsTag", "#/students/requests")}
     </section>
     <section class="pn-card pn-today" aria-labelledby="pn-today-title">
       <h2 id="pn-today-title">${esc(t("pnlToday"))}</h2>
@@ -251,7 +212,7 @@ function unmarkedSub(block) {
 
 function unmarkedLink(block) {
   const first = block.items[0];
-  return first ? `#/open/cabinet/schedule/${Number(first.id)}/attendance` : "#/attendance";
+  return first ? `#/attendance/${Number(first.id)}` : "#/attendance";
 }
 
 function todayTable(lessons) {
@@ -287,7 +248,7 @@ function todayList(lessons) {
 }
 
 function action(row, compact) {
-  const roll = `#/open/cabinet/schedule/${Number(row.id)}/attendance`;
+  const roll = `#/attendance/${Number(row.id)}`;
   if (row.marked) return `<a class="pn-btn pn-btn-ghost pn-btn-sm" href="${roll}">${esc(t(compact ? "pnlMarkedShort" : "pnlMarked"))}</a>`;
   if (Date.parse(row.starts_at) <= Date.now()) {
     return `<a class="pn-btn pn-btn-primary pn-btn-sm" href="${roll}">${esc(t(compact ? "pnlMarkShort" : "pnlMark"))}</a>`;
@@ -298,19 +259,6 @@ function action(row, compact) {
 function linkCell(row) {
   if (!row.meeting_url) return `<span class="pn-muted" aria-label="${esc(t("pnlNoLink"))}">—</span>`;
   return `<a class="pn-link" href="${esc(row.meeting_url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(`${t("learnJoin")} · ${provider(row.meeting_url)}`)}">${esc(provider(row.meeting_url))}</a>`;
-}
-
-function provider(url) {
-  if (!url) return "";
-  try {
-    const host = new URL(url).hostname;
-    if (host.includes("meet.google")) return "Meet";
-    if (host.includes("zoom")) return "Zoom";
-    if (host.includes("teams")) return "Teams";
-  } catch {
-    return t("pnlLink");
-  }
-  return t("pnlLink");
 }
 
 function title(row) {
