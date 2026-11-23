@@ -11,6 +11,7 @@ from app.db.models.jobs import Job, JobStatus
 from app.db.models.leaderboard import LeaderboardEntry, LeaderboardPeriod
 from app.db.models.lessons import TutorLesson
 from app.db.models.notifications import NotificationLog
+from app.db.models.panel_tokens import PanelLoginToken
 from app.db.models.payments import Payment, PaymentEvent
 from app.db.models.plans import Plan
 from app.db.models.quizzes import Quiz, QuizAnswer
@@ -37,6 +38,7 @@ __all__ = [
     "Job",
     "JobStatus",
     "NotificationLog",
+    "PanelLoginToken",
     "Payment",
     "PaymentEvent",
     "LeaderboardEntry",

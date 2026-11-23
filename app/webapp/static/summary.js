@@ -65,6 +65,7 @@ function paint(data, groups = [], limits = null, lessonRows = [], asking = 0) {
   setHtml(`
     ${cabinetSwitch("")}
     <div class="header"><h1>${escapeHtml(t("navCabinet"))}</h1><p>${escapeHtml(t("cabLead"))}</p></div>
+    ${panelCard()}
     ${requestsCard(asking)}
     ${planCard(limits)}
     <div class="card-title">${escapeHtml(t("todayTitle"))}</div>
@@ -90,6 +91,7 @@ function paint(data, groups = [], limits = null, lessonRows = [], asking = 0) {
   `);
   bindCabinetSwitch();
   bindNameCard();
+  bindPanelCard();
   if (atCap(limits)) mountUpgrade();
   document.querySelectorAll("[data-go]").forEach((node) => {
     node.addEventListener("click", () => {
@@ -180,4 +182,25 @@ function card(hash, value, key) {
     <div class="kpi-value">${escapeHtml(formatNumber(value || 0))}</div>
     <div class="kpi-label">${escapeHtml(t(key))}</div>
   </button>`;
+}
+
+/** Inside Telegram only: the bot sends a one-time sign-in link to the web panel. */
+function panelCard() {
+  if (document.documentElement.classList.contains("embed")) return "";
+  return `<button type="button" class="card list-btn panel-open" id="panel-open">
+    <div class="card-title">${escapeHtml(t("pnlOpen"))}</div>
+    <div class="stu-meta">${escapeHtml(t("pnlOpenLead"))}</div>
+  </button>`;
+}
+
+function bindPanelCard() {
+  const button = document.getElementById("panel-open");
+  if (!button) return;
+  button.addEventListener("click", (event) => {
+    withBusy(event.currentTarget, async () => {
+      await api("/api/panel/link", { method: "POST", body: "{}" });
+      haptic("success");
+      toast(t("pnlSent"));
+    }).catch(() => toast(t("pnlNotSent"), "err"));
+  });
 }

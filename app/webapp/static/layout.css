@@ -1197,3 +1197,7 @@ a.ghost { display: block; }
 .day-block small { color: var(--muted); font-size: var(--fs-xs); }
 .day-main { flex: 1; min-width: 0; }
 .close-app { margin-top: var(--space-4); text-decoration: none; min-height: 44px; }
+
+/* Framed inside the teacher web panel: no Mini App bottom bar. */
+.embed #nav { display: none; }
+.embed .main { padding-bottom: var(--space-6); }

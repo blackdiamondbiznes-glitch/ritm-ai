@@ -23,7 +23,23 @@ CSP = (
     "object-src 'none'; "
     "base-uri 'self'; "
     "form-action 'self'; "
-    f"frame-ancestors {TELEGRAM_FRAMES}"
+    f"frame-ancestors 'self' {TELEGRAM_FRAMES}"
+)
+
+# The teacher panel is a top-level page: it may frame our own cabinet screens but is
+# never framed itself, and it has no inline script or style.
+PANEL_CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self'; "
+    "img-src 'self' data: https:; "
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "frame-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'none'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'"
 )
 
 SECURITY_HEADERS = {

@@ -17,6 +17,7 @@ async def setup_commands(bot: Bot) -> None:
             BotCommand(command="help", description=t("cmd_help", lang)),
             BotCommand(command="cancel", description=t("cmd_cancel", lang)),
             BotCommand(command="language", description=t("cmd_language", lang)),
+            BotCommand(command="panel", description=t("cmd_panel", lang)),
         ]
         code = None if lang == "uz" else lang
         await bot.set_my_commands(commands, language_code=code)

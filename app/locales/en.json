@@ -379,5 +379,10 @@
   "enroll_pending_named": "📨 Your request to join “{group}” was sent to the teacher ({teacher}).\nWe will message you when it is approved. You can see its status in the mini app.",
   "menu_title_teacher": "Hello.\nThe cabinet is where you run lessons, attendance and fees.\nChoose a section below.",
   "help_text_teacher": "Ritm AI is your teaching cabinet.\n\nUse the Teacher cabinet button for lessons, attendance, grades and fees.\nInvite students with the group link.\n\nCommands: /menu /help /cancel /language",
-  "help_text_student": "Ritm AI holds your lessons, grades, attendance and homework.\n\nOpen the Mini App with the Study button.\nChange the language from Language.\n\nCommands: /menu /help /cancel /language"
+  "help_text_student": "Ritm AI holds your lessons, grades, attendance and homework.\n\nOpen the Mini App with the Study button.\nChange the language from Language.\n\nCommands: /menu /help /cancel /language",
+  "cmd_panel": "Teacher panel (browser)",
+  "panel_link_text": "Your sign-in link to the teacher panel.\nIt works once and expires in 15 minutes. Do not forward it.",
+  "panel_link_btn": "Open the panel",
+  "panel_not_teacher": "The panel is for teachers. Add a group or a student in your cabinet first.",
+  "panel_unavailable": "The panel is not available yet. Please try again later."
 }

@@ -31,6 +31,7 @@ from app.webapp.lesson_routes import setup_lesson_routes
 from app.webapp.limit_routes import setup_limit_routes
 from app.webapp.members import MemberCountCache
 from app.webapp.notify_routes import setup_notify_routes
+from app.webapp.panel_auth import setup_panel_routes
 from app.webapp.pay_routes import setup_pay_routes
 from app.webapp.rate_limit import RateLimiter
 from app.webapp.reminder_routes import setup_reminder_routes
@@ -91,6 +92,7 @@ def create_app(
     setup_cabinet_routes(app)
     setup_reminder_routes(app)
     setup_role_routes(app)
+    setup_panel_routes(app)
     app.router.add_get("/health", health)
     app.router.add_get("/healthz", health)
     setup_assets(app, STATIC)

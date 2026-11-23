@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlsplit
 
 from aiohttp import web
 
@@ -24,6 +25,9 @@ from app.webapp.panel import PanelError
 
 AUTH_LIMIT = 20
 API_LIMIT = 60
+# The teacher web panel signs in with this HttpOnly cookie; the Mini App keeps using Bearer.
+PANEL_COOKIE = "ritm_panel"
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
 def setup_routes(app: web.Application) -> None:
@@ -53,22 +57,36 @@ async def sign_in(request: web.Request, extra=None) -> web.Response:
         return _error(400, "bad_request")
     init_data = str(payload.get("initData") or payload.get("init_data") or "")
     settings = request.app["settings"]
+    cookie = request.cookies.get(PANEL_COOKIE, "")
+    by_cookie = not init_data and bool(cookie)
     try:
-        fields = validate_init_data(
-            init_data, settings.bot_token, max_age=settings.webapp_auth_max_age
-        )
-        telegram_id = telegram_user_id(fields)
+        if by_cookie:
+            # The panel embeds cabinet screens: the cookie is traded for a Bearer token.
+            if not same_origin(request):
+                return _error(403, "origin")
+            telegram_id = read_session(cookie, _secret(settings))
+            fields: dict[str, object] = {}
+        else:
+            fields = validate_init_data(
+                init_data, settings.bot_token, max_age=settings.webapp_auth_max_age
+            )
+            telegram_id = telegram_user_id(fields)
     except AuthError as exc:
         return _error(401, exc.code)
     user_info = fields.get("user") if isinstance(fields.get("user"), dict) else {}
     async with request.app["sessions"]() as session:
         repo = UserRepository(session)
-        user = await repo.upsert_seen(
-            telegram_id,
-            _opt(user_info.get("username")),
-            _full_name(user_info),
-            _opt(user_info.get("language_code")),
-        )
+        if by_cookie:
+            user = await repo.get_by_telegram_id(telegram_id)
+            if user is None:
+                return _error(401, "unauthorized")
+        else:
+            user = await repo.upsert_seen(
+                telegram_id,
+                _opt(user_info.get("username")),
+                _full_name(user_info),
+                _opt(user_info.get("language_code")),
+            )
         if user.is_blocked:
             await session.commit()
             return _error(403, "blocked")
@@ -170,16 +188,19 @@ async def _run(request: web.Request, work, *, read_body: bool = False) -> web.Re
 
 async def _context(request: web.Request) -> WebContext | web.Response:
     settings = request.app["settings"]
-    secret = session_secret(settings.bot_token, settings.webapp_session_secret)
     header = request.headers.get("Authorization", "")
-    token = header[7:].strip() if header.startswith("Bearer ") else ""
+    by_cookie = not header.startswith("Bearer ")
+    token = request.cookies.get(PANEL_COOKIE, "") if by_cookie else header[7:].strip()
     try:
-        telegram_id = read_session(token, secret)
+        telegram_id = read_session(token, _secret(settings))
     except AuthError as exc:
         # Unauthenticated traffic is limited per address; behind a tunnel this is shared.
         if not _rate(request, "api", API_LIMIT):
             return _error(429, "rate_limit")
         return _error(401, exc.code)
+    # Browsers send cookies cross-site; a write must come from our own page.
+    if by_cookie and request.method not in SAFE_METHODS and not same_origin(request):
+        return _error(403, "origin")
     # Signed sessions are limited per Telegram user, so one tunnel IP is not one bucket.
     if not request.app["limiter"].allow(f"api:user:{telegram_id}"):
         return _error(429, "rate_limit")
@@ -198,6 +219,23 @@ async def _context(request: web.Request) -> WebContext | web.Response:
     except Exception:
         await session.close()
         raise
+
+
+def _secret(settings) -> str:
+    return session_secret(settings.bot_token, settings.webapp_session_secret)
+
+
+def same_origin(request: web.Request) -> bool:
+    """The Origin header names this host (or the configured public URL)."""
+    origin = request.headers.get("Origin", "")
+    if not origin or origin == "null":
+        return False
+    host = urlsplit(origin).netloc.lower()
+    allowed = {request.host.lower()}
+    public = request.app["settings"].public_webapp_url
+    if public:
+        allowed.add(urlsplit(public).netloc.lower())
+    return host in allowed
 
 
 def _rate(request: web.Request, kind: str, limit: int) -> bool:

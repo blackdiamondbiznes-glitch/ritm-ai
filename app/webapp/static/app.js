@@ -33,6 +33,10 @@ const loaders = {
 
 
 async function boot() {
+  // The teacher web panel frames cabinet screens: hide the Mini App bottom bar there.
+  if (window.top !== window.self && new URLSearchParams(location.search).has("embed")) {
+    document.documentElement.classList.add("embed");
+  }
   applyTheme();
   const hinted = applyRoleHint();
   const warm = restoreSession();

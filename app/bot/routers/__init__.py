@@ -15,6 +15,7 @@ from app.bot.routers import (
     join,
     leaderboard,
     membership,
+    panel,
     payments,
     profile,
     quiz,
@@ -37,6 +38,7 @@ def setup_routers(dispatcher: Dispatcher) -> None:
     private.include_router(join.router)
     private.include_router(start.router)
     private.include_router(study.router)
+    private.include_router(panel.router)
     private.include_router(connect.router)
     private.include_router(profile.router)
     private.include_router(chats.router)

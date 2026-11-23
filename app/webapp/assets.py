@@ -43,9 +43,14 @@ class AssetStore:
             digest.update(data)
             self.files[path.name] = _asset(path.name, data)
         self.version = digest.hexdigest()[:10]
-        shell = self.files["index.html"].body.decode()
+        self.index = self._page("index.html")
+        self.panel = self._page("panel.html") if "panel.html" in self.files else None
+
+    def _page(self, name: str) -> Asset:
+        """An HTML shell with `/s/x` rewritten to the versioned folder."""
+        shell = self.files[name].body.decode()
         shell = shell.replace('"/s/', f'"/s/{self.version}/')
-        self.index = _asset("index.html", shell.encode())
+        return _asset(name, shell.encode())
 
     def response(self, request: web.Request, asset: Asset, cache: str) -> web.StreamResponse:
         headers = {"Cache-Control": cache, "ETag": asset.etag, "Vary": "Accept-Encoding"}
