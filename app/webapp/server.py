@@ -133,6 +133,8 @@ def _apply_cors_headers(response: web.StreamResponse, origin: str) -> None:
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
     response.headers["Access-Control-Max-Age"] = "600"
+    response.headers.add("Vary", "Origin")
+
 
 @web.middleware
 async def session_cleanup(request: web.Request, handler):

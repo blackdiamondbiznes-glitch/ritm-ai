@@ -192,7 +192,12 @@ def _endpoints(w) -> list[tuple[str, str, dict | None, int]]:
         ("POST", f"/api/admin/tenants/{owner}/grant", {"plan": "pro", "days": 5}, 400),
         ("POST", f"/api/admin/tenants/{owner}/extend", {"days": 5}, 400),
         ("POST", f"/api/admin/tenants/{owner}/payments-block", {"blocked": False}, 400),
-        ("POST", "/api/admin/workspaces/999999999/grant", {"plan": "free", "days": 30}, 404),
+        (
+            "POST",
+            "/api/admin/workspaces/999999999/grant",
+            {"plan": "free", "days": 30, "reason": "CI permission matrix"},
+            404,
+        ),
         ("POST", "/api/admin/payments/999999999/approve", {}, 404),
         ("POST", "/api/admin/payments/999999999/fake", {}, 404),
     ]
