@@ -3,6 +3,7 @@
 Ritm is a Telegram-first platform for businesses and communities that work through Telegram. It starts with online teaching, while its community tools help any group or channel keep its audience active.
 The Telegram bot is `@ritm_airobot`; the Mini App and teacher panel provide role-specific workspaces over the same platform.
 Phase 1 is onboarding and access. Phase 2 adds AI, the queue and a daily post. Phase 3 adds a quiz from published posts: a private deep link in channels, a native poll in groups. Phase 4 adds automatic quizzes from an admin's own posts. Phase 5 adds points for correct quiz answers and a weekly Top-10 leaderboard. Phase 6 adds manual card payments, founder pricing, trial engagement reports and an expiry notice. Phase 7 hardens the bot: backups, a health check, error alerts, structured logs and a production deploy guide.
+The technical specification (TZ, in Uzbek: roles, data schema, workflows, roadmap) is in [docs/TZ.md](docs/TZ.md).
 
 ## Run
 
