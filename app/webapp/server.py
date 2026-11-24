@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import Settings
 from app.i18n import t
+from app.webapp.account_routes import setup_account_routes
 from app.webapp.admin_routes import setup_admin_routes
 from app.webapp.admins import ChatAdminCache
 from app.webapp.assets import setup_assets
@@ -70,6 +71,7 @@ def create_app(
     app["bot_username"] = bot_username
     app["pending"] = pending
     setup_routes(app)
+    setup_account_routes(app)
     setup_dash_routes(app)
     setup_admin_routes(app)
     setup_chart_routes(app)
