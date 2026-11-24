@@ -1,5 +1,6 @@
 """Group timetable slots, idempotent fill, and the once-a-day claim."""
 
+import asyncio
 import os
 from datetime import UTC, datetime, timedelta
 
@@ -11,6 +12,7 @@ from app.db.models.users import User
 from app.db.models.workspaces import Workspace
 from app.db.repositories.groups import GroupRepository
 from app.db.repositories.lessons import LessonRepository
+from app.db.repositories.system_state import SystemStateRepository
 from app.jobs.tutor_sessions import refill_sessions
 from app.services.sessions import KIND, SessionPlanner, has_attendance, sessions_due, slots_for
 from sqlalchemy import delete, select
@@ -18,6 +20,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 _URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://bot:bot@localhost:5432/engagement")
 TG = 9862000001
+STATE_RACE_KEY = "test_system_state_put_race"
 # Monday 2026-11-16 23:30 in Asia/Tashkent (UTC+5).
 NOW = datetime(2026, 11, 16, 18, 30, tzinfo=UTC)
 _MON = (
@@ -73,7 +76,7 @@ async def _wipe(session) -> None:
     await session.execute(delete(TutorGroup).where(TutorGroup.owner_id.in_(ids)))
     await session.execute(delete(Workspace).where(Workspace.owner_id.in_(ids)))
     await session.execute(delete(User).where(User.telegram_id == TG))
-    await session.execute(delete(SystemState).where(SystemState.key == KIND))
+    await session.execute(delete(SystemState).where(SystemState.key.in_([KIND, STATE_RACE_KEY])))
 
 
 async def _seed(session) -> TutorGroup:
@@ -180,3 +183,17 @@ async def test_daily_refill_claims_the_tashkent_day(db) -> None:
         assert len(await _rows(session, group.id)) == 6
         assert await refill_sessions(session, now=lambda: NOW) is False
         assert len(await _rows(session, group.id)) == 6
+
+
+async def test_system_state_put_handles_concurrent_first_writes(db) -> None:
+    async def write(value: str) -> None:
+        async with db() as session:
+            await SystemStateRepository(session, now=lambda: NOW).put(STATE_RACE_KEY, value)
+            await session.commit()
+
+    await asyncio.gather(write("birinchi"), write("ikkinchi"))
+
+    async with db() as session:
+        row = await SystemStateRepository(session).get_row(STATE_RACE_KEY)
+        assert row is not None
+        assert row.value in {"birinchi", "ikkinchi"}
