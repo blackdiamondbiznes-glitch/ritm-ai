@@ -11,7 +11,7 @@ from app.bot.errors import error_context
 from app.config import Settings
 
 logger = logging.getLogger(__name__)
-_last_sent_at = 0.0
+_last_sent_at: float | None = None
 
 
 async def notify_admins(event: ErrorEvent, bot: Bot, settings: Settings) -> None:
@@ -21,7 +21,9 @@ async def notify_admins(event: ErrorEvent, bot: Bot, settings: Settings) -> None
     if not ids:
         return
     now = time.monotonic()
-    if now - _last_sent_at < max(0, settings.alert_cooldown_seconds):
+    if _last_sent_at is not None and now - _last_sent_at < max(
+        0, settings.alert_cooldown_seconds
+    ):
         return
     _last_sent_at = now
     user_id, chat_id = error_context(event.update)
@@ -43,4 +45,4 @@ async def notify_admins(event: ErrorEvent, bot: Bot, settings: Settings) -> None
 def reset_alert_clock() -> None:
     """Test helper: forget the last send time."""
     global _last_sent_at
-    _last_sent_at = 0.0
+    _last_sent_at = None
