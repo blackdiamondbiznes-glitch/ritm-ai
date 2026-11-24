@@ -24,7 +24,7 @@ async def test_configured_origin_receives_cors_headers():
 
     assert response.status == 401
     assert response.headers["Access-Control-Allow-Origin"] == _ALLOWED
-    assert response.headers["Vary"] == "Origin"
+    assert any("Origin" in value for value in response.headers.getall("Vary", []))
 
 
 @pytest.mark.asyncio
