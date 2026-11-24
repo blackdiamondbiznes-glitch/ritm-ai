@@ -11,6 +11,10 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "-m 'not e2e'"
 testpaths = ["tests"]
 pythonpath = ["."]
-markers = ["smoke: process wiring without Telegram polling"]
+markers = [
+    "smoke: process wiring without Telegram polling",
+    "e2e: browser-based panel layout checks",
+]

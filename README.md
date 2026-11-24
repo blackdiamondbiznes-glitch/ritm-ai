@@ -99,6 +99,7 @@ python -m playwright install chromium
 ruff check .
 ruff format --check .
 pytest
+pytest -m e2e tests/test_panel_layout.py
 ```
 
 ## Migrations

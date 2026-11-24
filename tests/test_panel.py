@@ -22,7 +22,6 @@ from app.services.clock import TASHKENT
 from app.webapp.auth import issue_session, session_secret
 from app.webapp.rate_limit import RateLimiter
 from app.webapp.server import create_app
-from playwright.async_api import async_playwright
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -497,58 +496,3 @@ def test_panel_phone_layout_and_fee_contract():
     assert "pdNoFeeRule" in people and "pdCardDebts" in people
     money = (static / "panel_money.js").read_text(encoding="utf-8")
     assert "pdCardDebt" in money and "pdTotalDebt" in money
-
-
-async def test_panel_browser_layout_and_keyboard_navigation(env) -> None:
-    """Haqiqiy panel planshet va kompyuterda ochilib, klaviaturadan boshqariladi."""
-    async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(
-            executable_path=os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH") or None
-        )
-        context = await browser.new_context(viewport={"width": 1024, "height": 900})
-        token = env["cookie"]["Cookie"].split("=", 1)[1]
-        await context.add_cookies(
-            [
-                {
-                    "name": "ritm_panel",
-                    "value": token,
-                    "url": env["origin"],
-                    "httpOnly": True,
-                    "secure": False,
-                    "sameSite": "Lax",
-                }
-            ]
-        )
-        page = await context.new_page()
-        try:
-            await page.goto(f"{env['origin']}/panel")
-            await page.locator("#pn-main h1").wait_for()
-
-            for width in (768, 1024, 1280):
-                await page.set_viewport_size({"width": width, "height": 900})
-                metrics = await page.evaluate(
-                    """() => ({
-                        viewport: document.documentElement.clientWidth,
-                        content: document.documentElement.scrollWidth,
-                        main: document.querySelector("#pn-main").getBoundingClientRect().width
-                    })"""
-                )
-                assert metrics["viewport"] == width
-                assert metrics["content"] <= width
-                assert metrics["main"] > 0
-
-            await page.locator(".pn-skip").focus()
-            await page.keyboard.press("Tab")
-            assert await page.evaluate(
-                "document.activeElement.getAttribute('data-route') === 'home'"
-            )
-            await page.keyboard.press("Tab")
-            assert await page.evaluate(
-                "document.activeElement.getAttribute('data-route') === 'schedule'"
-            )
-            await page.keyboard.press("Enter")
-            await page.wait_for_function("location.hash === '#/schedule'")
-            await page.locator("#pn-main h1").wait_for()
-        finally:
-            await context.close()
-            await browser.close()
