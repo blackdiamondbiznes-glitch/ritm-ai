@@ -333,7 +333,7 @@ async def test_roles_in_bootstrap_payloads(world) -> None:
         [(ids["A"], "owner"), (ids["B"], "owner")]
     )
     admin = await dash("admin")
-    assert admin["roles"] == ["admin", "member"]
+    assert admin["roles"] == ["admin", "community_owner", "member"]
     assert [(c["id"], c["role"]) for c in admin["chats"]] == [(ids["A"], "admin")]
     assert admin["member"]["totals"]["correct"] == 2
     member = await dash("member")
