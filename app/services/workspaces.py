@@ -27,6 +27,7 @@ class WorkspaceService:
         """Return the cabinet. A second call returns the same row."""
         name = (owner.full_name or "").strip()[:80] or "Kabinet"
         row = await self._spaces.insert_or_get(owner.id, vertical, name)
+        await self._spaces.ensure_owner_membership(row.id, owner.id)
         if vertical == "tutor" and owner.cabinet_niche != "tutor":
             owner.cabinet_niche = "tutor"
         return row

@@ -10,7 +10,7 @@ from app.config import Settings
 from app.db.models.audit import AuditLog
 from app.db.models.chats import Chat, ChatType
 from app.db.models.payments import Payment, PaymentEvent
-from app.db.models.subscriptions import Subscription
+from app.db.models.subscriptions import Subscription, SubscriptionSource, SubscriptionStatus
 from app.db.models.users import User
 from app.db.repositories.audit import AuditRepository
 from app.db.repositories.chats import ChatRepository
@@ -19,8 +19,10 @@ from app.db.repositories.plans import PlanRepository
 from app.db.repositories.subscriptions import SubscriptionRepository
 from app.db.repositories.usage import UsageRepository
 from app.db.repositories.users import UserRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.access import AccessService
 from app.services.payments import PaymentService, Receipt
+from app.services.workspaces import WorkspaceService
 from app.webapp.admins import ChatAdminCache
 from app.webapp.auth import issue_session, session_secret
 from app.webapp.members import MemberCountCache
@@ -176,6 +178,7 @@ def _endpoints(w) -> list[tuple[str, str, dict | None, int]]:
     pay = w["pay"]
     return [
         ("GET", "/api/admin/overview", None, 200),
+        ("GET", "/api/admin/workspaces", None, 200),
         ("GET", "/api/admin/tenants?q=Ega", None, 200),
         ("GET", f"/api/admin/tenants/{owner}", None, 200),
         ("GET", "/api/admin/payments?status=queue", None, 200),
@@ -189,6 +192,12 @@ def _endpoints(w) -> list[tuple[str, str, dict | None, int]]:
         ("POST", f"/api/admin/tenants/{owner}/grant", {"plan": "pro", "days": 5}, 400),
         ("POST", f"/api/admin/tenants/{owner}/extend", {"days": 5}, 400),
         ("POST", f"/api/admin/tenants/{owner}/payments-block", {"blocked": False}, 400),
+        (
+            "POST",
+            "/api/admin/workspaces/999999999/grant",
+            {"plan": "free", "days": 30, "reason": "CI permission matrix"},
+            404,
+        ),
         ("POST", "/api/admin/payments/999999999/approve", {}, 404),
         ("POST", "/api/admin/payments/999999999/fake", {}, 404),
     ]
@@ -215,6 +224,57 @@ async def test_admin_permission_matrix(world) -> None:
     ).json()
     assert detail["status"] == "pending"
     assert [e["action"] for e in detail["events"]] == ["created", "submitted"]
+
+
+async def test_workspace_admin_api_scopes_grant_and_preserves_legacy_subscription(world) -> None:
+    client, heads, sessions = world["client"], world["heads"], world["sessions"]
+    async with sessions() as session:
+        owner = await UserRepository(session).get_by_id(world["ids"][OWNER])
+        free = await PlanRepository(session).get_by_code("free")
+        assert owner is not None and free is not None
+        now = datetime.now(UTC)
+        legacy = Subscription(
+            owner_id=owner.id,
+            plan_id=free.id,
+            status=SubscriptionStatus.TRIAL,
+            source=SubscriptionSource.TRIAL,
+            started_at=now,
+            expires_at=now + timedelta(days=5),
+        )
+        session.add(legacy)
+        workspace = await WorkspaceService(
+            WorkspaceRepository(session), UserRepository(session)
+        ).ensure(owner, vertical="tutor")
+        await session.commit()
+        workspace_id = workspace.id
+
+    listed = await client.get("/api/admin/workspaces", headers=heads["super"])
+    assert listed.status == 200
+    workspace_data = next(
+        row for row in (await listed.json())["workspaces"] if row["id"] == workspace_id
+    )
+    assert workspace_data["plan"]["code"] == "free"
+    assert workspace_data["subscription"] is None
+
+    granted = await client.post(
+        f"/api/admin/workspaces/{workspace_id}/grant",
+        headers=heads["super"],
+        json={"plan": "free", "days": 30, "reason": "EduFlow sinovi"},
+    )
+    assert granted.status == 200
+    body = await granted.json()
+    assert body["id"] == workspace_id
+    assert body["subscription"]["status"] == "active"
+
+    async with sessions() as session:
+        still_legacy = await SubscriptionRepository(session).get_open(owner.id)
+        workspace_subscription = await SubscriptionRepository(session).get_open(
+            owner.id, workspace_id
+        )
+        assert still_legacy is not None and still_legacy.id == legacy.id
+        assert still_legacy.status is SubscriptionStatus.TRIAL
+        assert workspace_subscription is not None
+        assert workspace_subscription.status is SubscriptionStatus.ACTIVE
 
 
 async def test_bootstrap_roles_and_overview_numbers(world) -> None:

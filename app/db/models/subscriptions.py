@@ -36,18 +36,28 @@ class Subscription(Base):
     __tablename__ = "subscriptions"
     __table_args__ = (
         Index("ix_subscriptions_owner_id", "owner_id"),
+        Index("ix_subscriptions_workspace_id", "workspace_id"),
         Index("ix_subscriptions_plan_id", "plan_id"),
         Index("ix_subscriptions_status", "status"),
         Index(
-            "uq_subscriptions_one_open",
+            "uq_subscriptions_one_open_legacy",
             "owner_id",
             unique=True,
-            postgresql_where=text("status IN ('trial', 'active')"),
+            postgresql_where=text("status IN ('trial', 'active') AND workspace_id IS NULL"),
+        ),
+        Index(
+            "uq_subscriptions_one_open_workspace",
+            "workspace_id",
+            unique=True,
+            postgresql_where=text("status IN ('trial', 'active') AND workspace_id IS NOT NULL"),
         ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    workspace_id: Mapped[int | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE")
+    )
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"), nullable=False)
     status: Mapped[SubscriptionStatus] = mapped_column(
         Enum(

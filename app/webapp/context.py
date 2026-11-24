@@ -15,11 +15,13 @@ from app.db.repositories.engagement import EngagementRepository
 from app.db.repositories.jobs import JobRepository
 from app.db.repositories.leaderboard import LeaderboardRepository
 from app.db.repositories.payments import PaymentEventRepository, PaymentRepository
+from app.db.repositories.plan_entitlements import PlanEntitlementRepository
 from app.db.repositories.plans import PlanRepository
 from app.db.repositories.schedules import ScheduleRepository
 from app.db.repositories.subscriptions import SubscriptionRepository
 from app.db.repositories.usage import UsageRepository
 from app.db.repositories.users import UserRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.access import AccessService
 from app.services.activity import ActivityService
 from app.services.leaderboard import LeaderboardService
@@ -29,6 +31,7 @@ from app.services.profiles import ProfileService
 from app.services.quiz_launch import QuizLaunch
 from app.services.schedule import ScheduleService
 from app.services.trial import TrialService
+from app.services.workspace_access import WorkspaceAccessService
 from app.webapp.panel import OwnerPanel
 
 
@@ -43,6 +46,7 @@ class WebContext:
     users: UserRepository
     plans: PlanRepository
     access: AccessService
+    workspace_access: WorkspaceAccessService
     payments: PaymentService
     panel: OwnerPanel
     activity: ActivityService
@@ -55,8 +59,11 @@ def build_context(
     session: AsyncSession, settings: Settings, user: User, admins: object | None = None
 ) -> WebContext:
     """Wire repositories and services on an already-open session."""
+    is_super = user.telegram_id is not None and user.telegram_id in settings.admin_ids
     plans = PlanRepository(session)
     subs = SubscriptionRepository(session)
+    workspaces = WorkspaceRepository(session)
+    plan_entitlements = PlanEntitlementRepository(session)
     chats = ChatRepository(session)
     users = UserRepository(session)
     access = AccessService(
@@ -66,6 +73,13 @@ def build_context(
         UsageRepository(session),
         users,
         founder_slots=settings.founder_slots,
+        workspaces=workspaces,
+    )
+    workspace_access = WorkspaceAccessService(
+        workspaces,
+        subs,
+        plans,
+        plan_entitlements,
     )
     profiles = ProfileService(ChatProfileRepository(session), access)
     schedules = ScheduleService(
@@ -104,7 +118,7 @@ def build_context(
             users,
             settings.points_per_correct_answer,
         ),
-        is_super=user.telegram_id in settings.admin_ids,
+        is_super=is_super,
         admins=admins,
         participation=engagement,
         users=users,
@@ -113,10 +127,11 @@ def build_context(
         settings=settings,
         session=session,
         user=user,
-        is_super=user.telegram_id in settings.admin_ids,
+        is_super=is_super,
         users=users,
         plans=plans,
         access=access,
+        workspace_access=workspace_access,
         payments=payments,
         panel=panel,
         activity=ActivityService(engagement),

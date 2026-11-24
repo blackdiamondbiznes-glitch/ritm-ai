@@ -13,6 +13,7 @@ from app.db.models.lessons import TutorLesson
 from app.db.models.notifications import NotificationLog
 from app.db.models.panel_tokens import PanelLoginToken
 from app.db.models.payments import Payment, PaymentEvent
+from app.db.models.plan_entitlements import PlanEntitlement
 from app.db.models.plans import Plan
 from app.db.models.quizzes import Quiz, QuizAnswer
 from app.db.models.reminders import TutorReminder
@@ -25,6 +26,7 @@ from app.db.models.tutor_notices import TutorNotice
 from app.db.models.usage import UsageCounter, UsageDaily
 from app.db.models.users import User
 from app.db.models.widget_messages import WidgetMessage
+from app.db.models.workspace_members import WorkspaceMember
 from app.db.models.workspaces import Workspace
 
 __all__ = [
@@ -41,6 +43,7 @@ __all__ = [
     "PanelLoginToken",
     "Payment",
     "PaymentEvent",
+    "PlanEntitlement",
     "LeaderboardEntry",
     "LeaderboardPeriod",
     "Plan",
@@ -67,4 +70,5 @@ __all__ = [
     "User",
     "WidgetMessage",
     "Workspace",
+    "WorkspaceMember",
 ]

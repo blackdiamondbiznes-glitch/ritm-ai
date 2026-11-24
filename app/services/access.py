@@ -13,6 +13,7 @@ from app.db.repositories.plans import PlanRepository
 from app.db.repositories.subscriptions import SubscriptionRepository
 from app.db.repositories.usage import UsageRepository
 from app.db.repositories.users import UserRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.clock import Clock, utcnow
 
 
@@ -77,22 +78,39 @@ class AccessService:
         users: UserRepository,
         now: Clock | None = None,
         founder_slots: int = 20,
+        workspaces: WorkspaceRepository | None = None,
     ) -> None:
         self._plans = plans
         self._subs = subscriptions
         self._chats = chats
         self._usage = usage
         self._users = users
+        self._workspaces = workspaces
         self._now = now or utcnow
         self._founder_slots = max(0, founder_slots)
 
-    async def get_effective_plan(self, owner: User) -> Plan:
-        """Active unexpired plan, otherwise the free plan."""
+    async def get_effective_plan(self, owner: User, vertical: str | None = None) -> Plan:
+        """Resolve a workspace plan when scoped, preserving legacy owner plans."""
         free = await self._require_free()
+        if vertical is not None and self._workspaces is not None:
+            workspace = await self._workspaces.by_owner_vertical(owner.id, vertical)
+            if workspace is not None:
+                scoped = await self._subs.get_open(owner.id, workspace.id)
+                if scoped is not None:
+                    if scoped.expires_at <= self._now():
+                        return free
+                    plan = await self._plans.get_by_id(scoped.plan_id)
+                    if plan is None:
+                        return free
+                    if plan.vertical not in (None, vertical):
+                        raise RuntimeError("workspace subscription plan has the wrong vertical")
+                    return plan
         sub = await self._subs.get_open(owner.id)
         if sub is None or sub.expires_at <= self._now():
             return free
         plan = await self._plans.get_by_id(sub.plan_id)
+        if plan is not None and vertical is not None and plan.vertical not in (None, vertical):
+            return free
         return plan or free
 
     async def can_connect_chat(self, owner: User) -> AccessDecision:
@@ -161,7 +179,7 @@ class AccessService:
 
     async def tutor_limits(self, owner: User) -> TutorLimits:
         """Groups and students allowed on the plan this owner is using."""
-        plan = await self.get_effective_plan(owner)
+        plan = await self.get_effective_plan(owner, vertical="tutor")
         return TutorLimits(
             max_groups=plan.max_tutor_groups,
             max_students=plan.max_tutor_students,

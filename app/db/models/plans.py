@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,12 +10,14 @@ from app.db.base import Base
 
 
 class Plan(Base):
-    """A plan row. `modules` is a JSON list of module codes."""
+    """A plan row. `vertical=None` keeps a legacy cross-product plan."""
 
     __tablename__ = "plans"
+    __table_args__ = (Index("ix_plans_vertical", "vertical"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
+    vertical: Mapped[str | None] = mapped_column(String(32))
     name: Mapped[str] = mapped_column(String(64), nullable=False)
     price_uzs: Mapped[int] = mapped_column(Integer, nullable=False)
     founder_price_uzs: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

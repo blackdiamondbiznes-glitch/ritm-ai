@@ -14,12 +14,18 @@ class SubscriptionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_open(self, owner_id: int) -> Subscription | None:
-        """The single trial/active row, even if `expires_at` has already passed."""
+    async def get_open(
+        self, owner_id: int, workspace_id: int | None = None
+    ) -> Subscription | None:
+        """One open legacy owner subscription or one workspace subscription."""
         stmt = select(Subscription).where(
             Subscription.owner_id == owner_id,
             Subscription.status.in_((SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)),
         )
+        if workspace_id is None:
+            stmt = stmt.where(Subscription.workspace_id.is_(None))
+        else:
+            stmt = stmt.where(Subscription.workspace_id == workspace_id)
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
