@@ -20,8 +20,9 @@ def _settings(origins: str = "") -> Settings:
 async def test_configured_origin_receives_cors_headers():
     app = create_app(_settings(f"{_ALLOWED}, https://another.example.workers.dev"), None)
     async with TestClient(TestServer(app)) as client:
-        response = await client.get("/api/cors-probe", headers={"Origin": _ALLOWED})
+        response = await client.get("/api/me/roles", headers={"Origin": _ALLOWED})
 
+    assert response.status == 401
     assert response.headers["Access-Control-Allow-Origin"] == _ALLOWED
     assert response.headers["Vary"] == "Origin"
 
