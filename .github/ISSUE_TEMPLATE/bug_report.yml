@@ -1,0 +1,58 @@
+name: Xato haqida xabar
+description: Mavjud xatti-harakatdagi xatoni qayd etish
+title: "[Xato] "
+labels:
+  - core
+body:
+  - type: markdown
+    attributes:
+      value: "Xatoni [texnik topshiriqdagi](https://github.com/blackdiamondbiznes-glitch/ritm-ai/blob/main/docs/TZ.md) tegishli bo‘lim bilan bog‘lang."
+  - type: textarea
+    id: actual
+    attributes:
+      label: Hozirgi natija
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Kutilgan natija
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Takrorlash qadamlari
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Tuzatish uchun qabul mezonlari
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Tegishli yuza yoki qatlam
+      options:
+        - bot
+        - miniapp
+        - panel
+        - core
+    validations:
+      required: true
+  - type: textarea
+    id: tz
+    attributes:
+      label: TZ bo‘limi
+      description: "docs/TZ.md dagi bo‘lim raqami yoki talab yo‘qligining sababi."
+    validations:
+      required: true

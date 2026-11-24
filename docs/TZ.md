@@ -4,7 +4,7 @@
 |---|---|
 | **Loyiha** | Ritm AI (`@ritm_airobot`) |
 | **Hujjat turi** | Texnik topshiriq: tizim dizayni, talablar, ish jarayonlari |
-| **Kod asosi** | `main` filiali, commit `afa8f9f` (Alembic head `0035`) |
+| **Kod asosi** | `main` filiali, audit boshlanishidagi commit `d1099b9` (Alembic head `0035_panel_login_tokens`) |
 | **Sana** | 24.11.2026 |
 | **Holat belgilari** | **Bor** — kodda ishlaydi · **Qisman** — bir qismi bor yoki faqat bitta yuzada · **Rejada** — kodda yo‘q, faqat rejada |
 
@@ -91,7 +91,7 @@ Barcha `/api/tutor/*` so‘rovlari **egasiga cheklangan** (`owner_id` bo‘yicha
 | 3.1 | **Kabinet (workspace)** | O‘qituvchi kabinetini yoqish, nom, o‘qituvchi ismi | Bor | `/api/tutor/enable`, `/api/tutor/name`; `workspaces` (egasi+vertical bo‘yicha bitta) |
 | 3.2 | **Guruhlar** | Yaratish/tahrirlash/o‘chirish; hafta kunlari, boshlanish–tugash vaqti, daraja | Bor | `groups.py`; panelda o‘chirish yo‘q — faqat Mini App’da |
 | | | O‘quvchini guruhga qo‘shish/chiqarish | Bor | `/groups/{id}/students` |
-| | | Guruhni Telegram chatga bog‘lash | Qisman | API bor (`/groups/{id}/chat`), panelda yo‘q — Mini App’da |
+| | | Tutor guruhini Telegram chatga bog‘lash | Bor | `/api/tutor/groups/{id}/chat`; Mini App va panel guruh sahifasidan ishlaydi |
 | | | Ro‘yxatdan o‘tish havolasi (`enroll_code`) | Bor | `t.me/<bot>?start=enroll_<kod>` va guruh chatidagi tugma |
 | 3.3 | **O‘quvchilar** | Karta: ism, telefon, holat (`paid/debtor/inactive/pending`), boshlang‘ich qarz, izoh | Bor | `students.py` |
 | | | Shaxsiy taklif havolasi (`join_code`) | Bor | `start=join_<kod>`, Mini App’da `/api/me/join` |
@@ -135,7 +135,7 @@ Barcha `/api/tutor/*` so‘rovlari **egasiga cheklangan** (`owner_id` bo‘yicha
 | | | Chat profili: soha, tavsif, til, ton, daraja, vaqt zonasi, taqiqlangan mavzular | Bor | `chat_profiles` |
 | | | Haftalik Top-10 reyting, “Hozir e’lon qilish” | Bor | `leaderboard_*`, Pro/Ultra/sinov |
 | | | Statistika va grafiklar | Bor | `/api/stats`, `/api/charts` |
-| | | Chat ulashni veb-paneldan qilish | Rejada | G fazasi |
+| | | Yangi community chatni platformaga paneldan ulash | Rejada | G fazasi; bu tutor guruhini chatga bog‘lashdan alohida oqim |
 | 3.12 | **AI funksiyalar** | Chat profili asosida kunlik post | Bor | `generate.py`; provayder Gemini (sukut) yoki OpenAI |
 | | | Javoblar keshi va oylik AI kvotasi | Bor | `ai_cache`, `usage_counters` |
 | | | Ta’lim kabinetida AI (mavzu, vazifa yaratish va h.k.) | Rejada | kodda yo‘q |
@@ -173,8 +173,8 @@ Kurs to‘lovini qayd qilish Free’dan boshqa barcha tariflarda ochiq (`fees = 
 | Talab | Holat | Amalga oshirilishi |
 |---|---|---|
 | Mini App `initData` tekshiruvi | Bor | HMAC-SHA256 (`WebAppData` kaliti), `hmac.compare_digest`, `auth_date` yoshi ≤ `WEBAPP_AUTH_MAX_AGE` (sukut 86 400 s) |
-| Mini App sessiyasi | Bor | Imzolangan Bearer token, xotirada saqlanadi, TTL `WEBAPP_SESSION_TTL` (sukut 43 200 s = 12 soat) |
-| Panel sessiyasi | Bor | `ritm_panel` cookie: `HttpOnly`, `Secure`, `SameSite=Lax`, TTL o‘sha 12 soat |
+| Mini App sessiyasi | Bor | Serverda sessiya yozuvi yo‘q; `WEBAPP_SESSION_TTL` muddatli (sukut 43 200 s = 12 soat) HMAC-imzolangan, holatsiz Bearer token. Tokenni serverdan alohida bekor qilish mumkin emas |
+| Panel sessiyasi | Bor | `ritm_panel` cookie: `HttpOnly`, `Secure`, `SameSite=Lax`; ichida shu holatsiz imzolangan token, TTL o‘sha 12 soat. Chiqish cookie’ni o‘chiradi, serverdagi tokenni bekor qilmaydi |
 | Magic link | Bor | `secrets.token_urlsafe(32)`, bazada faqat SHA-256 xeshi, 15 daqiqa, bir marta (atomik `UPDATE … RETURNING`), ishlatilgan/eskilari tozalanadi, URL tugma sifatida (preview yo‘q) |
 | CSRF / Origin | Bor | Cookie bilan kelgan yozish so‘rovlarida `same_origin`: `Origin` → `Sec-Fetch-Site` → `Referer`; begona sayt rad etiladi (403 `origin`). Login formasida tekshiruv tokenni sarflashdan oldin |
 | CSP (Mini App) | Bor | `default-src 'self'`, skript faqat o‘zi + `telegram.org`, `frame-ancestors` faqat Telegram Web domenlari, `object-src 'none'` |
@@ -195,7 +195,7 @@ Kurs to‘lovini qayd qilish Free’dan boshqa barcha tariflarda ochiq (`fees = 
 - O‘quvchi sahifasi va panel Boshi so‘rovlar soni guruh soniga qarab o‘smaydigan qilib yozilgan (`learning.py`, `panel_home.py`).
 - Statik fayllar versiyalangan yo‘l bilan (`/s/<hash>/<fayl>`).
 - Kunlik zaxira nusxa (04:00 Toshkent), `/health` va heartbeat fayli.
-- **Cheklov:** FSM holati va kutilayotgan chat takliflari xotirada — qayta ishga tushganda yo‘qoladi. Render bepul rejimida “uxlaganda” jadval ishlari bajarilmaydi.
+- **Cheklov:** FSM holati va kutilayotgan chat takliflari jarayon xotirasida — qayta ishga tushganda yo‘qoladi. Production’da `TELEGRAM_MODE=webhook`, scheduler yoqilgan; Render Free xizmati uxlaganda jarayon va jadval ishlari ham to‘xtaydi.
 
 ### 4.3. Tillar (i18n)
 
@@ -645,9 +645,9 @@ flowchart LR
 
 Qatlamlar qoidasi: **routerlar → servislar → repozitoriylar**; SQL so‘rovlar faqat repozitoriylarda. Foydalanuvchiga ko‘rinadigan matnlar `app/locales` va `i18n_*.js` da.
 
-**Telegram rejimi (`TELEGRAM_MODE`):** `polling` (lokal Docker), `webhook` (Render, ishlab chiqarish), `off` (faqat Mini App va health, jadval ishlari yo‘q — staging).
+**Telegram rejimi (`TELEGRAM_MODE`):** `polling` (lokal Docker), `webhook` (production), `off` (faqat Mini App va sog‘liq tekshiruvi; Telegram yangilanishlari va scheduler ishlamaydi). Production’da webhook ishlatiladi; Render Free uxlaganda ilova va scheduler to‘xtaydi.
 
-**Baza:** kod oddiy PostgreSQL bilan ishlaydi (`DATABASE_URL`, `postgresql+asyncpg://`). Loyiha qaydlariga ko‘ra ishlab chiqarishda Neon Postgres ishlatiladi; repodagi `render.yaml` esa Render Postgres’ni e’lon qiladi — ikkalasining farqi Ochiq savollarda.
+**Baza:** kod PostgreSQL bilan ishlaydi (`DATABASE_URL`, `postgresql+asyncpg://`). Production Neon Postgres’dan foydalanadi; `DATABASE_URL` Render boshqaruv panelida sozlangan. `render.yaml` Neon ulanish manzilini maxfiy muhit qiymati sifatida kutadi va Render Postgres yaratmaydi.
 
 ### 7.2. Deploy oqimi
 
@@ -676,13 +676,13 @@ flowchart LR
 | B. O‘quvchi Mini App tuzilmasi | Bosh / Darslar / Profil | Bor |
 | C. Panel qobig‘i va kirish | `/panel`, magic link (0035), cookie, alohida CSP | Bor |
 | D. Panel sahifalari | Jadval, Guruhlar, O‘quvchilar, Davomat, To‘lovlar, Hisobotlar, Sozlamalar | Qisman — ba’zi amallar faqat Mini App’da (3-bo‘limga qarang) |
-| “Ta’lim + Hamjamiyat” pozitsiyasi | Yangi matnlar, birinchi kirishda ikki yo‘l tanlovi, “Hamjamiyat” tabi | Bor (`afa8f9f`) |
+| “Ta’lim + Hamjamiyat” pozitsiyasi | Yangi matnlar, birinchi kirishda ikki yo‘l tanlovi, “Hamjamiyat” tabi | Bor |
 
 ### 8.2. Keyingi bosqichlar
 
 | Bosqich | Mazmuni | Holat |
 |---|---|---|
-| D yakuni | Panelga qo‘shish: guruh/o‘quvchini o‘chirish, mavzu va vazifa, yakka dars, chat ulash, tarif sotib olish | Rejada |
+| D yakuni | Panelga qo‘shish: guruh/o‘quvchini o‘chirish, mavzu va vazifa, yakka dars, tarif sotib olish | Rejada |
 | **E** | Darsdan keyin anonim 1–5 baho (`lesson_ratings`), panelda o‘rtacha | Rejada |
 | **F** | Uy vazifasini botga yuborish, `homework_submissions`, baholash, holat | Rejada |
 | O‘quvchi uchun eslatmalar | O‘quvchi Profilida eslatma turlarini yoqish/o‘chirish; to‘lov chekini botga yuborish | Rejada |
@@ -694,14 +694,13 @@ flowchart LR
 
 ## 9. Ochiq savollar
 
-1. **Baza:** ishlab chiqarishda Neon ishlatiladi, `render.yaml` esa Render Postgres va `TELEGRAM_MODE=off` ni ko‘rsatadi. Blueprint’ni haqiqiy holatga moslash kerakmi?
-2. **Rate limiter va FSM xotirada:** bitta instansiyada yetarli. Gorizontal masshtab yoki tez-tez qayta ishga tushish bo‘lsa, Redis/Key Value kerakmi?
-3. **Free tarif va ta’lim:** Free’da kurs to‘lovini qayd qilib bo‘lmaydi va xabar kvotasi 0. Bu ataylabmi yoki o‘qituvchilar uchun alohida bepul daraja kerakmi?
-4. **`agency` kodi “Ultra” nomi bilan** — kodni ham `ultra` ga o‘zgartirish kerakmi (migratsiya va to‘lov tarixi ta’siri)?
-5. **E fazasi:** baho butunlay anonim bo‘ladimi yoki o‘qituvchi kim baho berganini ko‘radimi? Qaysi darslarga so‘raladi (faqat “keldi”/“kechikdi”)?
-6. **F fazasi:** fayl faqat Telegram’da saqlanadimi (`file_id`) yoki nusxa kerakmi? Baholash 0–10 (mavjud `tutor_scores` kabi) yoki alohida shkala? Kechikib topshirishga ruxsat bormi?
-7. **Ota-ona roli:** o‘quvchi kartasiga ikkinchi Telegram hisobi (ota-ona) bog‘lanadimi?
-8. **Bir nechta o‘qituvchi bitta kabinetda** (o‘quv markaz): hozir kabinet = bitta egasi. Xodim/yordamchi roli kerakmi?
-9. **O‘quvchi kurs to‘lovini tizimda to‘lashi** (chek yoki onlayn) — qachon va qaysi usulda?
-10. **Panel uchun zaxira kirish** (Telegram Login Widget) kerakmi yoki magic link yetarlimi?
-11. **Yangi vertical** — birinchi qaysi soha va unda “guruh/dars/to‘lov” atamalari qanday nomlanadi?
+1. **Rate limiter va FSM xotirada:** bitta instansiyada yetarli. Gorizontal masshtab yoki tez-tez qayta ishga tushish bo‘lsa, Redis/Key Value kerakmi?
+2. **Free tarif va ta’lim:** Free’da kurs to‘lovini qayd qilib bo‘lmaydi va xabar kvotasi 0. Bu ataylabmi yoki o‘qituvchilar uchun alohida bepul daraja kerakmi?
+3. **`agency` kodi “Ultra” nomi bilan** — kodni ham `ultra` ga o‘zgartirish kerakmi (migratsiya va to‘lov tarixi ta’siri)?
+4. **E fazasi:** baho butunlay anonim bo‘ladimi yoki o‘qituvchi kim baho berganini ko‘radimi? Qaysi darslarga so‘raladi (faqat “keldi”/“kechikdi”)?
+5. **F fazasi:** fayl faqat Telegram’da saqlanadimi (`file_id`) yoki nusxa kerakmi? Baholash 0–10 (mavjud `tutor_scores` kabi) yoki alohida shkala? Kechikib topshirishga ruxsat bormi?
+6. **Ota-ona roli:** o‘quvchi kartasiga ikkinchi Telegram hisobi (ota-ona) bog‘lanadimi?
+7. **Bir nechta o‘qituvchi bitta kabinetda** (o‘quv markaz): hozir kabinet = bitta egasi. Xodim/yordamchi roli kerakmi?
+8. **O‘quvchi kurs to‘lovini tizimda to‘lashi** (chek yoki onlayn) — qachon va qaysi usulda?
+9. **Panel uchun zaxira kirish** (Telegram Login Widget) kerakmi yoki magic link yetarlimi?
+10. **Yangi vertical** — birinchi qaysi soha va unda “guruh/dars/to‘lov” atamalari qanday nomlanadi?
