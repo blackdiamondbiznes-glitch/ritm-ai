@@ -1,9 +1,12 @@
 """Effective plan, chat limit and AI quota."""
 
 from datetime import timedelta
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
+import pytest
 from app.db.models.subscriptions import SubscriptionSource, SubscriptionStatus
-from app.services.access import AI_METRIC
+from app.services.access import AI_METRIC, AccessService
 from tests.fakes import NOW, World, make_chat, make_user
 
 
@@ -94,3 +97,70 @@ async def test_free_quota_when_trial_expired() -> None:
     )
     sub.expires_at = NOW - timedelta(days=1)
     assert await world.access.remaining_ai_quota(owner) == 8
+
+
+@pytest.mark.asyncio
+async def test_workspace_plan_lookup_is_scoped_to_owner_and_vertical() -> None:
+    owner = make_user(user_id=8)
+    workspace = SimpleNamespace(id=42, vertical="community")
+    plan = SimpleNamespace(id=7, code="community_pro", vertical="community")
+    subscription = SimpleNamespace(
+        plan_id=plan.id,
+        expires_at=NOW + timedelta(days=1),
+    )
+    plans = SimpleNamespace(
+        get_by_id=AsyncMock(return_value=plan),
+        get_by_code=AsyncMock(),
+        get_free_for_vertical=AsyncMock(),
+    )
+    subscriptions = SimpleNamespace(get_open=AsyncMock(return_value=subscription))
+    workspaces = SimpleNamespace(by_owner_vertical=AsyncMock(return_value=workspace))
+    service = AccessService(
+        plans,
+        subscriptions,
+        AsyncMock(),
+        AsyncMock(),
+        AsyncMock(),
+        now=lambda: NOW,
+        workspaces=workspaces,
+    )
+
+    result = await service.get_effective_plan(owner, vertical="community")
+
+    assert result is plan
+    workspaces.by_owner_vertical.assert_awaited_once_with(owner.id, "community")
+    subscriptions.get_open.assert_awaited_once_with(owner.id, workspace.id)
+    plans.get_by_code.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_expired_workspace_plan_falls_back_to_vertical_free_plan() -> None:
+    owner = make_user(user_id=9)
+    workspace = SimpleNamespace(id=43, vertical="community")
+    free = SimpleNamespace(id=1, code="free", vertical="community")
+    subscription = SimpleNamespace(
+        plan_id=7,
+        expires_at=NOW - timedelta(seconds=1),
+    )
+    plans = SimpleNamespace(
+        get_by_id=AsyncMock(),
+        get_by_code=AsyncMock(),
+        get_free_for_vertical=AsyncMock(return_value=free),
+    )
+    subscriptions = SimpleNamespace(get_open=AsyncMock(return_value=subscription))
+    workspaces = SimpleNamespace(by_owner_vertical=AsyncMock(return_value=workspace))
+    service = AccessService(
+        plans,
+        subscriptions,
+        AsyncMock(),
+        AsyncMock(),
+        AsyncMock(),
+        now=lambda: NOW,
+        workspaces=workspaces,
+    )
+
+    result = await service.get_effective_plan(owner, vertical="community")
+
+    assert result is free
+    plans.get_free_for_vertical.assert_awaited_once_with("community")
+    plans.get_by_code.assert_not_awaited()
