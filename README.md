@@ -94,7 +94,8 @@ During a trial, the plan screen has **📊 Sinov hisoboti** to send a live repor
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+python -m playwright install chromium
 ruff check .
 ruff format --check .
 pytest
