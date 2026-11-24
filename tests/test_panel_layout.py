@@ -12,20 +12,6 @@ VIEWPORTS = (768, 900, 1024, 1100, 1280)
 PHONE_VIEWPORTS = (360, 412)
 TASHKENT = ZoneInfo("Asia/Tashkent")
 
-BILINGAN_KICHIK_ELEMENTLAR = {
-    ".pn-skip": "Asosiy qismga o‘tish havolasi hozir tabiiy satr balandligida.",
-    ".pn-switch a": "Hisob almashtirish havolasi hozir 36 px balandlikda.",
-    ".pn-btn-sm": "Kichik tugma ko‘rinishi hozir 40 px balandlikda.",
-    ".pd-chip": "Jadval filtri hozir 40 px balandlikda.",
-    ".pd-pill": "Haftalik jadvaldagi dars tugmasi hozir 32 px balandlikda.",
-    ".pd-mark": "Telefon ko‘rinishida davomat tugmasining eni hozir 40 px.",
-}
-
-BILINGAN_MATN_KESILISHLARI = {
-    ".pd-pill": (768, 900),
-    ".pd-roll-state": (768,),
-}
-
 TEXT_OVERFLOW_JS = """() => [...document.querySelectorAll(
     ".pn-skip, #pn-nav a:not(.pn-sr), #pn-switch a, #pn-main h1, #pn-main h2, #pn-main p, "
     + "#pn-main a, #pn-main button, #pn-main th, #pn-main td, #pn-main b, "
@@ -36,7 +22,7 @@ TEXT_OVERFLOW_JS = """() => [...document.querySelectorAll(
     return style.display !== "none" && style.visibility !== "hidden"
         && !node.classList.contains("pn-sr")
         && rect.width > 0 && rect.height > 0
-        && node.scrollWidth > node.clientWidth + 2;
+        && node.scrollWidth > node.clientWidth + 1;
 }).map((node) => ({
     text: node.textContent.trim(),
     className: typeof node.className === "string" ? node.className : "",
@@ -45,7 +31,7 @@ TEXT_OVERFLOW_JS = """() => [...document.querySelectorAll(
     scrollWidth: node.scrollWidth
 }))"""
 
-SMALL_TARGETS_JS = """(known) => [...document.querySelectorAll(
+SMALL_TARGETS_JS = """() => [...document.querySelectorAll(
     "a[href], button:not(:disabled), input:not(:disabled), "
     + "select:not(:disabled), textarea:not(:disabled), [role='button']"
 )].filter((node) => {
@@ -54,9 +40,7 @@ SMALL_TARGETS_JS = """(known) => [...document.querySelectorAll(
     if (style.display === "none" || style.visibility === "hidden"
         || rect.width === 0 || rect.height === 0) return false;
     const violatesTarget = rect.width < 44 || rect.height < 44;
-    const knownSmall = known.some((selector) => node.matches(selector));
-    if (node.matches(".pd-mark") && window.innerWidth > 760) return violatesTarget;
-    return violatesTarget && !knownSmall;
+    return violatesTarget;
 }).map((node) => ({
     tag: node.tagName,
     className: typeof node.className === "string" ? node.className : "",
@@ -79,29 +63,10 @@ async def _assert_panel_layout(page, theme: str, width: int) -> None:
         f"{theme} mavzu, {width} px: sahifa gorizontal siljiydi"
     )
     clipped_text = await page.evaluate(TEXT_OVERFLOW_JS)
-    unexpected_clipping = [
-        item
-        for item in clipped_text
-        if not (
-            any(
-                item["viewport"] in widths and selector[1:] in item["className"].split()
-                for selector, widths in BILINGAN_MATN_KESILISHLARI.items()
-            )
-        )
-    ]
-    assert not unexpected_clipping, (
-        f"{theme} mavzu, {width} px: ma’lum istisnolardan tashqari "
-        f"matn sig‘madi: {unexpected_clipping}"
-    )
+    assert not clipped_text, f"{theme} mavzu, {width} px: matn sig‘madi: {clipped_text}"
 
-    too_small = await page.evaluate(
-        SMALL_TARGETS_JS,
-        list(BILINGAN_KICHIK_ELEMENTLAR),
-    )
-    assert not too_small, (
-        f"{theme} mavzu, {width} px: ma’lum istisnolardan tashqari "
-        f"bosish nishoni 44 px dan kichik: {too_small}"
-    )
+    too_small = await page.evaluate(SMALL_TARGETS_JS)
+    assert not too_small, f"{theme} mavzu, {width} px: 44 px dan kichik nishon bor: {too_small}"
 
 
 @pytest.mark.e2e
