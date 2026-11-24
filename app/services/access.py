@@ -91,20 +91,20 @@ class AccessService:
 
     async def get_effective_plan(self, owner: User, vertical: str | None = None) -> Plan:
         """Resolve a workspace plan when scoped, preserving legacy owner plans."""
-        free = await self._require_free()
         if vertical is not None and self._workspaces is not None:
             workspace = await self._workspaces.by_owner_vertical(owner.id, vertical)
             if workspace is not None:
                 scoped = await self._subs.get_open(owner.id, workspace.id)
                 if scoped is not None:
                     if scoped.expires_at <= self._now():
-                        return free
+                        return await self._require_free(vertical)
                     plan = await self._plans.get_by_id(scoped.plan_id)
                     if plan is None:
-                        return free
+                        return await self._require_free(vertical)
                     if plan.vertical not in (None, vertical):
                         raise RuntimeError("workspace subscription plan has the wrong vertical")
                     return plan
+        free = await self._require_free()
         sub = await self._subs.get_open(owner.id)
         if sub is None or sub.expires_at <= self._now():
             return free
@@ -216,7 +216,11 @@ class AccessService:
         left = max(0, plan.ai_generations_per_month - used)
         return used, plan.ai_generations_per_month, left
 
-    async def _require_free(self) -> Plan:
+    async def _require_free(self, vertical: str | None = None) -> Plan:
+        if vertical is not None:
+            free = await self._plans.get_free_for_vertical(vertical)
+            if free is not None:
+                return free
         free = await self._plans.get_by_code("free")
         if free is None:
             raise RuntimeError("free plan is not seeded")
