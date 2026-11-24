@@ -1,0 +1,45 @@
+name: Foydalanuvchi hikoyasi
+description: Yangi imkoniyat yoki mahsulot talabini taklif qilish
+title: "[Hikoya] "
+labels:
+  - vertical:tutor
+body:
+  - type: markdown
+    attributes:
+      value: "Taklifni [texnik topshiriqdagi](https://github.com/blackdiamondbiznes-glitch/ritm-ai/blob/main/docs/TZ.md) bo‘lim bilan bog‘lang."
+  - type: textarea
+    id: story
+    attributes:
+      label: Foydalanuvchi hikoyasi
+      description: "Kim sifatida, nimani xohlaysiz va nima uchun?"
+      placeholder: "O‘qituvchi sifatida ... xohlayman, shunda ..."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Qabul mezonlari
+      description: Natija qanday holatlarda to‘g‘ri deb qabul qilinadi?
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Tegishli yuza yoki qatlam
+      options:
+        - bot
+        - miniapp
+        - panel
+        - core
+    validations:
+      required: true
+  - type: textarea
+    id: tz
+    attributes:
+      label: TZ bo‘limi
+      description: "docs/TZ.md dagi bo‘lim raqami yoki talab yo‘qligining sababi."
+    validations:
+      required: true
