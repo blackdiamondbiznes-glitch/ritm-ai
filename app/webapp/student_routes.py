@@ -25,7 +25,7 @@ _STATUS = {
     "phone": 400,
     "amount": 400,
     "choice": 400,
-    "group": 400,
+    "group": 404,
 }
 
 

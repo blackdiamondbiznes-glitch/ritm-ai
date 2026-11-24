@@ -24,7 +24,7 @@ _STATUS = {
     "amount": 400,
     "choice": 400,
     "when": 400,
-    "student": 400,
+    "student": 404,
 }
 
 
