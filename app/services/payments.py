@@ -573,6 +573,14 @@ class PaymentService:
                 data=data,
             )
         )
+        if action in {"approved", "rejected", "marked_fake"}:
+            await self._audit.add(
+                actor_user_id=actor.id if actor else None,
+                action=f"payment_{action}",
+                entity="payment",
+                entity_id=str(payment.id),
+                data=data,
+            )
 
     async def _apply_subscription(
         self, owner: User, plan: Plan, payment: Payment, monthly: int

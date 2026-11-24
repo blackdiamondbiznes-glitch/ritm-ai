@@ -1,7 +1,8 @@
 # Egasi (super admin) sahifasi rejasi
 
-- Holat: bajarishdan oldingi taklif; bu hujjat bilan kod, API yoki migratsiya
-  o‘zgartirilmaydi.
+- Holat: egasi sahifasi va uning UI’i hali reja. To‘lov qarorlarini
+  `audit_logs`-ga yozish xizmat qismi alohida PR’da bajarildi; panel xatti-harakati
+  va qolgan bo‘laklar hali amalga oshirilmagan.
 - Asosiy yuza: egasi mijoz obunalarini kompyuter va planshetdagi `/panel` orqali
   boshqaradi. Mini App dagi mavjud `#/admin` telefon zaxirasi bo‘lib qoladi.
 - Foydalanuvchiga ko‘rinadigan barcha yangi matnlar uz/ru/en tarjima qilinadi.

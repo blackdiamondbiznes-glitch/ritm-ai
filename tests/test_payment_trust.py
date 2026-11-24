@@ -310,6 +310,78 @@ async def test_fake_receipts_flag_then_block(db) -> None:
         await s.commit()
 
 
+async def test_payment_decisions_are_written_to_audit_and_event_logs(db) -> None:
+    async with db() as s:
+        svc = service(s)
+        admin = await user(s, 3)
+        pending = []
+        for index in range(3):
+            owner = await user(s, index)
+            draft = await svc.start(owner, "pro", 1, terms_version=TERMS)
+            pending.append((await submit(svc, owner, draft, uniq=f"decision-{index}")).payment)
+
+        await svc.approve(admin, pending[0].id)
+        await svc.approve(admin, pending[0].id)
+        await svc.reject(admin, pending[1].id, "Chek noaniq")
+        await svc.mark_fake(admin, pending[2].id, "Chek tahrirlangan")
+
+        audit_rows = (
+            (
+                await s.execute(
+                    select(AuditLog)
+                    .where(
+                        AuditLog.entity == "payment",
+                        AuditLog.entity_id.in_([str(payment.id) for payment in pending]),
+                    )
+                    .order_by(AuditLog.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert [(row.action, row.entity_id, row.actor_user_id) for row in audit_rows] == [
+            ("payment_approved", str(pending[0].id), admin.id),
+            ("payment_rejected", str(pending[1].id), admin.id),
+            ("payment_marked_fake", str(pending[2].id), admin.id),
+        ]
+        assert [row.data["via"] for row in audit_rows] == ["bot", "bot", "bot"]
+        assert [await actions(s, payment.id) for payment in pending] == [
+            ["created", "submitted", "approved"],
+            ["created", "submitted", "rejected"],
+            ["created", "submitted", "marked_fake"],
+        ]
+        await s.commit()
+
+
+async def test_payment_decision_audit_and_event_roll_back_together(db) -> None:
+    async with db() as s:
+        owner, admin = await user(s, 0), await user(s, 3)
+        svc = service(s)
+        draft = await svc.start(owner, "pro", 1, terms_version=TERMS)
+        payment = (await submit(svc, owner, draft)).payment
+        payment_id, admin_id = payment.id, admin.id
+        await s.commit()
+
+    async with db() as s:
+        admin = await UserRepository(s).get_by_id(admin_id)
+        assert admin is not None
+        await service(s).reject(admin, payment_id, "Chek noaniq")
+        await s.rollback()
+
+    async with db() as s:
+        payment = await PaymentRepository(s).get(payment_id)
+        assert payment is not None and payment.status == "pending"
+        assert await actions(s, payment_id) == ["created", "submitted"]
+        audit_row = await s.scalar(
+            select(AuditLog).where(
+                AuditLog.action == "payment_rejected",
+                AuditLog.entity == "payment",
+                AuditLog.entity_id == str(payment_id),
+            )
+        )
+        assert audit_row is None
+
+
 async def test_blocked_owner_cannot_submit_an_existing_draft(db) -> None:
     async with db() as s:
         svc = service(s)
