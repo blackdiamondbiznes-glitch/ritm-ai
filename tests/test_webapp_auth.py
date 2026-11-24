@@ -8,7 +8,11 @@ from urllib.parse import urlencode
 
 from app.webapp.auth import (
     AuthError,
+    issue_account_session,
+    issue_eduflow_session,
     issue_session,
+    read_account_session,
+    read_eduflow_session,
     read_session,
     session_secret,
     telegram_user_id,
@@ -27,15 +31,15 @@ def _signed(fields: dict[str, str], *, token: str = TOKEN, digest: str | None = 
 
 
 def _fields(auth_date: int = NOW - 60) -> dict[str, str]:
-    user = {"id": 5052443384, "first_name": "Adham", "username": "adham", "language_code": "uz"}
+    user = {"id": 9700000001, "first_name": "Test", "username": "test_user", "language_code": "uz"}
     encoded = json.dumps(user, separators=(",", ":"))
     return {"auth_date": str(auth_date), "query_id": "AAE", "user": encoded}
 
 
 def test_valid_init_data_returns_the_telegram_user() -> None:
     parsed = validate_init_data(_signed(_fields()), TOKEN, max_age=86400, now=NOW)
-    assert telegram_user_id(parsed) == 5052443384
-    assert parsed["user"]["username"] == "adham"
+    assert telegram_user_id(parsed) == 9700000001
+    assert parsed["user"]["username"] == "test_user"
 
 
 def test_tampered_init_data_is_rejected() -> None:
@@ -74,6 +78,42 @@ def test_session_token_roundtrip_and_expiry() -> None:
         assert exc.code == "unauthorized"
     else:
         raise AssertionError("tampered session")
+
+
+def test_account_session_is_distinct_from_legacy_telegram_session() -> None:
+    secret = session_secret(TOKEN, "")
+    token = issue_account_session(42, secret, ttl=60, now=NOW)
+    assert read_account_session(token, secret, now=NOW) == 42
+    try:
+        read_session(token, secret, now=NOW)
+    except AuthError as exc:
+        assert exc.code == "unauthorized"
+    else:
+        raise AssertionError("account token accepted as Telegram token")
+    try:
+        read_account_session(token[:-2] + "ab", secret, now=NOW)
+    except AuthError as exc:
+        assert exc.code == "unauthorized"
+    else:
+        raise AssertionError("tampered account token")
+
+
+def test_eduflow_session_is_distinct_from_legacy_telegram_session() -> None:
+    secret = session_secret(TOKEN, "")
+    token = issue_eduflow_session(42, secret, ttl=60, now=NOW)
+    assert read_eduflow_session(token, secret, now=NOW) == 42
+    try:
+        read_session(token, secret, now=NOW)
+    except AuthError as exc:
+        assert exc.code == "unauthorized"
+    else:
+        raise AssertionError("EduFlow token accepted as legacy Telegram token")
+    try:
+        read_eduflow_session(token[:-2] + "ab", secret, now=NOW)
+    except AuthError as exc:
+        assert exc.code == "unauthorized"
+    else:
+        raise AssertionError("tampered EduFlow token")
 
 
 def test_time_is_not_used_as_auth_date_when_signing() -> None:

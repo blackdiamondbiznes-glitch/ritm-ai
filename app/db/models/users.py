@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, func
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -12,9 +12,18 @@ class User(Base):
     """A person who talks to the bot. Owners and members share this table."""
 
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "account_role IS NULL OR account_role IN ('teacher', 'student', 'community_owner')",
+            name="ck_users_account_role",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    telegram_id: Mapped[int | None] = mapped_column(BigInteger, unique=True)
+    email: Mapped[str | None] = mapped_column(String(254), unique=True)
+    password_hash: Mapped[str | None] = mapped_column(String(256))
+    account_role: Mapped[str | None] = mapped_column(String(32))
     username: Mapped[str | None] = mapped_column(String(255))
     full_name: Mapped[str | None] = mapped_column(String(255))
     language_code: Mapped[str] = mapped_column(String(8), default="uz", server_default="uz")

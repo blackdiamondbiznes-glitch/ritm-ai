@@ -8,7 +8,7 @@ from app.bot.errors import error_context, error_language, log_handler_error
 
 
 def _callback_update() -> Update:
-    user = TgUser(id=5052443384, is_bot=False, first_name="Ada")
+    user = TgUser(id=9900000001, is_bot=False, first_name="Ada")
     chat = Chat(id=50, type="private")
     message = Message(message_id=3, date=0, chat=chat, text="secret body")
     callback = CallbackQuery(
@@ -19,7 +19,7 @@ def _callback_update() -> Update:
 
 def test_error_context_reads_callback_ids() -> None:
     user_id, chat_id = error_context(_callback_update())
-    assert user_id == 5052443384
+    assert user_id == 9900000001
     assert chat_id == 50
 
 
@@ -32,7 +32,7 @@ def test_log_handler_error_includes_traceback_and_ids(caplog) -> None:
         log_handler_error(event)
     text = caplog.text
     assert "TypeError" in text
-    assert "user_id=5052443384" in text
+    assert "user_id=9900000001" in text
     assert "chat_id=50" in text
     assert "Traceback" in text
     assert "secret body" not in text

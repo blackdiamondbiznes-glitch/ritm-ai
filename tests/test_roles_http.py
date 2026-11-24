@@ -328,12 +328,12 @@ async def test_roles_in_bootstrap_payloads(world) -> None:
         return await (await client.get("/api/stats", headers=heads[role])).json()
 
     owner = await dash("owner")
-    assert owner["roles"] == ["owner"]
+    assert owner["roles"] == ["owner", "community_owner"]
     assert sorted((c["id"], c["role"]) for c in owner["chats"]) == sorted(
         [(ids["A"], "owner"), (ids["B"], "owner")]
     )
     admin = await dash("admin")
-    assert admin["roles"] == ["admin", "member"]
+    assert admin["roles"] == ["admin", "community_owner", "member"]
     assert [(c["id"], c["role"]) for c in admin["chats"]] == [(ids["A"], "admin")]
     assert admin["member"]["totals"]["correct"] == 2
     member = await dash("member")

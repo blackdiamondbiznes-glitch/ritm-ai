@@ -32,10 +32,29 @@ async def resolve_roles(ctx) -> list[str]:
     if ctx.is_super:
         roles.append("super_admin")
     managed = await ctx.panel.managed(ctx.user)
-    if any(role == ROLE_OWNER for _chat, role in managed):
+    is_owner = any(role == ROLE_OWNER for _chat, role in managed)
+    is_admin = any(role == ROLE_ADMIN for _chat, role in managed)
+    if is_owner:
         roles.append("owner")
-    if any(role == ROLE_ADMIN for _chat, role in managed):
+    if is_admin:
         roles.append("admin")
+    if ctx.user.account_role == "community_owner" or is_owner or is_admin:
+        roles.append("community_owner")
+    if ctx.user.account_role == "teacher":
+        roles.append("teacher")
+    if ctx.user.account_role == "student":
+        roles.append("student")
+    from app.db.repositories.groups import GroupRepository
+    from app.db.repositories.workspaces import WorkspaceRepository
+    from app.services.roles import RoleService
+
+    modes = await RoleService(
+        WorkspaceRepository(ctx.session), GroupRepository(ctx.session)
+    ).for_user(ctx.user)
+    if modes["teaching"] and "teacher" not in roles:
+        roles.append("teacher")
+    if (modes["learning"] or modes["pending"]) and "student" not in roles:
+        roles.append("student")
     if await member_chats(ctx):
         roles.append("member")
     ctx.memo["roles"] = roles

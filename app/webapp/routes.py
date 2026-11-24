@@ -14,7 +14,11 @@ from app.services.payment_cards import configured_cards
 from app.services.payments import PaymentService
 from app.webapp.auth import (
     AuthError,
+    issue_account_session,
+    issue_eduflow_session,
     issue_session,
+    read_account_session,
+    read_eduflow_session,
     read_session,
     session_secret,
     telegram_user_id,
@@ -47,8 +51,14 @@ async def auth(request: web.Request) -> web.Response:
     return await sign_in(request)
 
 
-async def sign_in(request: web.Request, extra=None) -> web.Response:
-    """Shared by /api/auth and /api/bootstrap. `extra(ctx)` adds fields in the same session."""
+async def sign_in(
+    request: web.Request,
+    extra=None,
+    *,
+    initdata_bot_token: str | None = None,
+    eduflow_login: bool = False,
+) -> web.Response:
+    """Validate Telegram initData; `extra(ctx)` adds fields in the same session."""
     if not _rate(request, "auth", AUTH_LIMIT):
         return _error(429, "rate_limit")
     try:
@@ -59,6 +69,8 @@ async def sign_in(request: web.Request, extra=None) -> web.Response:
     settings = request.app["settings"]
     cookie = request.cookies.get(PANEL_COOKIE, "")
     by_cookie = not init_data and bool(cookie)
+    if eduflow_login and not init_data:
+        return _error(400, "init_data_required")
     try:
         if by_cookie:
             # The panel embeds cabinet screens: the cookie is traded for a Bearer token.
@@ -68,7 +80,9 @@ async def sign_in(request: web.Request, extra=None) -> web.Response:
             fields: dict[str, object] = {}
         else:
             fields = validate_init_data(
-                init_data, settings.bot_token, max_age=settings.webapp_auth_max_age
+                init_data,
+                initdata_bot_token if initdata_bot_token is not None else settings.bot_token,
+                max_age=settings.webapp_auth_max_age,
             )
             telegram_id = telegram_user_id(fields)
     except AuthError as exc:
@@ -90,8 +104,20 @@ async def sign_in(request: web.Request, extra=None) -> web.Response:
         if user.is_blocked:
             await session.commit()
             return _error(403, "blocked")
-        ctx = build_context(session, settings, user, request.app.get("admins"))
+        is_eduflow_owner = eduflow_login and telegram_id in settings.eduflow_owner_ids
+        ctx = build_context(
+            session,
+            settings,
+            user,
+            request.app.get("admins"),
+            is_super_override=is_eduflow_owner,
+            is_eduflow_session=eduflow_login,
+        )
         body = await _session_body(user, settings, ctx, request.app.get("bot_username"))
+        if eduflow_login:
+            body["token"] = issue_eduflow_session(
+                telegram_id, _secret(settings), settings.webapp_session_ttl
+            )
         if extra is not None:
             body.update(await extra(ctx))
         await session.commit()
@@ -191,8 +217,21 @@ async def _context(request: web.Request) -> WebContext | web.Response:
     header = request.headers.get("Authorization", "")
     by_cookie = not header.startswith("Bearer ")
     token = request.cookies.get(PANEL_COOKIE, "") if by_cookie else header[7:].strip()
+    is_eduflow_session = False
     try:
-        telegram_id = read_session(token, _secret(settings))
+        account_id = None
+        if by_cookie:
+            telegram_id = read_session(token, _secret(settings))
+        else:
+            try:
+                account_id = read_account_session(token, _secret(settings))
+                telegram_id = None
+            except AuthError:
+                try:
+                    telegram_id = read_eduflow_session(token, _secret(settings))
+                    is_eduflow_session = True
+                except AuthError:
+                    telegram_id = read_session(token, _secret(settings))
     except AuthError as exc:
         # Unauthenticated traffic is limited per address; behind a tunnel this is shared.
         if not _rate(request, "api", API_LIMIT):
@@ -201,13 +240,19 @@ async def _context(request: web.Request) -> WebContext | web.Response:
     # Browsers send cookies cross-site; a write must come from our own page.
     if by_cookie and request.method not in SAFE_METHODS and not same_origin(request):
         return _error(403, "origin")
-    # Signed sessions are limited per Telegram user, so one tunnel IP is not one bucket.
-    if not request.app["limiter"].allow(f"api:user:{telegram_id}"):
+    # Keep email-only accounts in separate buckets, just like Telegram users.
+    limiter_id = account_id if account_id is not None else telegram_id
+    if not request.app["limiter"].allow(f"api:user:{limiter_id}"):
         return _error(429, "rate_limit")
     factory = request.app["sessions"]
     session = factory()
     try:
-        user = await UserRepository(session).get_by_telegram_id(telegram_id)
+        users = UserRepository(session)
+        user = (
+            await users.get_by_id(account_id)
+            if account_id is not None
+            else await users.get_by_telegram_id(telegram_id)
+        )
         if user is None:
             await session.close()
             return _error(401, "unauthorized")
@@ -215,7 +260,19 @@ async def _context(request: web.Request) -> WebContext | web.Response:
             await session.close()
             return _error(403, "blocked")
         request["db_session"] = session
-        return build_context(session, settings, user, request.app.get("admins"))
+        is_eduflow_owner = (
+            is_eduflow_session
+            and telegram_id is not None
+            and telegram_id in settings.eduflow_owner_ids
+        )
+        return build_context(
+            session,
+            settings,
+            user,
+            request.app.get("admins"),
+            is_super_override=is_eduflow_owner,
+            is_eduflow_session=is_eduflow_session,
+        )
     except Exception:
         await session.close()
         raise
@@ -279,15 +336,22 @@ async def _session_body(
     from app.webapp.member_view import resolve_roles
 
     roles = await resolve_roles(ctx)
-    token = issue_session(user.telegram_id, secret, settings.webapp_session_ttl)
+    if user.telegram_id is None:
+        token = issue_account_session(user.id, secret, settings.webapp_session_ttl)
+    elif ctx.is_eduflow_session:
+        token = issue_eduflow_session(user.telegram_id, secret, settings.webapp_session_ttl)
+    else:
+        token = issue_session(user.telegram_id, secret, settings.webapp_session_ttl)
     return {
         "token": token,
         "user": {
             "telegram_id": user.telegram_id,
+            "email": user.email,
             "name": user.full_name,
             "username": user.username,
             "language": user.language_code or "uz",
             "cabinet_niche": user.cabinet_niche,
+            "account_role": user.account_role,
         },
         "student": await _student_account(ctx),
         "roles": roles,
@@ -301,6 +365,8 @@ async def _student_account(ctx: WebContext) -> dict:
     """The signed-in Telegram account, if a tutor registered them as a student."""
     from app.db.repositories.students import StudentRepository
 
+    if ctx.user.telegram_id is None:
+        return {"linked": False, "names": []}
     rows = await StudentRepository(ctx.session).by_telegram(ctx.user.telegram_id)
     return {"linked": bool(rows), "names": [row.name for row in rows]}
 

@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     webapp_port: int = 8081
     webapp_url: str = ""
     webapp_cors_origins: str = ""
+    eduflow_bot_token: str = ""
+    eduflow_owner_telegram_ids: str = ""
     webapp_auth_max_age: int = 86400
     webapp_session_ttl: int = 43200
     webapp_session_secret: str = ""
@@ -100,6 +102,22 @@ class Settings(BaseSettings):
         if mode not in TELEGRAM_MODES:
             raise ValueError(f"TELEGRAM_MODE must be one of {', '.join(TELEGRAM_MODES)}")
         return mode
+
+    @field_validator("eduflow_owner_telegram_ids")
+    @classmethod
+    def _valid_eduflow_owner_ids(cls, value: str) -> str:
+        for raw in value.split(","):
+            item = raw.strip()
+            if item and (
+                not item.isascii()
+                or not item.isdigit()
+                or int(item) <= 0
+                or int(item) > 9_223_372_036_854_775_807
+            ):
+                raise ValueError(
+                    "EDUFLOW_OWNER_TELEGRAM_IDS must be comma-separated positive ids"
+                )
+        return value
 
     @property
     def http_port(self) -> int:
@@ -181,6 +199,15 @@ class Settings(BaseSettings):
                 continue
             found.add(int(text))
         return frozenset(found)
+
+    @property
+    def eduflow_owner_ids(self) -> frozenset[int]:
+        """Telegram ids granted Super Admin access only in EduFlow sessions."""
+        return frozenset(
+            int(item.strip())
+            for item in self.eduflow_owner_telegram_ids.split(",")
+            if item.strip()
+        )
 
     @property
     def public_webapp_url(self) -> str | None:
