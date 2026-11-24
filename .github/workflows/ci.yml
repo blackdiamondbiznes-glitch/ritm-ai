@@ -1,0 +1,96 @@
+name: Avtomatik tekshiruvlar
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  kod-tekshiruvi:
+    name: Ruff va pytest
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: engagement
+          POSTGRES_USER: bot
+          POSTGRES_PASSWORD: bot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bot -d engagement"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://bot:bot@localhost:5432/engagement
+    steps:
+      - name: Repozitoriyani olish
+        uses: actions/checkout@v4
+      - name: Python 3.12 ni sozlash
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: PostgreSQL mijozini o‘rnatish
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y postgresql-client
+      - name: Bog‘liqliklarni o‘rnatish
+        run: python -m pip install -r requirements.txt
+      - name: Ruff tekshiruvi
+        run: ruff check .
+      - name: Test bazasiga migratsiyalarni qo‘llash
+        run: alembic upgrade head
+      - name: Testlarni bajarish
+        run: pytest
+
+  migratsiya-tekshiruvi:
+    name: Bo‘sh PostgreSQL migratsiyasi
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ritm_migration_check
+          POSTGRES_USER: bot
+          POSTGRES_PASSWORD: bot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bot -d ritm_migration_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://bot:bot@localhost:5432/ritm_migration_check
+    steps:
+      - name: Repozitoriyani olish
+        uses: actions/checkout@v4
+      - name: Python 3.12 ni sozlash
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Bog‘liqliklarni o‘rnatish
+        run: python -m pip install -r requirements.txt
+      - name: Bo‘sh bazaga migratsiyalarni qo‘llash
+        run: alembic upgrade head
+      - name: Yagona Alembic head borligini tekshirish
+        run: |
+          python - <<'PY'
+          from alembic.config import Config
+          from alembic.script import ScriptDirectory
+
+          heads = ScriptDirectory.from_config(Config("alembic.ini")).get_heads()
+          if len(heads) != 1:
+              raise SystemExit(f"Alembic head soni bitta bo‘lishi kerak; topildi: {heads}")
+          print(f"Yagona Alembic head: {heads[0]}")
+          PY
