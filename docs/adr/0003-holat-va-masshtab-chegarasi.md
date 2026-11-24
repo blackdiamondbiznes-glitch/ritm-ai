@@ -27,11 +27,11 @@ Kod va ma’lumotlar bazasi cheklovlari asosida **takroriy dars yoki hisob yozuv
 - `refill_sessions` va `refill_fees` avval `SystemStateRepository.get()`, so‘ng `put()` chaqiradi. Tekshirish va yozish bitta atomik amal emas.
 - `tutor_lessons` jadvalida `group_id, planned_at` juftligi uchun qisman yagona indeks bor. `LessonRepository.insert_slot()` PostgreSQL’dagi `ON CONFLICT DO NOTHING` amalidan foydalanadi.
 - `tutor_invoices` jadvalida `group_id, student_id, kind, period_start` juftligi uchun yagona cheklov bor. `InvoiceRepository.insert_ignore()` ham `ON CONFLICT DO NOTHING` amalidan foydalanadi. Muddati o‘tgan hisoblarni yangilash takroran bajarilganda bir xil natija beradi.
-- `system_state` yozuvi shu kun uchun hali bo‘lmasa, ikkita tick bir vaqtda `get()` qilib, bir xil kalitni kiritishga urinsa, asosiy kalit to‘qnashuvi yuz berishi mumkin. `Tick.run()` xatoni ushlab, butun tranzaksiyani bekor qiladi; natijada ticklardan biri to‘liq bajarilmay, shu tranzaksiyadagi boshqa ishlar ham bekor bo‘lishi mumkin. Oldingi kun yozuvi mavjud bo‘lsa, ikkala tick ham kunlik ishni boshlashi mumkin, lekin yuqoridagi ma’lumotlar bazasi cheklovlari takroriy dars yoki hisob yozuvini saqlashga yo‘l qo‘ymaydi.
+- `SystemStateRepository.put()` endi PostgreSQL atomik upsert amalidan foydalanadi; bir xil yangi kalitni parallel yozish asosiy kalit to‘qnashuvini keltirib chiqarmaydi. Lekin `get()` va `put()` ketma-ketligi atomik claim emas: ikkita tick bir vaqtda oldingi qiymatni o‘qib, kunlik ishni takroran boshlashi mumkin. Dars va hisob yozuvlaridagi yagona cheklovlar takroriy qatorlarni saqlashga yo‘l qo‘ymaydi, ammo takroriy ish yoki boshqa yon ta’sirlar ehtimoli qoladi.
 
 ### Alohida bajarish uchun taklif
 
-Kunlik claim’ni PostgreSQL’dagi atomik shartli upsert yoki advisory lock bilan himoyalashni alohida PR sifatida taklif qilaman. O‘sha PR’da ikki xil ma’lumotlar bazasi sessiyasidan parallel ishga tushadigan integratsiya testi qo‘shiladi: faqat bitta tick claim olishi va bitta tick xato qilganda shu tranzaksiyadagi boshqa ishlar bekor bo‘lishi tekshiriladi. Bu fazada scheduler kodi o‘zgartirilmaydi.
+Kunlik claim’ni PostgreSQL’dagi atomik shartli upsert yoki advisory lock bilan himoyalashni alohida PR sifatida taklif qilaman. O‘sha PR’da ikki xil ma’lumotlar bazasi sessiyasidan parallel ishga tushadigan integratsiya testi qo‘shiladi: faqat bitta tick claim olishi va takroriy kunlik ish bajarilmasligi tekshiriladi. Hozirgi o‘zgarish faqat `system_state` kalitini xavfsiz upsert qiladi; scheduler claim oqimini o‘zgartirmaydi.
 
 ## Faza 2 uchun “Meni eslab qol” rejasi
 
