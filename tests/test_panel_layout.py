@@ -22,7 +22,8 @@ BILINGAN_KICHIK_ELEMENTLAR = {
 }
 
 BILINGAN_MATN_KESILISHLARI = {
-    ".pd-pill": "768–900 px da haftalik jadval ustuni torligi sabab dars nomi qisqaradi.",
+    ".pd-pill": (768, 900),
+    ".pd-roll-state": (768,),
 }
 
 TEXT_OVERFLOW_JS = """() => [...document.querySelectorAll(
@@ -82,9 +83,10 @@ async def _assert_panel_layout(page, theme: str, width: int) -> None:
         item
         for item in clipped_text
         if not (
-            item["viewport"] in (768, 900)
-            and "pd-pill" in item["className"].split()
-            and ".pd-pill" in BILINGAN_MATN_KESILISHLARI
+            any(
+                item["viewport"] in widths and selector[1:] in item["className"].split()
+                for selector, widths in BILINGAN_MATN_KESILISHLARI.items()
+            )
         )
     ]
     assert not unexpected_clipping, (
