@@ -1,11 +1,10 @@
-# Render Blueprint for Ritm AI: one Docker web service (bot + Mini App + health on $PORT)
-# and one Postgres. Secrets are declared with `sync: false` and set in the dashboard/API,
-# never committed. Start with TELEGRAM_MODE=off; switch to webhook at cutover.
+# Ishlab chiqarish muhiti: Render Docker web service, Neon bazasi URL orqali ulanadi.
+# Maxfiy qiymatlar Render boshqaruv panelida saqlanadi va repoga yozilmaydi.
 services:
   - type: web
     name: ritm-ai
     runtime: docker
-    plan: free            # production: starter ($7/mo) so it never sleeps
+    plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
     dockerContext: .
@@ -13,13 +12,11 @@ services:
     autoDeploy: true
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: ritm-ai-db
-          property: connectionString
+        sync: false        # Render dashboard qiymati Neon Postgres'ga ulanadi
       - key: TELEGRAM_MODE
-        value: "off"      # off -> webhook at cutover (polling only for local Docker)
+        value: webhook
       - key: HEALTH_PORT
-        value: "0"        # health is served on $PORT at /health
+        value: "0"        # Tekshiruv $PORT orqali /health manzilida ishlaydi
       - key: LOG_LEVEL
         value: INFO
       - key: DEFAULT_TIMEZONE
@@ -45,12 +42,4 @@ services:
       - key: SUPPORT_USERNAME
         sync: false
       - key: WEBAPP_URL
-        sync: false       # optional: custom domain; defaults to RENDER_EXTERNAL_URL
-
-databases:
-  - name: ritm-ai-db
-    plan: free            # expires after 30 days; production: basic-256mb ($6/mo)
-    region: frankfurt
-    databaseName: ritm
-    user: ritm
-    postgresMajorVersion: "16"
+        sync: false       # Ixtiyoriy maxsus domen; odatda RENDER_EXTERNAL_URL ishlatiladi
