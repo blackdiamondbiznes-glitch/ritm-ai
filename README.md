@@ -96,6 +96,7 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -r requirements-dev.txt
 python -m playwright install chromium
+python scripts/check_text_language.py
 ruff check .
 ruff format --check .
 pytest
