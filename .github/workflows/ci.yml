@@ -94,3 +94,79 @@ jobs:
               raise SystemExit(f"Alembic head soni bitta bo‘lishi kerak; topildi: {heads}")
           print(f"Yagona Alembic head: {heads[0]}")
           PY
+
+  tiklash-mashqi:
+    name: Zaxiradan tiklash mashqi
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ritm_restore_source
+          POSTGRES_USER: bot
+          POSTGRES_PASSWORD: bot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bot -d ritm_restore_source"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://bot:bot@localhost:5432/ritm_restore_source
+      RESTORE_DATABASE_URL: postgresql+asyncpg://bot:bot@localhost:5432/ritm_restore_target
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: bot
+      PGPASSWORD: bot
+    steps:
+      - name: Repozitoriyani olish
+        uses: actions/checkout@v4
+      - name: Python 3.12 ni sozlash
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: PostgreSQL 16 mijozini o‘rnatish
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - name: Bog‘liqliklarni o‘rnatish
+        run: python -m pip install -r requirements.txt
+      - name: Manba bazaga migratsiyalarni qo‘llash
+        run: alembic upgrade head
+      - name: Namunaviy qator qo‘shish
+        run: |
+          psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --dbname=ritm_restore_source \
+            --command="INSERT INTO system_state (key, value, updated_at) VALUES ('ci_restore_probe', 'tiklandi', now())"
+      - name: Zaxira nusxasini yaratish
+        run: pg_dump --format=custom --file="$RUNNER_TEMP/ritm-restore.dump" --dbname=ritm_restore_source
+      - name: Bo‘sh tiklash bazasini yaratish
+        run: createdb ritm_restore_target
+      - name: Zaxirani tiklash skripti orqali tiklash
+        run: python -m scripts.restore_db "$RUNNER_TEMP/ritm-restore.dump" --confirm-empty-target
+      - name: Namunaviy qator tiklanganini tekshirish
+        run: |
+          restored_value="$(psql --no-psqlrc --quiet --tuples-only --no-align \
+            --set=ON_ERROR_STOP=1 --dbname=ritm_restore_target \
+            --command="SELECT value FROM system_state WHERE key = 'ci_restore_probe'")"
+          test "$restored_value" = "tiklandi"
+      - name: Jadvallardagi qatorlar sonini solishtirish
+        run: |
+          count_rows() {
+            psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --dbname="$1" <<'SQL'
+          SELECT format(
+              'SELECT %L || ''|'' || count(*)::text FROM %I.%I;',
+              tablename, schemaname, tablename
+          )
+          FROM pg_tables
+          WHERE schemaname = 'public'
+          ORDER BY tablename
+          \gexec
+          SQL
+          }
+          count_rows ritm_restore_source > "$RUNNER_TEMP/source-counts.txt"
+          count_rows ritm_restore_target > "$RUNNER_TEMP/target-counts.txt"
+          diff -u "$RUNNER_TEMP/source-counts.txt" "$RUNNER_TEMP/target-counts.txt"
