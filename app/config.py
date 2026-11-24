@@ -4,6 +4,7 @@ import hashlib
 import hmac
 from datetime import time
 from functools import lru_cache
+from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -71,6 +72,7 @@ class Settings(BaseSettings):
     health_stale_seconds: int = 120
     webapp_port: int = 8081
     webapp_url: str = ""
+    webapp_cors_origins: str = ""
     webapp_auth_max_age: int = 86400
     webapp_session_ttl: int = 43200
     webapp_session_secret: str = ""
@@ -188,6 +190,35 @@ class Settings(BaseSettings):
             if url.startswith("https://"):
                 return url
         return None
+
+    @property
+    def cors_origins(self) -> frozenset[str]:
+        """Exact origins allowed to call the API from a separate frontend."""
+        origins: set[str] = set()
+        for raw in self.webapp_cors_origins.split(","):
+            origin = raw.strip().rstrip("/")
+            if not origin:
+                continue
+            parsed = urlsplit(origin)
+            local_http = parsed.scheme == "http" and parsed.hostname in {
+                "localhost",
+                "127.0.0.1",
+                "::1",
+            }
+            if (
+                parsed.scheme != "https"
+                and not local_http
+                or "*" in origin
+                or not parsed.netloc
+                or parsed.path
+                or parsed.query
+                or parsed.fragment
+                or parsed.username
+                or parsed.password
+            ):
+                raise ValueError(f"WEBAPP_CORS_ORIGINS must contain exact HTTPS origins: {raw}")
+            origins.add(origin)
+        return frozenset(origins)
 
 
 @lru_cache

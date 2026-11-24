@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.groups import TutorGroup
 from app.db.models.students import TutorStudent
+from app.db.models.users import User
+from app.db.models.workspace_members import WorkspaceMember
 from app.db.models.workspaces import Workspace
 
 
@@ -15,11 +17,25 @@ class WorkspaceRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def get_by_id(self, workspace_id: int) -> Workspace | None:
+        """Return one workspace by its stable id."""
+        return await self._session.get(Workspace, workspace_id)
+
     async def list_vertical(self, vertical: str) -> list[Workspace]:
         """Every cabinet of this vertical, oldest first."""
         stmt = select(Workspace).where(Workspace.vertical == vertical).order_by(Workspace.id.asc())
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
+
+    async def list_with_owners(self) -> list[tuple[Workspace, User]]:
+        """Every workspace and its owner, oldest first."""
+        stmt = (
+            select(Workspace, User)
+            .join(User, User.id == Workspace.owner_id)
+            .order_by(Workspace.created_at.asc(), Workspace.id.asc())
+        )
+        result = await self._session.execute(stmt)
+        return [(workspace, owner) for workspace, owner in result.all()]
 
     async def by_owner_vertical(self, owner_id: int, vertical: str) -> Workspace | None:
         """The cabinet for this owner and vertical, if it exists."""
@@ -47,6 +63,15 @@ class WorkspaceRepository:
         if found is None:
             raise RuntimeError("workspace insert missed")
         return found
+
+    async def ensure_owner_membership(self, workspace_id: int, owner_id: int) -> None:
+        """Make the workspace owner a member without replacing an existing role."""
+        stmt = (
+            pg_insert(WorkspaceMember)
+            .values(workspace_id=workspace_id, user_id=owner_id, role="owner")
+            .on_conflict_do_nothing(constraint="uq_workspace_members_user")
+        )
+        await self._session.execute(stmt)
 
     async def teaching_for(self, owner_id: int) -> list[tuple[Workspace, int, int]]:
         """Each cabinet with its group count and visible student count."""

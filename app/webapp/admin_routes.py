@@ -19,10 +19,13 @@ from app.bot.pay_outcome import announce_approved, announce_fake, announce_rejec
 from app.db.repositories.audit import AuditRepository
 from app.db.repositories.chats import ChatRepository
 from app.db.repositories.subscriptions import SubscriptionRepository
+from app.db.repositories.workspaces import WorkspaceRepository
 from app.services.admin import AdminError, AdminService
 from app.services.admin_panel import AdminPanel
 from app.services.charts import pick_days, platform_charts
 from app.services.payments import PaymentError
+from app.services.workspace_access import WorkspaceAccessError
+from app.services.workspace_admin import WorkspaceAdminError, WorkspaceAdminService
 from app.webapp.context import WebContext
 from app.webapp.routes import _context, _error
 
@@ -37,6 +40,8 @@ RECEIPT_MAX_BYTES = 20 * 1024 * 1024
 def setup_admin_routes(app: web.Application) -> None:
     r = app.router
     r.add_get("/api/admin/overview", overview)
+    r.add_get("/api/admin/workspaces", workspaces)
+    r.add_post("/api/admin/workspaces/{workspace_id}/grant", grant_workspace)
     r.add_get("/api/admin/tenants", tenants)
     r.add_get("/api/admin/tenants/{user_id}", tenant)
     r.add_post("/api/admin/tenants/{user_id}/grant", grant)
@@ -102,6 +107,131 @@ async def tenants(request: web.Request) -> web.Response:
         return ctx
     q = request.query.get("q", "")[:64]
     return web.json_response({"tenants": await _panel(ctx).tenants(q)})
+
+
+async def workspaces(request: web.Request) -> web.Response:
+    """List isolated vertical workspaces for the platform owner."""
+    ctx = await _super(request)
+    if isinstance(ctx, web.Response):
+        return ctx
+    workspace_repo = WorkspaceRepository(ctx.session)
+    items = []
+    try:
+        for workspace, owner in await workspace_repo.list_with_owners():
+            resolved = await ctx.workspace_access.resolve(workspace.id)
+            items.append(
+                {
+                    "id": workspace.id,
+                    "name": workspace.name,
+                    "vertical": workspace.vertical,
+                    "created_at": workspace.created_at.isoformat(),
+                    "owner": {
+                        "id": owner.id,
+                        "name": owner.full_name,
+                        "email": None,
+                    },
+                    "plan": {
+                        "code": resolved.plan.code,
+                        "name": resolved.plan.name,
+                        "vertical": resolved.plan.vertical,
+                    },
+                    "subscription": (
+                        {
+                            "id": resolved.subscription.id,
+                            "status": resolved.subscription.status.value,
+                            "expires_at": resolved.subscription.expires_at.isoformat(),
+                        }
+                        if resolved.subscription
+                        else None
+                    ),
+                    "entitlements": resolved.entitlements,
+                    "plans": [
+                        {"code": plan.code, "name": plan.name, "vertical": plan.vertical}
+                        for plan in await ctx.plans.list_active(workspace.vertical)
+                    ],
+                }
+            )
+    except WorkspaceAccessError:
+        logger.exception("workspace plan resolution failed")
+        return _error(503, "workspace_plan_unavailable")
+    return web.json_response({"workspaces": items})
+
+
+async def grant_workspace(request: web.Request) -> web.Response:
+    """Grant a plan to one workspace without modifying the owner's other sectors."""
+    ctx = await _super(request)
+    if isinstance(ctx, web.Response):
+        return ctx
+    workspace_id = _int(request, "workspace_id")
+    body = await _body(request)
+    if workspace_id is None or body is None:
+        return _error(400, "bad_request")
+    try:
+        days = int(body.get("days") or 0)
+    except (TypeError, ValueError):
+        return _error(400, "bad_days")
+    service = WorkspaceAdminService(
+        WorkspaceRepository(ctx.session),
+        ctx.plans,
+        SubscriptionRepository(ctx.session),
+        AuditRepository(ctx.session),
+    )
+    try:
+        await service.grant(
+            ctx.user,
+            workspace_id,
+            str(body.get("plan") or "").strip(),
+            days,
+            str(body.get("reason") or ""),
+        )
+    except WorkspaceAdminError as exc:
+        status = 404 if exc.code == "missing_workspace" else 400
+        return _error(status, exc.code)
+    await ctx.session.commit()
+    return await _workspace_response(ctx, workspace_id)
+
+
+async def _workspace_response(ctx: WebContext, workspace_id: int) -> web.Response:
+    workspace = await WorkspaceRepository(ctx.session).get_by_id(workspace_id)
+    if workspace is None:
+        return _error(404, "not_found")
+    try:
+        resolved = await ctx.workspace_access.resolve(workspace.id)
+    except WorkspaceAccessError:
+        logger.exception("workspace plan resolution failed workspace_id=%s", workspace_id)
+        return _error(503, "workspace_plan_unavailable")
+    owner = await ctx.users.get_by_id(workspace.owner_id)
+    if owner is None:
+        logger.error("workspace owner missing workspace_id=%s", workspace_id)
+        return _error(503, "workspace_owner_unavailable")
+    return web.json_response(
+        {
+            "id": workspace.id,
+            "name": workspace.name,
+            "vertical": workspace.vertical,
+            "created_at": workspace.created_at.isoformat(),
+            "owner": {"id": owner.id, "name": owner.full_name, "email": None},
+            "plan": {
+                "code": resolved.plan.code,
+                "name": resolved.plan.name,
+                "vertical": resolved.plan.vertical,
+            },
+            "subscription": (
+                {
+                    "id": resolved.subscription.id,
+                    "status": resolved.subscription.status.value,
+                    "expires_at": resolved.subscription.expires_at.isoformat(),
+                }
+                if resolved.subscription
+                else None
+            ),
+            "entitlements": resolved.entitlements,
+            "plans": [
+                {"code": plan.code, "name": plan.name, "vertical": plan.vertical}
+                for plan in await ctx.plans.list_active(workspace.vertical)
+            ],
+        }
+    )
 
 
 async def tenant(request: web.Request) -> web.Response:

@@ -29,6 +29,7 @@ The container runs `alembic upgrade head` before the bot process. The bot uses l
 | `BOT_TOKEN` | yes | | Telegram bot token |
 | `DATABASE_URL` | yes | | `postgresql+asyncpg://...` |
 | `SUPER_ADMIN_IDS` | no | empty | Comma-separated Telegram ids |
+| `WEBAPP_CORS_ORIGINS` | no | empty | Comma-separated exact HTTPS origins allowed to call the API from a separate frontend; wildcards are rejected |
 | `TRIAL_DAYS` | no | `5` | Length of the first-chat trial |
 | `THROTTLE_SECONDS` | no | `0.5` | Minimum gap between updates per user |
 | `DEFAULT_TIMEZONE` | no | `Asia/Tashkent` | Suggested profile timezone |

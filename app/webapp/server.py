@@ -60,7 +60,7 @@ def create_app(
     pending: object | None = None,
 ) -> web.Application:
     """Build the Mini App application. Static files are served from the same origin."""
-    app = web.Application(middlewares=[security_headers, session_cleanup])
+    app = web.Application(middlewares=[security_headers, cors_headers, session_cleanup])
     app["settings"] = settings
     app["sessions"] = sessions
     app["limiter"] = limiter or RateLimiter()
@@ -106,6 +106,33 @@ async def health(request: web.Request) -> web.Response:
     status, body = await probe(request.app["settings"], request.app["sessions"])
     return web.Response(status=status, text=body, headers={"Cache-Control": "no-store"})
 
+
+@web.middleware
+async def cors_headers(request: web.Request, handler):
+    """Allow only explicitly configured frontend origins; auth remains bearer-based."""
+    origin = request.headers.get("Origin", "").strip()
+    origins = request.app["settings"].cors_origins
+    is_api_request = request.path.startswith("/api/")
+    allowed = is_api_request and origin in origins
+    if request.method == "OPTIONS" and is_api_request and origins:
+        response = web.Response(status=204 if allowed else 403)
+    else:
+        try:
+            response = await handler(request)
+        except web.HTTPException as exc:
+            if allowed:
+                _apply_cors_headers(exc, origin)
+            raise
+    if allowed:
+        _apply_cors_headers(response, origin)
+    return response
+
+
+def _apply_cors_headers(response: web.StreamResponse, origin: str) -> None:
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+    response.headers["Access-Control-Max-Age"] = "600"
 
 @web.middleware
 async def session_cleanup(request: web.Request, handler):
