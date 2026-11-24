@@ -22,8 +22,8 @@ class SystemStateRepository:
         statement = statement.on_conflict_do_update(
             index_elements=[SystemState.key],
             set_={"value": statement.excluded.value, "updated_at": stamp},
-        )
-        await self._session.execute(statement)
+        ).returning(SystemState).execution_options(populate_existing=True)
+        await self._session.scalar(statement)
 
     async def get(self, key: str) -> str | None:
         """Return the stored value, if any."""

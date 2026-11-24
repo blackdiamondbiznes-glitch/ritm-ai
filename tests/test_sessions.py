@@ -194,6 +194,9 @@ async def test_system_state_put_handles_concurrent_first_writes(db) -> None:
     await asyncio.gather(write("birinchi"), write("ikkinchi"))
 
     async with db() as session:
-        row = await SystemStateRepository(session).get_row(STATE_RACE_KEY)
+        repository = SystemStateRepository(session, now=lambda: NOW)
+        row = await repository.get_row(STATE_RACE_KEY)
         assert row is not None
         assert row.value in {"birinchi", "ikkinchi"}
+        await repository.put(STATE_RACE_KEY, "yangilandi")
+        assert row.value == "yangilandi"
