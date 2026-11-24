@@ -30,6 +30,17 @@ def test_mini_app_locales_have_identical_keys() -> None:
     assert keys["uz"] == keys["ru"] == keys["en"]
 
 
+def test_payment_decision_audit_labels_are_translated() -> None:
+    required = {
+        "ev_payment_approved",
+        "ev_payment_rejected",
+        "ev_payment_marked_fake",
+    }
+    keys = _locale_keys()
+    for language in ("uz", "ru", "en"):
+        assert required <= keys[language]
+
+
 def test_admin_strings_are_translated() -> None:
     admin = (STATIC / "admin.js").read_text(encoding="utf-8")
     used = set(re.findall(r't\("(\w+)"', admin))
