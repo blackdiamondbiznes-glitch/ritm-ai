@@ -151,7 +151,7 @@ Barcha `/api/tutor/*` so‘rovlari **egasiga cheklangan** (`owner_id` bo‘yicha
 | 3.15 | **Panelga kirish** | `/panel` buyrug‘i yoki Mini App tugmasi → bir martalik havola → cookie sessiya | Bor | `panel_login.py`, `panel_auth.py` |
 | | | Telegram Login Widget (zaxira kirish yo‘li) | Rejada | split-plan, 8-bo‘lim |
 | 3.16 | **Vidjetlar** | Shaxsiy chatda interaktiv kartalar: o‘quvchiga dars/vazifa va to‘lov; o‘qituvchiga so‘rov (tasdiqlash), davomat (belgilash), oylik hisobot, tarif holati | Bor | `widget_cards.py`, `widget_queries.py`, `tutor_widget_messages`; `widgets_enabled` |
-| 3.17 | **Operatsion** | Kunlik `pg_dump` super adminlarga, `/health`, xato ogohlantirishlari, audit jurnali; zaxirani bo‘sh bazaga tiklash yo‘riqnomasi | Bor | `jobs/backup.py`, `ops/`, `audit_logs`, `docs/restore.md`, `scripts/restore_db.py` |
+| 3.17 | **Operatsion** | Kunlik `pg_dump` super adminlarga, `/health`, xato ogohlantirishlari, audit jurnali; zaxirani bo‘sh bazaga tiklash yo‘riqnomasi va CI tiklash mashqi | Bor | `jobs/backup.py`, `ops/`, `audit_logs`, `docs/restore.md`, `scripts/restore_db.py`, `.github/workflows/ci.yml` |
 
 ### 3.18. Tariflar jadvali (migratsiyalardagi qiymatlar)
 
