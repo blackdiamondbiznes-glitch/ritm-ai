@@ -80,7 +80,7 @@ Bitta Telegram hisobida bir nechta rol bo‘lishi mumkin (masalan, o‘qituvchi 
 | **Mini App** | `#/admin`: umumiy ko‘rsatkich, mijozlar, to‘lovlar, chatlar, audit, grafiklar | `#/home`, `#/chats`: chat sozlamalari, hozir post/kviz, statistika | “Ta’lim” kabineti: guruh, jadval, davomat, o‘quvchi, to‘lov, eslatma, hisobot | `#/study`, `#/agenda`, Profil: dars, davomat, to‘lov, baho, vazifa (faqat ko‘rish) | Kod kiritish, kabinetni yoqish |
 | **Veb-panel** | — (alohida admin sahifasi yo‘q) | — | Bosh, Jadval, Guruhlar, O‘quvchilar, Davomat, To‘lovlar, Hisobotlar, Sozlamalar | “O‘quvchi ilovasiga o‘tish” havolasi (ikkala rol bo‘lsa) | “Siz o‘qituvchi emassiz” sahifasi |
 
-Barcha `/api/tutor/*` so‘rovlari **egasiga cheklangan** (`owner_id` bo‘yicha), boshqa o‘qituvchining ma’lumoti ko‘rinmaydi.
+Barcha `/api/tutor/*` so‘rovlari **egasiga cheklangan** (`owner_id` bo‘yicha), boshqa o‘qituvchining ma’lumoti ko‘rinmaydi. Muayyan begona yozuvga murojaat 404 bilan rad etiladi; ro‘yxatlar esa begona yozuvlarni qaytarmaydi. 52 ta endpoint uchun egalararo HTTP test matritsasi mavjud.
 
 ---
 

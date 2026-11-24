@@ -31,7 +31,7 @@ _STATUS = {
     "long": 400,
     "days": 400,
     "time": 400,
-    "student": 400,
+    "student": 404,
     "send": 400,
     "chat": 400,
     "target": 400,

@@ -9,8 +9,8 @@ Audit doirasi: migratsiyalar, HTTP marshrutlari va ekranlar, o‘qituvchi imkoni
 ## Qisqa xulosa
 
 - 35 ta Alembic revision statik tahlil qilindi: `0035_panel_login_tokens` yagona head, uning parent’i `0034_meeting_url`. `alembic heads` bu muhitda bajarilmadi, chunki `alembic` CLI o‘rnatilmagan.
-- 51 ta `/api/tutor/*` route 14 modulda ro‘yxatdan o‘tgan. Tekshirilgan tutor HTTP handlerlari `_context()` orqali autentifikatsiya qiladi va `ctx.user.id`/`ctx.user`ni servislarga uzatadi; asosiy repository so‘rovlari `owner_id` bilan filtrlanadi. Tekshiruvda tenant ma’lumotlari sizib chiqishi aniqlanmadi.
-- Tenant himoyasi barcha route’larni qamrab olgan yagona guard emas; servisdagi owner-scope tekshiruvlari to‘g‘ri bajarilishiga bog‘liq. Mavjud cross-owner HTTP testlari barcha route va amallarni qamramaydi.
+- 52 ta `/api/tutor/*` route 14 modulda ro‘yxatdan o‘tgan. Tekshirilgan tutor HTTP handlerlari `_context()` orqali autentifikatsiya qiladi va `ctx.user.id`/`ctx.user`ni servislarga uzatadi; asosiy repository so‘rovlari `owner_id` bilan filtrlanadi. Faza 1 test matritsasi 52 route’ning barchasini boshqa egaga tegishli ma’lumot bilan tekshiradi.
+- Tenant himoyasi barcha route’larni qamrab olgan yagona guard emas; servisdagi owner-scope tekshiruvlari to‘g‘ri bajarilishiga bog‘liq. 52 ta route uchun alohida HTTP test matritsasi qo‘shildi.
 - Mini App’da o‘qituvchi imkoniyatlari paneldagidan to‘liqroq. Panelda guruhni chatga ulash bor, ammo guruh/o‘quvchini o‘chirish, mavzu/vazifani boshqarish, yakka dars yaratish va qo‘lda eslatma rejalash UI’i yo‘q.
 - Yangi mahsulot qaroriga zid ravishda, o‘qituvchi uchun joriy default UI Mini App’dagi `cabinet`; panelga `/panel` orqali alohida kiriladi.
 - Ayrim holatlar process-local saqlanadi. `TELEGRAM_MODE=off` bo‘lsa, bot update’lari va rejalashtirilgan ishlar ishlamaydi. `render.yaml` Render Postgres/free plan’ni e’lon qilgan, TZ esa production’da Neon deb yozgan; haqiqiy muhitni egasi tasdiqlashi kerak.
@@ -59,8 +59,8 @@ Tekshirilgan asosiy manbalar: `app/webapp/static/vertical.js`, `app.js`, `panel.
 
 - Tenant himoyasi har bir obyektni avtomatik filtrlaydigan umumiy HTTP middleware emas; owner ID’ni to‘g‘ri uzatish va servis ichida tekshirishga tayanadi. Yangi endpoint yoki servis tekshiruvni unutsa, xavf tug‘iladi.
 - Repository’larda owner’siz `get(id)` kabi yordamchi metodlar bor; ayrimlari bot/o‘quvchi oqimlari uchun mo‘ljallangan. Tutor HTTP oqimida ulardan faqat owner tekshiruvidan keyin foydalanish kerak.
-- `test_groups_http.py`, `test_students_http.py`, `test_lessons_http.py`, `test_sessions_http.py`, `test_attendance_http.py`, `test_fees_http.py`, `test_notify_http.py` va `test_export_http.py`da boshqa egaga oid ayrim salbiy testlar bor. Biroq barcha route va HTTP amallari uchun to‘liq matritsa yo‘q; ayniqsa reminder CRUD, topic/homework/board, oylik hisobot va guruh/o‘quvchini o‘chirish amallarini to‘liq qamrash kerak.
-- 1-fazada har `/api/tutor/*` endpoint uchun boshqa owner ID’si bilan 403/404 test qo‘shish kerak. Bu audit kod ko‘rigi, barcha yo‘llar uchun test kafolati emas.
+- `tests/test_tutor_tenant_matrix_http.py` ro‘yxatdan o‘tgan route-method juftliklarini test ro‘yxati bilan solishtirib, 52 route’ning har birini boshqa egasining ma’lumoti bilan tekshiradi. Obyekt ID’sidan foydalanadigan amallar 404 qaytaradi, ro‘yxatlar esa begona yozuvlarni chiqarmaydi.
+- Noto‘g‘ri yoki boshqa egaga tegishli bog‘lovchi ID’lar tegishli tutor API’larida 404 bilan qaytariladi; bu xatti-harakat uchun guruh, o‘quvchi, dars va eslatma handlerlarining xato xaritasi yangilandi.
 
 ## 4. Jarayon ichidagi holat va ko‘p instance
 

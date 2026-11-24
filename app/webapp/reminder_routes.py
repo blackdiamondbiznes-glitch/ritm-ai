@@ -18,8 +18,8 @@ _STATUS = {
     "empty": 400,
     "long": 400,
     "when": 400,
-    "student": 400,
-    "group": 400,
+    "student": 404,
+    "group": 404,
     "audience": 400,
 }
 
