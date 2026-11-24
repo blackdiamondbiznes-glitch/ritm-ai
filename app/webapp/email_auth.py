@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import re
-import secrets
+
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 
 EMAIL_MAX = 254
 PASSWORD_MIN = 10
 PASSWORD_MAX = 256
 _EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}$")
 _ROLES = frozenset({"teacher", "student", "community_owner"})
-_SCRYPT_N = 1 << 14
-_SCRYPT_R = 8
-_SCRYPT_P = 1
-_SCRYPT_BYTES = 32
+_PASSWORD_HASHER = PasswordHasher()
 
 
 class EmailAccountError(ValueError):
@@ -49,41 +45,15 @@ def validate_signup(name: object, password: object, role: object) -> tuple[str, 
 
 
 def hash_password(password: str) -> str:
-    """Create a salted scrypt hash; plaintext is never stored."""
-    salt = secrets.token_bytes(16)
-    digest = hashlib.scrypt(
-        password.encode("utf-8"),
-        salt=salt,
-        n=_SCRYPT_N,
-        r=_SCRYPT_R,
-        p=_SCRYPT_P,
-        dklen=_SCRYPT_BYTES,
-    )
-    return "scrypt${}${}${}".format(
-        _SCRYPT_N,
-        base64.urlsafe_b64encode(salt).decode("ascii"),
-        base64.urlsafe_b64encode(digest).decode("ascii"),
-    )
+    """Create an Argon2id hash; plaintext is never stored."""
+    return _PASSWORD_HASHER.hash(password)
 
 
 def verify_password(password: str, encoded: str | None) -> bool:
-    """Verify a stored scrypt hash without revealing which check failed."""
+    """Verify a stored Argon2id hash without revealing which check failed."""
     if not encoded:
         return False
     try:
-        algorithm, n_s, salt_s, digest_s = encoded.split("$")
-        if algorithm != "scrypt" or int(n_s) != _SCRYPT_N:
-            return False
-        salt = base64.urlsafe_b64decode(salt_s.encode("ascii"))
-        expected = base64.urlsafe_b64decode(digest_s.encode("ascii"))
-        actual = hashlib.scrypt(
-            password.encode("utf-8"),
-            salt=salt,
-            n=_SCRYPT_N,
-            r=_SCRYPT_R,
-            p=_SCRYPT_P,
-            dklen=len(expected),
-        )
-    except (ValueError, TypeError, UnicodeError):
+        return _PASSWORD_HASHER.verify(encoded, password)
+    except (InvalidHashError, VerificationError, VerifyMismatchError):
         return False
-    return hmac.compare_digest(actual, expected)

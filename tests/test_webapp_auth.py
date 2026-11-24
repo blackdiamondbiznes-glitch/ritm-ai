@@ -9,8 +9,10 @@ from urllib.parse import urlencode
 from app.webapp.auth import (
     AuthError,
     issue_account_session,
+    issue_eduflow_session,
     issue_session,
     read_account_session,
+    read_eduflow_session,
     read_session,
     session_secret,
     telegram_user_id,
@@ -94,6 +96,24 @@ def test_account_session_is_distinct_from_legacy_telegram_session() -> None:
         assert exc.code == "unauthorized"
     else:
         raise AssertionError("tampered account token")
+
+
+def test_eduflow_session_is_distinct_from_legacy_telegram_session() -> None:
+    secret = session_secret(TOKEN, "")
+    token = issue_eduflow_session(42, secret, ttl=60, now=NOW)
+    assert read_eduflow_session(token, secret, now=NOW) == 42
+    try:
+        read_session(token, secret, now=NOW)
+    except AuthError as exc:
+        assert exc.code == "unauthorized"
+    else:
+        raise AssertionError("EduFlow token accepted as legacy Telegram token")
+    try:
+        read_eduflow_session(token[:-2] + "ab", secret, now=NOW)
+    except AuthError as exc:
+        assert exc.code == "unauthorized"
+    else:
+        raise AssertionError("tampered EduFlow token")
 
 
 def test_time_is_not_used_as_auth_date_when_signing() -> None:

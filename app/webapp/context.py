@@ -53,13 +53,22 @@ class WebContext:
     engagement: EngagementRepository
     lifecycle: ChatLifecycleService | None = None
     memo: dict = field(default_factory=dict)
+    is_eduflow_session: bool = False
 
 
 def build_context(
-    session: AsyncSession, settings: Settings, user: User, admins: object | None = None
+    session: AsyncSession,
+    settings: Settings,
+    user: User,
+    admins: object | None = None,
+    *,
+    is_super_override: bool = False,
+    is_eduflow_session: bool = False,
 ) -> WebContext:
     """Wire repositories and services on an already-open session."""
-    is_super = user.telegram_id is not None and user.telegram_id in settings.admin_ids
+    is_super = is_super_override or (
+        user.telegram_id is not None and user.telegram_id in settings.admin_ids
+    )
     plans = PlanRepository(session)
     subs = SubscriptionRepository(session)
     workspaces = WorkspaceRepository(session)
@@ -137,4 +146,5 @@ def build_context(
         activity=ActivityService(engagement),
         engagement=engagement,
         lifecycle=lifecycle,
+        is_eduflow_session=is_eduflow_session,
     )

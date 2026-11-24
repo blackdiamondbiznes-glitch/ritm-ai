@@ -148,7 +148,7 @@ class _Notices:
 
 class _Users:
     async def get_by_id(self, user_id: int):
-        return SimpleNamespace(id=user_id, telegram_id=5052443384, language_code="uz")
+        return SimpleNamespace(id=user_id, telegram_id=9900000001, language_code="uz")
 
 
 class _Sender:
@@ -164,7 +164,7 @@ class _OptedOut(_Users):
     async def get_by_id(self, user_id: int):
         return SimpleNamespace(
             id=user_id,
-            telegram_id=5052443384,
+            telegram_id=9900000001,
             language_code="uz",
             notify_reports=False,
             notify_expiry=False,

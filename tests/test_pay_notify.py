@@ -56,12 +56,12 @@ def test_alert_text_escapes_the_owner_and_uses_tashkent_time() -> None:
     owner = make_user()
     owner.full_name = "Ada <b>H</b>"
     owner.username = "ada"
-    owner.telegram_id = 5052443384
+    owner.telegram_id = 9900000001
     plan = next(p for p in make_plans() if p.code == "pro")
     text = admin_payment_alert(_payment(), owner, plan, "uz", founder=True)
     assert "Ada &lt;b&gt;H&lt;/b&gt;" in text
     assert "@ada" in text
-    assert "5052443384" in text
+    assert "9900000001" in text
     assert "76200" in text or "76 200" in text
     assert "21:21" in text  # 16:21 UTC is 21:21 in Asia/Tashkent (UTC+5)
     assert "ta'sischi" in text or "tasischi" in text or "asoschi" in text or "ta" in text

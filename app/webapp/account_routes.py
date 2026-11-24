@@ -26,18 +26,18 @@ AUTH_WINDOW_SECONDS = 300
 
 def setup_account_routes(app: web.Application) -> None:
     """Register email-account endpoints."""
-    app.router.add_post("/api/eduflow/bootstrap", eduflow_bootstrap)
+    app.router.add_post("/api/eduflow/telegram-login", eduflow_telegram_login)
     app.router.add_post("/api/email/signup", signup)
     app.router.add_post("/api/email/login", login)
     app.router.add_post("/api/email/link", link_email)
 
 
-async def eduflow_bootstrap(request: web.Request) -> web.Response:
+async def eduflow_telegram_login(request: web.Request) -> web.Response:
     """Authenticate an EduFlow Mini App using its dedicated Telegram bot token."""
     bot_token = request.app["settings"].eduflow_bot_token.strip()
     if not bot_token:
         return _error(503, "eduflow_auth_unavailable")
-    return await sign_in(request, initdata_bot_token=bot_token)
+    return await sign_in(request, initdata_bot_token=bot_token, eduflow_login=True)
 
 
 async def signup(request: web.Request) -> web.Response:
@@ -97,7 +97,19 @@ async def login(request: web.Request) -> web.Response:
         if user.is_blocked:
             return _error(403, "blocked")
         user.last_seen_at = utcnow()
-        context = build_context(session, settings, user, request.app.get("admins"))
+        telegram_id = user.telegram_id
+        is_eduflow_session = telegram_id is not None
+        is_eduflow_owner = (
+            telegram_id is not None and telegram_id in settings.eduflow_owner_ids
+        )
+        context = build_context(
+            session,
+            settings,
+            user,
+            request.app.get("admins"),
+            is_super_override=is_eduflow_owner,
+            is_eduflow_session=is_eduflow_session,
+        )
         response = await _session_body(user, settings, context, request.app.get("bot_username"))
         await session.commit()
     return web.json_response(response)

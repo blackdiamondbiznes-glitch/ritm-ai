@@ -15,8 +15,10 @@ from app.services.payments import PaymentService
 from app.webapp.auth import (
     AuthError,
     issue_account_session,
+    issue_eduflow_session,
     issue_session,
     read_account_session,
+    read_eduflow_session,
     read_session,
     session_secret,
     telegram_user_id,
@@ -54,6 +56,7 @@ async def sign_in(
     extra=None,
     *,
     initdata_bot_token: str | None = None,
+    eduflow_login: bool = False,
 ) -> web.Response:
     """Validate Telegram initData; `extra(ctx)` adds fields in the same session."""
     if not _rate(request, "auth", AUTH_LIMIT):
@@ -66,6 +69,8 @@ async def sign_in(
     settings = request.app["settings"]
     cookie = request.cookies.get(PANEL_COOKIE, "")
     by_cookie = not init_data and bool(cookie)
+    if eduflow_login and not init_data:
+        return _error(400, "init_data_required")
     try:
         if by_cookie:
             # The panel embeds cabinet screens: the cookie is traded for a Bearer token.
@@ -99,8 +104,20 @@ async def sign_in(
         if user.is_blocked:
             await session.commit()
             return _error(403, "blocked")
-        ctx = build_context(session, settings, user, request.app.get("admins"))
+        is_eduflow_owner = eduflow_login and telegram_id in settings.eduflow_owner_ids
+        ctx = build_context(
+            session,
+            settings,
+            user,
+            request.app.get("admins"),
+            is_super_override=is_eduflow_owner,
+            is_eduflow_session=eduflow_login,
+        )
         body = await _session_body(user, settings, ctx, request.app.get("bot_username"))
+        if eduflow_login:
+            body["token"] = issue_eduflow_session(
+                telegram_id, _secret(settings), settings.webapp_session_ttl
+            )
         if extra is not None:
             body.update(await extra(ctx))
         await session.commit()
@@ -200,6 +217,7 @@ async def _context(request: web.Request) -> WebContext | web.Response:
     header = request.headers.get("Authorization", "")
     by_cookie = not header.startswith("Bearer ")
     token = request.cookies.get(PANEL_COOKIE, "") if by_cookie else header[7:].strip()
+    is_eduflow_session = False
     try:
         account_id = None
         if by_cookie:
@@ -209,7 +227,11 @@ async def _context(request: web.Request) -> WebContext | web.Response:
                 account_id = read_account_session(token, _secret(settings))
                 telegram_id = None
             except AuthError:
-                telegram_id = read_session(token, _secret(settings))
+                try:
+                    telegram_id = read_eduflow_session(token, _secret(settings))
+                    is_eduflow_session = True
+                except AuthError:
+                    telegram_id = read_session(token, _secret(settings))
     except AuthError as exc:
         # Unauthenticated traffic is limited per address; behind a tunnel this is shared.
         if not _rate(request, "api", API_LIMIT):
@@ -238,7 +260,19 @@ async def _context(request: web.Request) -> WebContext | web.Response:
             await session.close()
             return _error(403, "blocked")
         request["db_session"] = session
-        return build_context(session, settings, user, request.app.get("admins"))
+        is_eduflow_owner = (
+            is_eduflow_session
+            and telegram_id is not None
+            and telegram_id in settings.eduflow_owner_ids
+        )
+        return build_context(
+            session,
+            settings,
+            user,
+            request.app.get("admins"),
+            is_super_override=is_eduflow_owner,
+            is_eduflow_session=is_eduflow_session,
+        )
     except Exception:
         await session.close()
         raise
@@ -302,11 +336,12 @@ async def _session_body(
     from app.webapp.member_view import resolve_roles
 
     roles = await resolve_roles(ctx)
-    token = (
-        issue_account_session(user.id, secret, settings.webapp_session_ttl)
-        if user.telegram_id is None
-        else issue_session(user.telegram_id, secret, settings.webapp_session_ttl)
-    )
+    if user.telegram_id is None:
+        token = issue_account_session(user.id, secret, settings.webapp_session_ttl)
+    elif ctx.is_eduflow_session:
+        token = issue_eduflow_session(user.telegram_id, secret, settings.webapp_session_ttl)
+    else:
+        token = issue_session(user.telegram_id, secret, settings.webapp_session_ttl)
     return {
         "token": token,
         "user": {
