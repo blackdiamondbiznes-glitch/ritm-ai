@@ -18,6 +18,12 @@ def _locale_keys() -> dict[str, set[str]]:
     return keys
 
 
+def _css_rule(css: str, selector: str) -> str:
+    match = re.search(rf"(?m)^{re.escape(selector)}\s*\{{([^{{}}]*)\}}", css)
+    assert match, selector
+    return match.group(1)
+
+
 def test_mini_app_locales_have_identical_keys() -> None:
     keys = _locale_keys()
     assert set(keys) == {"uz", "ru", "en"}
@@ -239,6 +245,96 @@ def test_student_app_has_three_tabs_and_no_role_buttons() -> None:
     profile = (STATIC / "profile.js").read_text(encoding="utf-8")
     assert 'act: "role"' in profile and "bothRoles()" in profile
     assert "ritm.role" in roles
+
+
+def test_chat_empty_state_and_stale_refresh_are_explained() -> None:
+    keys = _locale_keys()
+    connect_copy = {
+        "uz": ("Profil", "Chat ulash"),
+        "ru": ("Профиль", "Подключить чат"),
+        "en": ("Profile", "Connect a chat"),
+    }
+    for lang, phrases in connect_copy.items():
+        text = (STATIC / f"i18n_shell_{lang}.js").read_text(encoding="utf-8")
+        empty = re.search(r'^  empty: "([^"]+)"', text, re.M)
+        assert empty and all(phrase in empty.group(1) for phrase in phrases)
+        assert re.search(r"^  refreshFailed:", text, re.M)
+    chats = (STATIC / "chats.js").read_text(encoding="utf-8")
+    assert 'toast(t("refreshFailed"), "err")' in chats
+    assert "empty" in keys["uz"] and "refreshFailed" in keys["uz"]
+
+
+def test_mini_app_bottom_navigation_keeps_labels_readable_on_small_screens() -> None:
+    css = (STATIC / "layout.css").read_text(encoding="utf-8")
+    bottom = _css_rule(css, ".bottom")
+    item = _css_rule(css, ".nav-item")
+    label = _css_rule(css, ".nav-item span")
+    assert re.search(r"justify-content\s*:\s*safe\s+center\s*;", bottom)
+    assert re.search(r"overflow-x\s*:\s*auto\s*;", bottom)
+    assert re.search(r"flex\s*:\s*1\s+1\s+0\s*;", item)
+    assert re.search(r"min-width\s*:\s*68px\s*;", item)
+    assert not re.search(r"max-width\s*:", item)
+    assert len(re.findall(r"\bdisplay\s*:", label)) == 1
+    assert re.search(r"-webkit-line-clamp\s*:\s*2\s*;", label)
+
+
+def test_platform_areas_are_named_for_teaching_and_communities() -> None:
+    keys = _locale_keys()
+    for lang in ("uz", "ru", "en"):
+        assert {"communityLead", "communityHomeLead", "navCommunity"} <= keys[lang]
+    chats = (STATIC / "chats.js").read_text(encoding="utf-8")
+    assert 't("communityLead")' in chats
+    home = (STATIC / "home.js").read_text(encoding="utf-8")
+    assert 't("navCommunity")' in home
+    assert 't("communityHomeLead")' in home
+    readme = (STATIC.parents[2] / "README.md").read_text(encoding="utf-8")
+    assert "Telegram-first platform" in readme
+
+
+def test_first_visit_offers_teaching_and_community_routes() -> None:
+    keys = _locale_keys()
+    assert all(
+        {
+            "onboardTitle",
+            "onboardTeachingTitle",
+            "onboardTeachingLead",
+            "onboardTeachingAction",
+            "onboardCommunityTitle",
+            "onboardCommunityLead",
+            "onboardCommunityAction",
+        }
+        <= keys[lang]
+        for lang in ("uz", "ru", "en")
+    )
+    home = (STATIC / "home.js").read_text(encoding="utf-8")
+    assert re.search(r"firstVisit\s*=\s*.+roles\(\).+isStudent\(\)", home, re.S)
+    assert 'data-mine="cabinet"' in home
+    assert 'data-mine="profile/connect"' in home
+    assert "boardCard()" in home and "joinCard()" in home
+
+
+def test_community_dashboard_distinguishes_connected_and_empty_states() -> None:
+    home = (STATIC / "home.js").read_text(encoding="utf-8")
+    assert re.search(r"hasChats\s*=\s*chats\.length\s*>\s*0", home)
+    assert re.search(r"\$\{\s*hasChats\s*\?", home)
+    assert 'data-action="post"' in home
+    assert 'data-mine="profile/connect"' in home
+    assert re.search(
+        r'\$\{\s*hasChats\s*\?\s*sparkChart\(dash\.stats\s*&&\s*dash\.stats\.daily\)\s*:\s*""\s*\}',
+        home,
+    )
+
+
+def test_teacher_managers_can_switch_to_the_community_dashboard() -> None:
+    vertical = (STATIC / "vertical.js").read_text(encoding="utf-8")
+    assert re.search(r'teacherCommunityTabs\s*:\s*\[\s*"home"\s*,\s*"chats"\s*\]', vertical)
+    app = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert re.search(
+        r'tab\s*===\s*"home"\s*&&\s*\(\s*studentMode\(\)\s*\|\|\s*\(isTutor\(\)\s*&&\s*!isManager\(\)\)\s*\)',
+        app,
+    )
+    nav = (STATIC / "nav.js").read_text(encoding="utf-8")
+    assert re.search(r"home\.textContent\s*=\s*t\(\s*managesCommunity\s*\?", nav)
 
 
 def test_cabinet_menu_replaces_the_section_grid() -> None:

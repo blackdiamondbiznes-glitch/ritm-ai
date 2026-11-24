@@ -49,6 +49,11 @@ export function labelNav() {
   nav.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.getAttribute("data-i18n"));
   });
+  const home = nav.querySelector('[data-tab="home"] [data-i18n]');
+  if (home) {
+    const managesCommunity = hasRole("owner") || hasRole("admin") || hasRole("super_admin");
+    home.textContent = t(managesCommunity ? "navCommunity" : "navHome");
+  }
 }
 
 /** Cabinet or study root is that role's home, so the Telegram Back button stays hidden. */

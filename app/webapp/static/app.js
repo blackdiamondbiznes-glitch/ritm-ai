@@ -170,7 +170,7 @@ async function warmUp() {
 async function route(opts = {}) {
   const seq = ticket();
   const { tab, sub, id } = parseRoute();
-  if (tab === "home" && (isTutor() || studentMode())) {
+  if (tab === "home" && (studentMode() || (isTutor() && !isManager()))) {
     go(studentMode() ? "study" : "cabinet");
     return;
   }

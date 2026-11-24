@@ -11,7 +11,7 @@ export const tutor = {
     fee: "feeNav",
   },
   teacherTabs: ["cabinet"],
-  teacherCommunityTabs: ["chats"],
+  teacherCommunityTabs: ["home", "chats"],
   /** Client app: today (Bosh) and agenda (Darslar); Profil is added by the shell. */
   studentTabs: ["study", "agenda"],
   /** Community screens stay reachable from Profil, not from the bottom bar. */

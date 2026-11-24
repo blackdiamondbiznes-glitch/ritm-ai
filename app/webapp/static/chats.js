@@ -32,6 +32,7 @@ export function renderChats() {
   setHtml(`
     ${brandHeader()}
     <h2 class="page-title">${escapeHtml(t("chats"))}</h2>
+    <p class="muted small-text">${escapeHtml(t("communityLead"))}</p>
     ${
       chats.length
         ? chats.map((chat) => chatCard(withPlan(chat, plan), `data-go="${chat.id}"`)).join("")
@@ -70,7 +71,10 @@ export async function openChat(id, seq) {
         .catch(() => {});
     }
   } catch (err) {
-    if (current(seq) && !hit) showError(err);
+    if (current(seq)) {
+      if (hit) toast(t("refreshFailed"), "err");
+      else showError(err);
+    }
   } finally {
     if (current(seq)) setBusy(false);
   }

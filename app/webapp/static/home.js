@@ -25,29 +25,49 @@ export function renderHome() {
   const plan = dash.plan || {};
   const chats = dash.chats || [];
   const member = memberData();
+  const hasChats = chats.length > 0;
   setHtml(`
     ${brandHeader()}
-    ${kpiRow(dash.stats)}
-    <button type="button" class="action hero" data-action="post">
-      <div class="hero-icon">🤖</div>
-      <div><div class="hero-title">${escapeHtml(t("actionPost"))}</div>
-      <div class="hero-sub">${escapeHtml(t("actionPostSub"))}</div></div>
-      <div class="hero-arrow">›</div>
-    </button>
-    <div class="grid three">
-      ${action("quiz", "📝", t("actionQuiz"))}
-      ${action("board", "🏆", t("actionBoard"))}
-      ${action("settings", "⚙️", t("actionSettings"))}
-    </div>
+    <h2 class="page-title">${escapeHtml(t("navCommunity"))}</h2>
+    <p class="muted small-text">${escapeHtml(t("communityHomeLead"))}</p>
+    ${
+      hasChats
+        ? `${kpiRow(dash.stats)}
+          <button type="button" class="action hero" data-action="post">
+            <div class="hero-icon">🤖</div>
+            <div><div class="hero-title">${escapeHtml(t("actionPost"))}</div>
+            <div class="hero-sub">${escapeHtml(t("actionPostSub"))}</div></div>
+            <div class="hero-arrow">›</div>
+          </button>
+          <div class="grid three">
+            ${action("quiz", "📝", t("actionQuiz"))}
+            ${action("board", "🏆", t("actionBoard"))}
+            ${action("settings", "⚙️", t("actionSettings"))}
+          </div>`
+        : `<div class="card">
+            <div class="card-title">📣 ${escapeHtml(t("onboardCommunityTitle"))}</div>
+            <p class="muted small-text">${escapeHtml(t("empty"))}</p>
+            <button type="button" class="primary" data-mine="profile/connect">${escapeHtml(t("onboardCommunityAction"))}</button>
+          </div>`
+    }
     ${isStudent() ? boardCard() : ""}
-    <button type="button" class="card list-btn" data-mine="cabinet">
-      <div class="card-title">🎓 ${escapeHtml(t(isTutor() ? "navCabinet" : "cabEnable"))}</div>
-      <div>${escapeHtml(t(isTutor() ? "cabLead" : "cabEnableLead"))}</div>
-    </button>
-    ${sparkChart(dash.stats && dash.stats.daily)}
+    ${
+      isTutor()
+        ? ""
+        : `<button type="button" class="card list-btn" data-mine="cabinet">
+            <div class="card-title">🎓 ${escapeHtml(t("cabEnable"))}</div>
+            <div>${escapeHtml(t("cabEnableLead"))}</div>
+          </button>`
+    }
+    ${hasChats ? sparkChart(dash.stats && dash.stats.daily) : ""}
     ${member ? myResultsCard(member, true) : ""}
     ${showsPlan() ? planCard(plan) : ""}
-    ${chats.length ? chats.map((chat) => chatCard(withPlan(chat, plan), `data-go="${chat.id}"`)).join("") : `<div class="card muted">${escapeHtml(t("empty"))}</div>`}
+    ${
+      hasChats
+        ? `<h2 class="page-title">${escapeHtml(t("chats"))}</h2>
+          ${chats.map((chat) => chatCard(withPlan(chat, plan), `data-go="${chat.id}"`)).join("")}`
+        : ""
+    }
   `);
   bindMine();
   document.querySelectorAll("[data-action]").forEach((node) => {
@@ -77,15 +97,32 @@ function renderMemberHome() {
   const dash = state.dash || {};
   const member = memberData();
   if (!member) {
+    const firstVisit = !(roles() || []).length && !isStudent();
+    const welcome = firstVisit
+      ? `<div class="card">
+          <div class="card-title">${escapeHtml(t("onboardTitle"))}</div>
+          <p>${escapeHtml(t("onboardLead"))}</p>
+        </div>
+        <div class="card">
+          <div class="card-title">🎓 ${escapeHtml(t("onboardTeachingTitle"))}</div>
+          <p class="muted small-text">${escapeHtml(t("onboardTeachingLead"))}</p>
+          <button type="button" class="primary" data-mine="cabinet">${escapeHtml(t("onboardTeachingAction"))}</button>
+        </div>
+        <div class="card">
+          <div class="card-title">📣 ${escapeHtml(t("onboardCommunityTitle"))}</div>
+          <p class="muted small-text">${escapeHtml(t("onboardCommunityLead"))}</p>
+          <button type="button" class="primary" data-mine="profile/connect">${escapeHtml(t("onboardCommunityAction"))}</button>
+        </div>`
+      : `<div class="card">
+          <div class="card-title">👋 ${escapeHtml(t("welcomeTitle"))}</div>
+          <p>${escapeHtml(t("welcomeMember"))}</p>
+        </div>`;
     setHtml(`
       ${brandHeader()}
-      <div class="card">
-        <div class="card-title">👋 ${escapeHtml(t("welcomeTitle"))}</div>
-        <p>${escapeHtml(t("welcomeMember"))}</p>
-      </div>
+      ${welcome}
       ${isStudent() ? boardCard() : joinCard()}
-      ${onlyStudent() ? "" : ownCta()}
-      ${state.dash && showsPlan() ? planCard(dash.plan || {}) : ""}
+      ${firstVisit || onlyStudent() ? "" : ownCta()}
+      ${!firstVisit && state.dash && showsPlan() ? planCard(dash.plan || {}) : ""}
     `);
     bindMine();
     bindJoin();
