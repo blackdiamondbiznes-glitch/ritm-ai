@@ -27,6 +27,7 @@ The container runs `alembic upgrade head` before the bot process. The bot uses l
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `BOT_TOKEN` | yes | | Telegram bot token |
+| `EDUFLOW_BOT_TOKEN` | no | empty | Server-only Telegram bot token used to verify EduFlow Mini App sign-in |
 | `DATABASE_URL` | yes | | `postgresql+asyncpg://...` |
 | `SUPER_ADMIN_IDS` | no | empty | Comma-separated Telegram ids |
 | `WEBAPP_CORS_ORIGINS` | no | empty | Comma-separated exact HTTPS origins allowed to call the API from a separate frontend; wildcards are rejected |

@@ -39,6 +39,27 @@ class UserRepository:
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_email(self, email: str) -> User | None:
+        """Return one account by its normalized email address."""
+        result = await self._session.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
+
+    async def create_email_account(
+        self, email: str, password_hash: str, name: str, role: str
+    ) -> User:
+        """Create a new email-backed account with a non-privileged role."""
+        user = User(
+            email=email,
+            password_hash=password_hash,
+            account_role=role,
+            full_name=name,
+            language_code="uz",
+            last_seen_at=datetime.now(UTC),
+        )
+        self._session.add(user)
+        await self._session.flush()
+        return user
+
     async def upsert_seen(
         self,
         telegram_id: int,

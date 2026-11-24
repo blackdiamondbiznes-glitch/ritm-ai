@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import context, op
 
 revision: str = "0038_workspace_billing"
-down_revision: str | None = "0035_panel_login_tokens"
+down_revision: str | None = "0037_homework_submissions"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

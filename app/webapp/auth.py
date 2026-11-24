@@ -101,6 +101,32 @@ def read_session(token: str, secret: str, *, now: int | None = None) -> int:
     return telegram_id
 
 
+def issue_account_session(user_id: int, secret: str, ttl: int, *, now: int | None = None) -> str:
+    """Sign an internal account id without colliding with legacy Telegram sessions."""
+    exp = (now if now is not None else int(time.time())) + max(60, ttl)
+    payload = f"account:{user_id}:{exp}"
+    return f"{payload}:{_sign(payload, secret)}"
+
+
+def read_account_session(token: str, secret: str, *, now: int | None = None) -> int:
+    """Return the internal account id when a hybrid account token is valid."""
+    if not token or not secret or token.count(":") != 3:
+        raise AuthError("unauthorized")
+    kind, user_s, exp_s, signature = token.split(":")
+    payload = f"{kind}:{user_s}:{exp_s}"
+    if kind != "account" or not hmac.compare_digest(_sign(payload, secret), signature):
+        raise AuthError("unauthorized")
+    try:
+        user_id = int(user_s)
+        exp = int(exp_s)
+    except ValueError as exc:
+        raise AuthError("unauthorized") from exc
+    stamp = now if now is not None else int(time.time())
+    if user_id <= 0 or exp < stamp:
+        raise AuthError("unauthorized")
+    return user_id
+
+
 def session_secret(bot_token: str, configured: str = "") -> str:
     """Use an explicit secret when set, otherwise derive one from the bot token."""
     if configured.strip():

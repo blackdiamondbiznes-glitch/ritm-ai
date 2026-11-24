@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     webapp_port: int = 8081
     webapp_url: str = ""
     webapp_cors_origins: str = ""
+    eduflow_bot_token: str = ""
     webapp_auth_max_age: int = 86400
     webapp_session_ttl: int = 43200
     webapp_session_secret: str = ""

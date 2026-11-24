@@ -14,8 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import Settings
 from app.i18n import t
+from app.webapp.account_routes import setup_account_routes
 from app.webapp.admin_routes import setup_admin_routes
 from app.webapp.admins import ChatAdminCache
+from app.webapp.ai_draft_routes import setup_ai_draft_routes
 from app.webapp.assets import setup_assets
 from app.webapp.attendance_routes import setup_attendance_routes
 from app.webapp.cabinet_routes import setup_cabinet_routes
@@ -25,6 +27,7 @@ from app.webapp.export_routes import setup_export_routes
 from app.webapp.fee_routes import setup_fee_routes
 from app.webapp.grade_routes import setup_grade_routes
 from app.webapp.group_routes import setup_group_routes
+from app.webapp.homework_submission_routes import setup_homework_submission_routes
 from app.webapp.join_routes import setup_join_routes
 from app.webapp.learning_routes import setup_learning_routes
 from app.webapp.lesson_routes import setup_lesson_routes
@@ -70,6 +73,8 @@ def create_app(
     app["bot_username"] = bot_username
     app["pending"] = pending
     setup_routes(app)
+    setup_account_routes(app)
+    setup_ai_draft_routes(app)
     setup_dash_routes(app)
     setup_admin_routes(app)
     setup_chart_routes(app)
@@ -77,6 +82,7 @@ def create_app(
     setup_pay_routes(app)
     setup_student_routes(app)
     setup_group_routes(app)
+    setup_homework_submission_routes(app)
     setup_request_routes(app)
     setup_grade_routes(app)
     setup_lesson_routes(app)

@@ -65,6 +65,8 @@ _TUTOR_ROUTES = {
     ("GET", "/api/tutor/groups/{group_id}/notify"),
     ("PUT", "/api/tutor/groups/{group_id}/notify"),
     ("PUT", "/api/tutor/groups/{group_id}/chat"),
+    ("GET", "/api/tutor/homework"),
+    ("POST", "/api/tutor/homework/submissions/{submission_id}/grade"),
 }
 
 
@@ -241,6 +243,15 @@ async def test_every_tutor_route_is_scoped_to_the_signed_in_owner(
     )
     assert reminder_response.status == 200
     foreign_reminder_id = (await reminder_response.json())["reminders"][0]["id"]
+
+    await call("GET", "GET /api/tutor/homework", "/api/tutor/homework", status=200)
+    await call(
+        "POST",
+        "POST /api/tutor/homework/submissions/{submission_id}/grade",
+        "/api/tutor/homework/submissions/999999999/grade",
+        status=404,
+        body={"score": 8},
+    )
 
     app_routes = {
         (route.method, route.resource.canonical)
